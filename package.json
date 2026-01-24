@@ -1,0 +1,45 @@
+{
+  "name": "chatui-client",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "echo \"lint not configured\""
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.9.0",
+    "@tanstack/react-query": "^5.51.23",
+    "@types/file-saver": "^2.0.7",
+    "@types/jszip": "^3.4.0",
+    "@types/react-syntax-highlighter": "^15.5.13",
+    "dayjs": "^1.11.11",
+    "docx": "^9.5.1",
+    "file-saver": "^2.0.5",
+    "firebase": "^10.12.4",
+    "jspdf": "^4.0.0",
+    "jspdf-autotable": "^5.0.7",
+    "jszip": "^3.10.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.52.2",
+    "react-markdown": "^9.0.1",
+    "react-router-dom": "^6.26.1",
+    "react-syntax-highlighter": "^16.1.0",
+    "remark-gfm": "^4.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.40",
+    "tailwindcss": "^3.4.10",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.2"
+  }
+}
