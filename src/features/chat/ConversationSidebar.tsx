@@ -225,7 +225,7 @@ const ConversationSidebar = () => {
                       }`}
                     >
                       <button
-                        className="flex-1 text-left overflow-hidden whitespace-normal line-clamp-1 font-sans"
+                        className="flex-1 text-left overflow-hidden whitespace-normal h-5 leading-5 font-sans"
                         onClick={() => navigate(`/c/${conversation.id}`)}
                         title={conversation.title}
                       >
