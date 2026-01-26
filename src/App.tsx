@@ -5,7 +5,6 @@ import { applyTheme } from "./lib/theme";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Chat from "./pages/Chat";
-import Settings from "./pages/Settings";
 import Account from "./pages/Account";
 import HomeRedirect from "./pages/HomeRedirect";
 
@@ -43,11 +42,7 @@ const App = () => {
       <Route path="/signup" element={<Signup />} />
       <Route
         path="/settings"
-        element={
-          <RequireAuth>
-            <Settings />
-          </RequireAuth>
-        }
+        element={<Navigate to="/account" replace />}
       />
       <Route
         path="/account"
