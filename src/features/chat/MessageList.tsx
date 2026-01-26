@@ -77,13 +77,17 @@ const MessageList = ({
   onEditSubmit,
   editDisabled,
   modelOptions = [],
-  onRegenerate
+  onRegenerate,
+  onStopStreaming,
+  activeStreamId
 }: {
   messages: ChatMessage[];
   onEditSubmit?: (id: string, value: string) => Promise<void>;
   editDisabled?: boolean;
   modelOptions?: ModelOption[];
   onRegenerate?: (messageId: string, model: string) => void;
+  onStopStreaming?: () => void;
+  activeStreamId?: string | null;
 }) => {
   const listRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
@@ -388,37 +392,47 @@ const MessageList = ({
                   </ReactMarkdown>
                 )}
                 <div className="mt-2 flex items-center gap-3 min-h-[20px]">
+                  {message.model && (
+                    <div className="text-[11px] text-[var(--muted)] opacity-60 mr-1">
+                      {message.model.split('/').pop()}
+                    </div>
+                  )}
                   {message.status === "STREAMING" ? (
-                    message.content && (
-                      <div className="flex gap-1 items-center ml-2" title="Generating...">
-                        <div className="h-1 w-1 rounded-full bg-[var(--accent)] animate-bounce [animation-delay:-0.3s]"></div>
-                        <div className="h-1 w-1 rounded-full bg-[var(--accent)] animate-bounce [animation-delay:-0.15s]"></div>
-                        <div className="h-1 w-1 rounded-full bg-[var(--accent)] animate-bounce"></div>
-                      </div>
-                    )
-                  ) : (
                     <>
-                      {message.model && (
-                        <div className="text-[11px] text-[var(--muted)] opacity-60 mr-2">
-                          {message.model.split('/').pop()}
+                      {onStopStreaming && activeStreamId === message.id ? (
+                        <button
+                          className="inline-flex items-center gap-1 text-[12px] text-[var(--muted)] hover:text-[var(--text)] transition-colors"
+                          onClick={onStopStreaming}
+                          title="Stop response"
+                          type="button"
+                        >
+                          <i className="bi bi-stop-circle"></i>
+                        </button>
+                      ) : null}
+                      {message.content && (
+                        <div className="flex gap-1 items-center ml-2" title="Generating...">
+                          <div className="h-1 w-1 rounded-full bg-[var(--accent)] animate-bounce [animation-delay:-0.3s]"></div>
+                          <div className="h-1 w-1 rounded-full bg-[var(--accent)] animate-bounce [animation-delay:-0.15s]"></div>
+                          <div className="h-1 w-1 rounded-full bg-[var(--accent)] animate-bounce"></div>
                         </div>
                       )}
-                      <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {onRegenerate && (
-                          <RegenerateMenu 
-                            messageId={message.id} 
-                            modelOptions={modelOptions} 
-                            onRegenerate={onRegenerate} 
-                          />
-                        )}
-                        <CopyButton 
-                          text={message.content} 
-                          showText={false}
-                          className="inline-flex items-center gap-1 text-[13px] text-[var(--muted)] hover:text-[var(--text)]"
-                        />
-                        <DownloadMenu content={message.content} messages={messages} chatContainerRef={listRef} />
-                      </div>
                     </>
+                  ) : (
+                    <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {onRegenerate && (
+                        <RegenerateMenu 
+                          messageId={message.id} 
+                          modelOptions={modelOptions} 
+                          onRegenerate={onRegenerate} 
+                        />
+                      )}
+                      <CopyButton 
+                        text={message.content} 
+                        showText={false}
+                        className="inline-flex items-center gap-1 text-[13px] text-[var(--muted)] hover:text-[var(--text)]"
+                      />
+                      <DownloadMenu content={message.content} messages={messages} chatContainerRef={listRef} />
+                    </div>
                   )}
                 </div>
               </div>

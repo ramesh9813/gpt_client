@@ -12,10 +12,13 @@ const Chat = () => {
   const queryClient = useQueryClient();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
+  const [activeStreamId, setActiveStreamId] = useState<string | null>(null);
   const [model, setModel] = useState("default");
   const [lastUserMessage, setLastUserMessage] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "cheapest" | "free">("name");
   const composerInputRef = useRef<HTMLTextAreaElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const cancelRef = useRef(false);
   const apiBase = import.meta.env.VITE_API_URL || "";
   const [composerError, setComposerError] = useState<string | null>(null);
   const messageSchema = useMemo(
@@ -82,74 +85,173 @@ const Chat = () => {
     userMessage?: string;
     existingUserMessageId?: string;
   }) => {
-    const response = await fetch(`${apiBase}/api/chat/stream`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-csrf-token": getCsrfToken()
-      },
-      credentials: "include",
-      body: JSON.stringify({
-        conversationId,
-        userMessage,
-        existingUserMessageId,
-        model: model === "default" ? undefined : model
-      })
-    });
+    cancelRef.current = false;
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
-    if (!response.ok || !response.body) {
-      throw new Error("Streaming failed");
-    }
+    const isCancelled = () => controller.signal.aborted || cancelRef.current;
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    let currentEvent = "message";
+    try {
+      const response = await fetch(`${apiBase}/api/chat/stream`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": getCsrfToken()
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          conversationId,
+          userMessage,
+          existingUserMessageId,
+          model: model === "default" ? undefined : model
+        }),
+        signal: controller.signal
+      });
 
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const parts = buffer.split("\n");
-      buffer = parts.pop() || "";
+      if (!response.ok || !response.body) {
+        throw new Error("Streaming failed");
+      }
 
-      for (const line of parts) {
-        const trimmed = line.trim();
-        if (!trimmed) {
-          currentEvent = "message";
-          continue;
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let currentEvent = "message";
+      let pendingText = "";
+      let streamDone = false;
+      let flushTimer: ReturnType<typeof setTimeout> | null = null;
+      let resolveFlushDone: (() => void) | null = null;
+
+      const resolveOnce = () => {
+        if (!resolveFlushDone) return;
+        const resolver = resolveFlushDone;
+        resolveFlushDone = null;
+        resolver();
+      };
+
+      const appendChunk = (chunk: string) => {
+        if (isCancelled()) return;
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === tempAssistantId ? { ...m, content: m.content + chunk } : m
+          )
+        );
+      };
+
+      const flushPending = () => {
+        flushTimer = null;
+        if (isCancelled()) {
+          pendingText = "";
+          resolveOnce();
+          return;
         }
-        if (trimmed.startsWith("event:")) {
-          currentEvent = trimmed.replace("event:", "").trim();
-          continue;
+        if (pendingText.length === 0) {
+          if (streamDone) resolveOnce();
+          return;
         }
-        if (trimmed.startsWith("data:")) {
-          const payload = trimmed.replace("data:", "").trim();
-          if (!payload) continue;
-          const parsed = JSON.parse(payload);
-          if (currentEvent === "token") {
-            const delta = parsed.delta as string;
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === tempAssistantId
-                  ? { ...m, content: m.content + delta }
-                  : m
-              )
-            );
+        const chunkSize = Math.max(
+          40,
+          Math.min(160, Math.ceil(pendingText.length / 18))
+        );
+        const chunk = pendingText.slice(0, chunkSize);
+        pendingText = pendingText.slice(chunkSize);
+        appendChunk(chunk);
+        flushTimer = setTimeout(flushPending, 4);
+      };
+
+      const startFlush = () => {
+        if (flushTimer || isCancelled()) return;
+        flushTimer = setTimeout(flushPending, 0);
+      };
+
+      while (true) {
+        let readResult: ReadableStreamReadResult<Uint8Array>;
+        try {
+          readResult = await reader.read();
+        } catch (err) {
+          if (isCancelled()) return;
+          throw err;
+        }
+        const { value, done } = readResult;
+        if (done) break;
+        if (isCancelled()) return;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n");
+        buffer = parts.pop() || "";
+
+        for (const line of parts) {
+          const trimmed = line.trim();
+          if (!trimmed) {
+            currentEvent = "message";
+            continue;
           }
-          if (currentEvent === "error") {
-            const errorMessage = (parsed as any).message || "Streaming failed";
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === tempAssistantId
-                  ? { ...m, content: errorMessage, status: "ERROR" }
-                  : m
-              )
-            );
+          if (trimmed.startsWith("event:")) {
+            currentEvent = trimmed.replace("event:", "").trim();
+            continue;
+          }
+          if (trimmed.startsWith("data:")) {
+            const payload = trimmed.replace("data:", "").trim();
+            if (!payload) continue;
+            const parsed = JSON.parse(payload);
+            if (currentEvent === "token") {
+              const delta = parsed.delta as string;
+              pendingText += delta;
+              startFlush();
+            }
+            if (currentEvent === "error") {
+              if (isCancelled()) return;
+              const errorMessage = (parsed as any).message || "Streaming failed";
+              pendingText = "";
+              streamDone = true;
+              if (flushTimer) {
+                clearTimeout(flushTimer);
+                flushTimer = null;
+              }
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === tempAssistantId
+                    ? { ...m, content: errorMessage, status: "ERROR" }
+                    : m
+                )
+              );
+            }
           }
         }
       }
+
+      streamDone = true;
+      if (pendingText.length > 0) {
+        startFlush();
+      }
+      await new Promise<void>((resolve) => {
+        resolveFlushDone = resolve;
+        if (pendingText.length === 0 && !flushTimer) {
+          resolveOnce();
+        }
+      });
+    } catch (err) {
+      if (isCancelled()) {
+        return;
+      }
+      throw err;
+    } finally {
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
     }
+  };
+
+  const stopStreaming = () => {
+    cancelRef.current = true;
+    abortControllerRef.current?.abort();
+    setStreaming(false);
+    if (activeStreamId) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === activeStreamId ? { ...m, status: "COMPLETE" } : m
+        )
+      );
+    }
+    setActiveStreamId(null);
   };
 
   const sendMessage = async (text: string) => {
@@ -176,6 +278,7 @@ const Chat = () => {
       }
     ]);
     setStreaming(true);
+    setActiveStreamId(tempAssistantId);
 
     try {
       await streamAssistant({
@@ -184,6 +287,9 @@ const Chat = () => {
         userMessage: text
       });
     } catch {
+      if (cancelRef.current) {
+        return;
+      }
       setMessages((prev) =>
         prev.map((m) =>
           m.id === tempAssistantId
@@ -193,6 +299,7 @@ const Chat = () => {
       );
     } finally {
       setStreaming(false);
+      setActiveStreamId(null);
       queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
     }
@@ -209,6 +316,7 @@ const Chat = () => {
 
     setStreaming(true);
     const tempAssistantId = `local-assistant-${Date.now()}`;
+    setActiveStreamId(tempAssistantId);
 
     try {
       await apiFetch<ApiResponse<{ message: ChatMessage }>>(
@@ -241,6 +349,9 @@ const Chat = () => {
         existingUserMessageId: messageId
       });
     } catch {
+      if (cancelRef.current) {
+        return;
+      }
       setMessages((prev) =>
         prev.map((m) =>
           m.id === tempAssistantId
@@ -251,6 +362,7 @@ const Chat = () => {
       throw new Error("Streaming failed");
     } finally {
       setStreaming(false);
+      setActiveStreamId(null);
       queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
     }
@@ -267,6 +379,7 @@ const Chat = () => {
 
     setStreaming(true);
     setModel(newModel); // Optionally update the global model state
+    setActiveStreamId(messageId);
 
     // Optimistically update the UI to show loading state for the assistant message
     setMessages((prev) => {
@@ -289,6 +402,9 @@ const Chat = () => {
         existingUserMessageId: userMessage.id
       });
     } catch {
+      if (cancelRef.current) {
+        return;
+      }
       setMessages((prev) =>
         prev.map((m) =>
           m.id === messageId
@@ -298,6 +414,7 @@ const Chat = () => {
       );
     } finally {
       setStreaming(false);
+      setActiveStreamId(null);
       queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
     }
   };
@@ -373,6 +490,8 @@ const Chat = () => {
           editDisabled={streaming}
           modelOptions={modelOptions}
           onRegenerate={handleRegenerate}
+          onStopStreaming={stopStreaming}
+          activeStreamId={activeStreamId}
         />
         <Composer
           onSend={sendMessage}
@@ -385,6 +504,8 @@ const Chat = () => {
           inputRef={composerInputRef}
           sort={sortBy}
           onSortChange={setSortBy}
+          streaming={streaming}
+          onStop={stopStreaming}
         />
       </main>
     </div>

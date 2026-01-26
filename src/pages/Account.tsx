@@ -121,12 +121,44 @@ const SettingsTab = () => {
 // --- Usage Tab ---
 const UsageTab = () => {
   const { data: usageData } = useQuery({
-    queryKey: ["usage"],
-    queryFn: () => apiFetch<ApiResponse<{ items: UsageLog[] }>>("/api/me/usage"),
+    queryKey: ["usage", "year"],
+    queryFn: () =>
+      apiFetch<ApiResponse<{ items: UsageLog[] }>>("/api/me/usage?range=year"),
   });
 
   const logs = usageData?.data?.items || [];
-  const totalTokensToday = logs.reduce((acc, log) => acc + (log.tokenCount || 0), 0);
+  const totalTokensToday = useMemo(() => {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    return logs.reduce((acc, log) => {
+      const createdAt = new Date(log.createdAt);
+      return createdAt >= start ? acc + (log.tokenCount || 0) : acc;
+    }, 0);
+  }, [logs]);
+
+  const PAGE_SIZE = 50;
+  const [page, setPage] = useState(1);
+  const sortedLogs = useMemo(
+    () =>
+      [...logs].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ),
+    [logs]
+  );
+  const totalPages = Math.max(1, Math.ceil(sortedLogs.length / PAGE_SIZE));
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
+  const pagedLogs = sortedLogs.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE
+  );
+  const startIndex = sortedLogs.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const endIndex = Math.min(page * PAGE_SIZE, sortedLogs.length);
 
   return (
     <div className="max-w-4xl space-y-8">
@@ -145,7 +177,6 @@ const UsageTab = () => {
       </div>
 
       <div className="h-96 w-full rounded-xl border border-[var(--border)] bg-[var(--panel)] p-4">
-        <h3 className="mb-4 text-sm font-medium text-[var(--muted)]">Hourly Usage by Model</h3>
         <UsageChart logs={logs} />
       </div>
 
@@ -166,11 +197,11 @@ const UsageTab = () => {
               {logs.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-8 text-center text-[var(--muted)]">
-                    No usage recorded today.
+                    No usage recorded yet.
                   </td>
                 </tr>
               ) : (
-                logs.map((log) => (
+                pagedLogs.map((log) => (
                   <tr key={log.id} className="hover:bg-[var(--panel)]">
                     <td className="px-4 py-3 whitespace-nowrap">
                       {new Date(log.createdAt).toLocaleTimeString()}
@@ -188,6 +219,34 @@ const UsageTab = () => {
             </tbody>
           </table>
         </div>
+        {sortedLogs.length > 0 ? (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--muted)]">
+            <span>
+              Showing {startIndex}-{endIndex} of {sortedLogs.length}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                className="h-9 px-3"
+                disabled={page === 1}
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              >
+                Previous
+              </Button>
+              <span className="px-2">
+                Page {page} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                className="h-9 px-3"
+                disabled={page === totalPages}
+                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

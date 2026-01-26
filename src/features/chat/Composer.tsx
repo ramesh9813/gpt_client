@@ -6,7 +6,9 @@ type SortOption = "name" | "cheapest" | "free";
 
 const Composer = ({
   onSend,
+  onStop,
   disabled,
+  streaming,
   error,
   lastUserMessage,
   model,
@@ -17,7 +19,9 @@ const Composer = ({
   onSortChange
 }: {
   onSend: (value: string) => void;
+  onStop?: () => void;
   disabled?: boolean;
+  streaming?: boolean;
   error?: string | null;
   lastUserMessage?: string;
   model: string;
@@ -41,7 +45,7 @@ const Composer = ({
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      if (!disabled) {
+      if (!disabled && !streaming) {
         handleSend();
       }
     }
@@ -153,14 +157,28 @@ const Composer = ({
           className="flex-1 w-full min-h-[24px] max-h-52 bg-transparent border-none outline-none focus:ring-0 shadow-none py-1 px-2 text-base text-white placeholder:text-gray-500 resize-none overflow-hidden"
         />
 
-        <Button 
-          onClick={handleSend} 
-          disabled={disabled || !value.trim()} 
-          variant="ghost"
-          className={`h-8 w-8 rounded-full p-0 flex-shrink-0 mb-0.5 mr-0.5 hover:bg-transparent ${value.trim() ? "text-white" : "text-gray-500"}`}
-        >
-          <i className="bi bi-arrow-up-circle-fill text-2xl" />
-        </Button>
+        {streaming ? (
+          <Button
+            onClick={onStop}
+            variant="ghost"
+            className="h-8 w-8 rounded-full p-0 flex-shrink-0 mb-0.5 mr-0.5 text-white hover:bg-transparent"
+            aria-label="Stop response"
+            title="Stop response"
+          >
+            <i className="bi bi-stop-circle-fill text-2xl" />
+          </Button>
+        ) : (
+          <Button
+            onClick={handleSend}
+            disabled={disabled || !value.trim()}
+            variant="ghost"
+            className={`h-8 w-8 rounded-full p-0 flex-shrink-0 mb-0.5 mr-0.5 hover:bg-transparent ${value.trim() ? "text-white" : "text-gray-500"}`}
+            aria-label="Send message"
+            title="Send message"
+          >
+            <i className="bi bi-arrow-up-circle-fill text-2xl" />
+          </Button>
+        )}
       </div>
 
      
