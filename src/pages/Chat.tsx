@@ -138,10 +138,11 @@ const Chat = () => {
             );
           }
           if (currentEvent === "error") {
+            const errorMessage = (parsed as any).message || "Streaming failed";
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === tempAssistantId
-                  ? { ...m, content: "Streaming failed", status: "ERROR" }
+                  ? { ...m, content: errorMessage, status: "ERROR" }
                   : m
               )
             );
