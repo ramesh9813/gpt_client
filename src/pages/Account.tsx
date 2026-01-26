@@ -3,31 +3,16 @@ import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
 import { z } from "zod";
 import { Button } from "../components/Button";
 import { Input } from "../components/Input";
 import { apiFetch, ApiResponse } from "../lib/api";
 import { useMe, useSettings } from "../lib/hooks";
 import { applyTheme } from "../lib/theme";
+import { UsageChart, UsageLog } from "../features/settings/UsageChart";
 
 // --- Types ---
-type UsageLog = {
-  id: string;
-  createdAt: string;
-  model: string | null;
-  promptTokens: number | null;
-  completionTokens: number | null;
-  tokenCount: number | null;
-};
+// UsageLog imported from features/settings/UsageChart
 
 // --- Settings Logic ---
 const settingsSchema = z.object({
@@ -140,32 +125,7 @@ const UsageTab = () => {
     queryFn: () => apiFetch<ApiResponse<{ items: UsageLog[] }>>("/api/me/usage"),
   });
 
-  // Re-check mount point: app.ts usually mounts user routes.
-  // I will assume `/api/users/usage` for now.
-  
-  // Actually, I should probably check where users.routes.ts is mounted.
-  // But let's write the component logic first.
-  
-  // NOTE: The user requested usage for "today". The API returns logs for today.
   const logs = usageData?.data?.items || [];
-  
-  const chartData = useMemo(() => {
-    // Group by hour
-    const groups: Record<number, number> = {};
-    for (let i = 0; i < 24; i++) groups[i] = 0; // init all hours
-
-    logs.forEach(log => {
-      const d = new Date(log.createdAt);
-      const hour = d.getHours();
-      groups[hour] = (groups[hour] || 0) + (log.tokenCount || 0);
-    });
-
-    return Object.entries(groups).map(([hour, tokens]) => ({
-      hour: `${hour}:00`,
-      tokens
-    }));
-  }, [logs]);
-
   const totalTokensToday = logs.reduce((acc, log) => acc + (log.tokenCount || 0), 0);
 
   return (
@@ -184,33 +144,9 @@ const UsageTab = () => {
         </div>
       </div>
 
-      <div className="h-64 w-full rounded-xl border border-[var(--border)] bg-[var(--panel)] p-4">
-        <h3 className="mb-4 text-sm font-medium text-[var(--muted)]">Hourly Usage</h3>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} />
-            <XAxis 
-              dataKey="hour" 
-              tick={{ fontSize: 12, fill: "var(--muted)" }} 
-              axisLine={false} 
-              tickLine={false} 
-            />
-            <YAxis 
-              tick={{ fontSize: 12, fill: "var(--muted)" }} 
-              axisLine={false} 
-              tickLine={false} 
-            />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: "var(--panel)", 
-                borderColor: "var(--border)", 
-                color: "var(--text)" 
-              }} 
-              cursor={{ fill: "var(--muted)", opacity: 0.1 }}
-            />
-            <Bar dataKey="tokens" fill="var(--accent)" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+      <div className="h-96 w-full rounded-xl border border-[var(--border)] bg-[var(--panel)] p-4">
+        <h3 className="mb-4 text-sm font-medium text-[var(--muted)]">Hourly Usage by Model</h3>
+        <UsageChart logs={logs} />
       </div>
 
       <div>
