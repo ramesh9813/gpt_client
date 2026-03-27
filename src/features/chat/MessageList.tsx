@@ -6,6 +6,7 @@ import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Textarea } from "../../components/Textarea";
 import { DownloadMenu } from "../../components/DownloadMenu";
 import { Dropdown } from "../../components/Dropdown";
+import { apiFetch, ApiResponse } from "../../lib/api";
 
 export type ChatMessage = {
   id: string;
@@ -16,6 +17,172 @@ export type ChatMessage = {
 };
 
 type ModelOption = { label: string; value: string };
+
+const RUN_LANGS = new Set(["python", "py", "c", "cpp", "c++", "rust", "rs", "java"]);
+
+const normalizeRunLanguage = (language: string) => {
+  const lang = language.toLowerCase();
+  if (lang === "py") return "python";
+  if (lang === "c++") return "cpp";
+  if (lang === "rs") return "rust";
+  return lang;
+};
+
+const CopyButton = ({
+  text,
+  className,
+  showText = true
+}: {
+  text: string;
+  className?: string;
+  showText?: boolean;
+}) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className={
+        className ||
+        "flex items-center gap-2 hover:text-white transition-colors opacity-70 hover:opacity-100"
+      }
+      title="Copy"
+      type="button"
+    >
+      <i
+        className={`bi ${
+          copied ? "bi-check text-[var(--text)]" : "bi-copy"
+        } text-[13px]`}
+      ></i>
+      {showText && (copied ? "Copied!" : "Copy")}
+    </button>
+  );
+};
+
+const CodeBlockWithRun = ({
+  language,
+  code
+}: {
+  language: string;
+  code: string;
+}) => {
+  const normalized = normalizeRunLanguage(language);
+  const runnable = RUN_LANGS.has(language.toLowerCase());
+  const [runState, setRunState] = useState<{
+    status: "idle" | "running" | "done" | "error";
+    output?: string;
+    stderr?: string;
+    code?: number | null;
+  }>({ status: "idle" });
+
+  const handleRun = async () => {
+    setRunState({ status: "running" });
+    try {
+      const response = await apiFetch<
+        ApiResponse<{ stdout?: string; stderr?: string; output?: string; code?: number }>
+      >("/api/runner/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          language: normalized,
+          code
+        })
+      });
+      const output = response.data.output || response.data.stdout || "";
+      const stderr = response.data.stderr || "";
+      setRunState({
+        status: "done",
+        output: output || stderr || "No output.",
+        stderr,
+        code: response.data.code ?? null
+      });
+    } catch (err: any) {
+      setRunState({
+        status: "error",
+        output: err?.error?.message || "Run failed.",
+        stderr: err?.error?.message
+      });
+    }
+  };
+
+  return (
+    <div className="my-0 bg-black rounded-md relative">
+      <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-2 bg-black text-xs text-zinc-400 rounded-t-md">
+        <span className="font-mono">{language}</span>
+        <div className="flex items-center gap-3">
+          {runnable && (
+            <button
+              onClick={handleRun}
+              className="inline-flex items-center gap-1 text-[11px] text-zinc-300 hover:text-white"
+              disabled={runState.status === "running"}
+              type="button"
+              title="Run code"
+            >
+              <i
+                className={`bi ${
+                  runState.status === "running"
+                    ? "bi-hourglass-split"
+                    : "bi-play-fill"
+                }`}
+              ></i>
+              {runState.status === "running" ? "Running..." : "Run"}
+            </button>
+          )}
+          {runState.status !== "idle" && (
+            <button
+              onClick={() => setRunState({ status: "idle" })}
+              className="inline-flex items-center gap-1 text-[11px] text-zinc-300 hover:text-white"
+              type="button"
+              title="Clear output"
+            >
+              <i className="bi bi-trash"></i>
+              Clear
+            </button>
+          )}
+          <CopyButton text={code} showText={false} />
+        </div>
+      </div>
+      <SyntaxHighlighter
+        PreTag="div"
+        language={language}
+        style={vscDarkPlus}
+        codeTagProps={{
+          style: {
+            backgroundColor: "transparent",
+            padding: 0
+          }
+        }}
+        customStyle={{
+          margin: 0,
+          background: "#000",
+          padding: "1rem",
+          fontSize: "14px"
+        }}
+      >
+        {code.replace(/\n$/, "")}
+      </SyntaxHighlighter>
+      {runnable && runState.status !== "idle" ? (
+        <div className="border-t border-white/10 bg-[#0c0c0c] px-4 py-3 text-xs text-zinc-200">
+          <div className="mb-2 flex items-center justify-between text-[11px] text-zinc-500">
+            <span>Output</span>
+            {typeof runState.code === "number" ? (
+              <span>Exit {runState.code}</span>
+            ) : null}
+          </div>
+          <pre className="whitespace-pre-wrap text-[12px] leading-relaxed">
+            {runState.output || runState.stderr || "No output."}
+          </pre>
+        </div>
+      ) : null}
+    </div>
+  );
+};
 
 const RegenerateMenu = ({ 
   messageId, 
@@ -79,7 +246,9 @@ const MessageList = ({
   modelOptions = [],
   onRegenerate,
   onStopStreaming,
-  activeStreamId
+  activeStreamId,
+  contentOverrides,
+  hasCanvasCode
 }: {
   messages: ChatMessage[];
   onEditSubmit?: (id: string, value: string) => Promise<void>;
@@ -88,6 +257,8 @@ const MessageList = ({
   onRegenerate?: (messageId: string, model: string) => void;
   onStopStreaming?: () => void;
   activeStreamId?: string | null;
+  contentOverrides?: Record<string, string>;
+  hasCanvasCode?: Record<string, boolean>;
 }) => {
   const listRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
@@ -176,29 +347,6 @@ const MessageList = ({
     }
   };
 
-  const CopyButton = ({ text, className, showText = true }: { text: string; className?: string, showText?: boolean }) => {
-    const [copied, setCopied] = useState(false);
-
-    const handleCopy = () => {
-      navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    };
-
-    return (
-      <button
-        onClick={handleCopy}
-        className={className || "flex items-center gap-2 hover:text-white transition-colors opacity-70 hover:opacity-100"}
-        title="Copy"
-      >
-        <i className={`bi ${copied ? "bi-check text-[var(--text)]" : "bi-copy"} text-[13px]`}></i>
-        {showText && (
-          copied ? "Copied!" : "Copy"
-        )}
-      </button>
-    );
-  };
-
   return (
     <div className="relative flex-1 overflow-y-auto scrollbar-thin" ref={listRef}>
       <div className="mx-auto max-w-3xl space-y-0 px-4 py-6">
@@ -213,6 +361,12 @@ const MessageList = ({
 
           const isUser = message.role === "USER";
           const isEditing = editingId === message.id;
+          const displayContent =
+            contentOverrides?.[message.id] ?? message.content;
+          const isCanvasOnly =
+            !isUser &&
+            !!hasCanvasCode?.[message.id] &&
+            displayContent.trim().length === 0;
 
           if (isUser) {
             return (
@@ -266,31 +420,10 @@ const MessageList = ({
                             const { children, className, node, ...rest } = props;
                             const match = /language-(\w+)/.exec(className || "");
                             return match ? (
-                              <div className="my-0 bg-black rounded-md relative">
-                                <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-2 bg-black text-xs text-zinc-400 rounded-t-md">
-                                  <span className="font-mono">{match[1]}</span>
-                                  <CopyButton text={String(children)} />
-                                </div>
-                                <SyntaxHighlighter
-                                  {...rest}
-                                  PreTag="div"
-                                  children={String(children).replace(/\n$/, "")}
-                                  language={match[1]}
-                                  style={vscDarkPlus}
-                                  codeTagProps={{
-                                    style: {
-                                      backgroundColor: 'transparent',
-                                      padding: 0
-                                    }
-                                  }}
-                                  customStyle={{ 
-                                    margin: 0, 
-                                    background: '#000', 
-                                    padding: '1rem',
-                                    fontSize: '14px'
-                                  }}
-                                />
-                              </div>
+                              <CodeBlockWithRun
+                                language={match[1]}
+                                code={String(children)}
+                              />
                             ) : (
                               <code {...rest} className={className}>
                                 {children}
@@ -338,11 +471,15 @@ const MessageList = ({
               className="rounded-xl bg-[var(--assistantRow)] p-4 group"
             >
               <div className="markdown max-w-none text-base leading-relaxed w-full">
-                {message.status === "STREAMING" && !message.content ? (
+                {message.status === "STREAMING" && !displayContent ? (
                   <div className="flex gap-1 py-2 items-center">
                     <div className="h-1.5 w-1.5 rounded-full bg-[var(--muted)] animate-bounce [animation-delay:-0.3s]"></div>
                     <div className="h-1.5 w-1.5 rounded-full bg-[var(--muted)] animate-bounce [animation-delay:-0.15s]"></div>
                     <div className="h-1.5 w-1.5 rounded-full bg-[var(--muted)] animate-bounce"></div>
+                  </div>
+                ) : isCanvasOnly ? (
+                  <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-sm text-[var(--muted)]">
+                    Code sent to Canvas
                   </div>
                 ) : (
                   <ReactMarkdown
@@ -355,31 +492,10 @@ const MessageList = ({
                         const { children, className, node, ...rest } = props;
                         const match = /language-(\w+)/.exec(className || "");
                         return match ? (
-                          <div className="my-0 bg-black rounded-md relative">
-                            <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-2 bg-black text-xs text-zinc-400 rounded-t-md">
-                              <span className="font-mono">{match[1]}</span>
-                              <CopyButton text={String(children)} />
-                            </div>
-                            <SyntaxHighlighter
-                              {...rest}
-                              PreTag="div"
-                              children={String(children).replace(/\n$/, "")}
-                              language={match[1]}
-                              style={vscDarkPlus}
-                              codeTagProps={{
-                                style: {
-                                  backgroundColor: 'transparent',
-                                  padding: 0
-                                }
-                              }}
-                              customStyle={{ 
-                                margin: 0, 
-                                background: '#000', 
-                                padding: '1rem',
-                                fontSize: '14px'
-                              }}
-                            />
-                          </div>
+                          <CodeBlockWithRun
+                            language={match[1]}
+                            code={String(children)}
+                          />
                         ) : (
                           <code {...rest} className={className}>
                             {children}
@@ -388,7 +504,7 @@ const MessageList = ({
                       }
                     }}
                   >
-                    {message.content}
+                    {displayContent}
                   </ReactMarkdown>
                 )}
                 <div className="mt-2 flex items-center gap-3 min-h-[20px]">

@@ -6,6 +6,8 @@ import ConversationSidebar from "../features/chat/ConversationSidebar";
 import MessageList, { ChatMessage } from "../features/chat/MessageList";
 import Composer from "../features/chat/Composer";
 import { apiFetch, ApiResponse, getCsrfToken } from "../lib/api";
+import CanvasPanel from "../features/chat/CanvasPanel";
+import { buildCanvasData } from "../features/chat/canvas";
 
 const Chat = () => {
   const { conversationId } = useParams();
@@ -53,6 +55,21 @@ const Chat = () => {
       setMessages(messageData.data.messages);
     }
   }, [messageData, conversationId]);
+
+  const canvasData = useMemo(() => buildCanvasData(messages), [messages]);
+  const [showCanvas, setShowCanvas] = useState(false);
+  const [canvasDismissed, setCanvasDismissed] = useState(false);
+
+  useEffect(() => {
+    if (canvasData.blocks.length === 0) {
+      setShowCanvas(false);
+      setCanvasDismissed(false);
+      return;
+    }
+    if (!canvasDismissed) {
+      setShowCanvas(true);
+    }
+  }, [canvasData.blocks.length, canvasDismissed]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -483,30 +500,63 @@ const Chat = () => {
   return (
     <div className="flex h-screen bg-[var(--bg)] text-[var(--text)]">
       <ConversationSidebar />
-      <main className="flex flex-1 flex-col">
-        <MessageList
-          messages={messages}
-          onEditSubmit={handleEditSubmit}
-          editDisabled={streaming}
-          modelOptions={modelOptions}
-          onRegenerate={handleRegenerate}
-          onStopStreaming={stopStreaming}
-          activeStreamId={activeStreamId}
-        />
-        <Composer
-          onSend={sendMessage}
-          disabled={streaming}
-          error={composerError}
-          lastUserMessage={lastUserMessage}
-          model={model}
-          modelOptions={modelOptions}
-          onModelChange={setModel}
-          inputRef={composerInputRef}
-          sort={sortBy}
-          onSortChange={setSortBy}
-          streaming={streaming}
-          onStop={stopStreaming}
-        />
+      <main className="flex flex-1 min-w-0">
+        <section className="flex min-w-0 flex-1 flex-col">
+          {canvasData.blocks.length > 0 ? (
+            <div className="flex items-center justify-end px-4 pt-3">
+              <button
+                onClick={() => {
+                  if (showCanvas) {
+                    setShowCanvas(false);
+                    setCanvasDismissed(true);
+                  } else {
+                    setShowCanvas(true);
+                    setCanvasDismissed(false);
+                  }
+                }}
+                className="inline-flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 py-1.5 text-xs text-[var(--text)] hover:bg-[var(--sidebar)]"
+                type="button"
+              >
+                <i className={`bi ${showCanvas ? "bi-layout-sidebar-inset" : "bi-layout-sidebar-inset-reverse"}`}></i>
+                {showCanvas ? "Hide Canvas" : "Show Canvas"}
+              </button>
+            </div>
+          ) : null}
+          <MessageList
+            messages={messages}
+            onEditSubmit={handleEditSubmit}
+            editDisabled={streaming}
+            modelOptions={modelOptions}
+            onRegenerate={handleRegenerate}
+            onStopStreaming={stopStreaming}
+            activeStreamId={activeStreamId}
+            contentOverrides={showCanvas ? canvasData.displayMap : undefined}
+            hasCanvasCode={showCanvas ? canvasData.hasCodeMap : undefined}
+          />
+          <Composer
+            onSend={sendMessage}
+            disabled={streaming}
+            error={composerError}
+            lastUserMessage={lastUserMessage}
+            model={model}
+            modelOptions={modelOptions}
+            onModelChange={setModel}
+            inputRef={composerInputRef}
+            sort={sortBy}
+            onSortChange={setSortBy}
+            streaming={streaming}
+            onStop={stopStreaming}
+          />
+        </section>
+        {showCanvas ? (
+          <CanvasPanel
+            blocks={canvasData.blocks}
+            onClose={() => {
+              setShowCanvas(false);
+              setCanvasDismissed(true);
+            }}
+          />
+        ) : null}
       </main>
     </div>
   );
