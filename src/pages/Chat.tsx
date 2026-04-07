@@ -8,6 +8,7 @@ import Composer from "../features/chat/Composer";
 import { apiFetch, ApiResponse, getCsrfToken } from "../lib/api";
 import CanvasPanel from "../features/chat/CanvasPanel";
 import { buildCanvasData } from "../features/chat/canvas";
+import { useMe } from "../lib/hooks";
 
 const Chat = () => {
   const { conversationId } = useParams();
@@ -23,6 +24,9 @@ const Chat = () => {
   const cancelRef = useRef(false);
   const apiBase = import.meta.env.VITE_API_URL || "";
   const [composerError, setComposerError] = useState<string | null>(null);
+  const { data: meData } = useMe();
+  const currentRole = meData?.data?.user?.role;
+  const isFreeRole = currentRole === "user";
   const messageSchema = useMemo(
     () => z.string().min(1, "Message is required").max(8000, "Message too long"),
     []
@@ -95,12 +99,14 @@ const Chat = () => {
     tempAssistantId,
     conversationId,
     userMessage,
-    existingUserMessageId
+    existingUserMessageId,
+    selectedModel
   }: {
     tempAssistantId: string;
     conversationId: string;
     userMessage?: string;
     existingUserMessageId?: string;
+    selectedModel?: string;
   }) => {
     cancelRef.current = false;
     const controller = new AbortController();
@@ -120,13 +126,29 @@ const Chat = () => {
           conversationId,
           userMessage,
           existingUserMessageId,
-          model: model === "default" ? undefined : model
+          model:
+            selectedModel && selectedModel !== "default"
+              ? selectedModel
+              : undefined
         }),
         signal: controller.signal
       });
 
       if (!response.ok || !response.body) {
-        throw new Error("Streaming failed");
+        const text = await response.text();
+        let message = "Streaming failed";
+        try {
+          const parsed = JSON.parse(text);
+          message =
+            parsed?.error?.message ||
+            parsed?.message ||
+            text ||
+            response.statusText ||
+            message;
+        } catch {
+          message = text || response.statusText || message;
+        }
+        throw new Error(message);
       }
 
       const reader = response.body.getReader();
@@ -301,16 +323,21 @@ const Chat = () => {
       await streamAssistant({
         tempAssistantId,
         conversationId,
-        userMessage: text
+        userMessage: text,
+        selectedModel: model
       });
-    } catch {
+    } catch (err: any) {
       if (cancelRef.current) {
         return;
       }
       setMessages((prev) =>
         prev.map((m) =>
           m.id === tempAssistantId
-            ? { ...m, content: "Streaming failed", status: "ERROR" }
+            ? {
+                ...m,
+                content: err?.message || "Streaming failed",
+                status: "ERROR"
+              }
             : m
         )
       );
@@ -363,20 +390,25 @@ const Chat = () => {
       await streamAssistant({
         tempAssistantId,
         conversationId,
-        existingUserMessageId: messageId
+        existingUserMessageId: messageId,
+        selectedModel: model
       });
-    } catch {
+    } catch (err: any) {
       if (cancelRef.current) {
         return;
       }
       setMessages((prev) =>
         prev.map((m) =>
           m.id === tempAssistantId
-            ? { ...m, content: "Streaming failed", status: "ERROR" }
+            ? {
+                ...m,
+                content: err?.message || "Streaming failed",
+                status: "ERROR"
+              }
             : m
         )
       );
-      throw new Error("Streaming failed");
+      throw new Error(err?.message || "Streaming failed");
     } finally {
       setStreaming(false);
       setActiveStreamId(null);
@@ -416,16 +448,21 @@ const Chat = () => {
         tempAssistantId: messageId, // Reuse the same ID or generate a new one if we wanted to append. 
                                     // Reusing replaces the message content in-place which is what "Regenerate" usually implies here.
         conversationId,
-        existingUserMessageId: userMessage.id
+        existingUserMessageId: userMessage.id,
+        selectedModel: newModel
       });
-    } catch {
+    } catch (err: any) {
       if (cancelRef.current) {
         return;
       }
       setMessages((prev) =>
         prev.map((m) =>
           m.id === messageId
-            ? { ...m, content: "Regeneration failed", status: "ERROR" }
+            ? {
+                ...m,
+                content: err?.message || "Regeneration failed",
+                status: "ERROR"
+              }
             : m
         )
       );
@@ -437,11 +474,14 @@ const Chat = () => {
   };
 
   const fallbackModelOptions = useMemo(
-    () => [
-      { label: "OpenAI GPT-4o mini", value: "openai/gpt-4o-mini" },
-      { label: "Anthropic Claude 3 Haiku", value: "anthropic/claude-3-haiku" }
-    ],
-    []
+    () =>
+      isFreeRole
+        ? []
+        : [
+            { label: "OpenAI GPT-4o mini", value: "openai/gpt-4o-mini" },
+            { label: "Anthropic Claude 3 Haiku", value: "anthropic/claude-3-haiku" }
+          ],
+    [isFreeRole]
   );
 
   const dynamicModelOptions = useMemo(() => {
@@ -494,8 +534,22 @@ const Chat = () => {
   const modelOptions = useMemo(() => {
     const options =
       dynamicModelOptions.length > 0 ? dynamicModelOptions : fallbackModelOptions;
-    return [{ label: "Default model", value: "default" }, ...options];
-  }, [dynamicModelOptions, fallbackModelOptions]);
+    return [
+      {
+        label: isFreeRole ? "Default free model" : "Default model",
+        value: "default"
+      },
+      ...options
+    ];
+  }, [dynamicModelOptions, fallbackModelOptions, isFreeRole]);
+
+  useEffect(() => {
+    if (model === "default") return;
+    const allowed = modelOptions.some((option) => option.value === model);
+    if (!allowed) {
+      setModel("default");
+    }
+  }, [model, modelOptions]);
 
   return (
     <div className="flex h-screen bg-[var(--bg)] text-[var(--text)]">
