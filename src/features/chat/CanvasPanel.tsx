@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { CanvasBlock } from "./canvas";
@@ -129,6 +129,9 @@ const CanvasPanel = ({
 }) => {
   const [activeId, setActiveId] = useState<string | null>(blocks[0]?.id ?? null);
   const [mode, setMode] = useState<"code" | "preview">("code");
+  const [width, setWidth] = useState(380);
+  const [isResizing, setIsResizing] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [runState, setRunState] = useState<
     Record<
       string,
@@ -171,6 +174,34 @@ const CanvasPanel = ({
       setMode("code");
     }
   }, [previewable, mode]);
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const container = containerRef.current;
+      const rect = container.getBoundingClientRect();
+      const newWidth = rect.right - e.clientX;
+      
+      // Constrain width between 300px and 800px
+      if (newWidth >= 300 && newWidth <= 800) {
+        setWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isResizing]);
 
   const handleRun = async () => {
     if (!activeBlock) return;
@@ -220,7 +251,16 @@ const CanvasPanel = ({
   }
 
   return (
-    <aside className="hidden lg:flex h-full w-[380px] flex-col border-l border-[var(--border)] bg-[var(--panel)]">
+    <aside 
+      ref={containerRef}
+      className="hidden lg:flex h-full flex-col border-l border-[var(--border)] bg-[var(--panel)] relative"
+      style={{ width: `${width}px` }}
+    >
+      <div 
+        className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[var(--accent)] transition-colors"
+        onMouseDown={() => setIsResizing(true)}
+        title="Drag to resize canvas"
+      />
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
         <div className="flex items-center gap-2">
           <div className="text-sm font-semibold">Canvas</div>
