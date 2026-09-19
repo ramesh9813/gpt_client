@@ -1,4 +1,4 @@
-const CACHE_NAME = "chatgpt-pwa-v1";
+const CACHE_NAME = "chatgpt-pwa-v2";
 const STATIC_ASSETS = [
   "/",
   "/manifest.json",

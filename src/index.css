@@ -5,7 +5,8 @@
 @tailwind utilities;
 
 :root,
-[data-theme="light"] {
+[data-theme="light"],
+.light {
   --bg: #ffffff;
   --panel: #f4f4f4;
   --sidebar: #f9f9f9;
@@ -20,6 +21,7 @@
   color-scheme: light;
 }
 
+.dark,
 [data-theme="dark"] {
   --bg: #212121;
   --panel: #2f2f2f;
@@ -33,6 +35,49 @@
   --accent: #74aa9c;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   color-scheme: dark;
+}
+
+/* Explicit fallback & priority styles for input area & user message card */
+.composer-input-container {
+  background-color: var(--panel) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+.user-message-card {
+  background-color: var(--userBubble) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+:root:not(.dark):not([data-theme="dark"]) .composer-input-container,
+[data-theme="light"] .composer-input-container,
+.light .composer-input-container {
+  background-color: #f4f4f4 !important;
+  color: #0d0d0d !important;
+  border-color: #e5e7eb !important;
+}
+
+:root:not(.dark):not([data-theme="dark"]) .user-message-card,
+[data-theme="light"] .user-message-card,
+.light .user-message-card {
+  background-color: #f4f4f4 !important;
+  color: #0d0d0d !important;
+  border-color: #e5e7eb !important;
+}
+
+.dark .composer-input-container,
+[data-theme="dark"] .composer-input-container {
+  background-color: #2f2f2f !important;
+  color: #ececf1 !important;
+  border-color: #383838 !important;
+}
+
+.dark .user-message-card,
+[data-theme="dark"] .user-message-card {
+  background-color: #2f2f2f !important;
+  color: #ececf1 !important;
+  border-color: transparent !important;
 }
 
 [data-row-style="classic"] {

@@ -435,7 +435,7 @@ const MessageList = ({
                 className={`flex justify-end group py-2 ${isEditing ? "w-full" : ""}`}
               >
                 <div className={`flex flex-col items-end ${isEditing ? "w-full" : "max-w-[88%] sm:max-w-[80%] md:max-w-[70%]"}`}>
-                  <div className="w-full rounded-2xl bg-[var(--userBubble)] text-[var(--text)] border border-[var(--border)] dark:border-transparent px-3.5 py-2.5 sm:px-4 sm:py-3 text-[15px] sm:text-base shadow-xs">
+                  <div className="user-message-card w-full rounded-2xl bg-[#f4f4f4] dark:bg-[#2f2f2f] text-[#0d0d0d] dark:text-[#ececf1] border border-[#e5e7eb] dark:border-transparent px-3.5 py-2.5 sm:px-4 sm:py-3 text-[15px] sm:text-base shadow-xs">
                     {isEditing ? (
                       <div className="w-full min-w-[260px] sm:min-w-[300px]">
                         <Textarea

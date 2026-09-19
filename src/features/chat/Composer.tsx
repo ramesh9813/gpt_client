@@ -89,7 +89,7 @@ const Composer = ({
 
   return (
     <div className="relative group/composer mx-auto mb-2 md:mb-4 w-full max-w-3xl px-3 md:px-4 pb-[max(env(safe-area-inset-bottom,0px),6px)]">
-      <div className="flex w-full items-end gap-2 rounded-[26px] bg-[var(--panel)] border border-[var(--border)] p-1.5 sm:p-2 shadow-xs transition-all duration-200 focus-within:border-[var(--muted)]/40">
+      <div className="composer-input-container flex w-full items-end gap-2 rounded-[26px] bg-[#f4f4f4] dark:bg-[#2f2f2f] text-[#0d0d0d] dark:text-[#ececf1] border border-[#e5e7eb] dark:border-[#383838] p-1.5 sm:p-2 shadow-xs transition-all duration-200 focus-within:border-[var(--muted)]/40">
         <div className="relative z-50 flex-shrink-0" ref={menuRef}>
           <Button
             variant="ghost"
@@ -237,7 +237,7 @@ const Composer = ({
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={onKeyDown}
           placeholder="Send a message"
-          className="flex-1 w-full min-h-[26px] max-h-48 bg-transparent border-none outline-none focus:ring-0 shadow-none py-1 px-2 text-base text-[var(--text)] placeholder:text-[var(--muted)] resize-none overflow-y-auto"
+          className="composer-textarea flex-1 w-full min-h-[26px] max-h-48 bg-transparent border-none outline-none focus:ring-0 shadow-none py-1 px-2 text-base text-[#0d0d0d] dark:text-[#ececf1] placeholder:text-[#6b7280] dark:placeholder:text-[#a1a1aa] resize-none overflow-y-auto"
         />
 
         {streaming ? (

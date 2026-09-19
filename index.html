@@ -9,7 +9,24 @@
     <title>ChatGPT</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#202123" />
+    <meta name="theme-color" content="#ffffff" />
+    <script>
+      (function() {
+        try {
+          var cached = localStorage.getItem("theme_pref");
+          var theme = cached ? JSON.parse(cached).theme : "SYSTEM";
+          var isDark = theme === "DARK" || (theme === "SYSTEM" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          var root = document.documentElement;
+          if (isDark) {
+            root.setAttribute("data-theme", "dark");
+            root.classList.add("dark");
+          } else {
+            root.setAttribute("data-theme", "light");
+            root.classList.remove("dark");
+          }
+        } catch (e) {}
+      })();
+    </script>
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
