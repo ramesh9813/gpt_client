@@ -189,7 +189,7 @@ export const UsageChart = ({ logs }: Props) => {
               }}
               cursor={{ fill: "var(--muted)", opacity: 0.1 }}
               itemStyle={{ color: "var(--text)" }}
-              formatter={(value: number, name: string) => [value, name]}
+              formatter={(value: any, name: any) => [value, name]}
             />
             <Legend />
             {models.map((model, index) => (

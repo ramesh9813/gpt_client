@@ -2,7 +2,7 @@ import { ButtonHTMLAttributes } from "react";
 import { cn } from "../lib/utils";
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "outline" | "ghost";
+  variant?: "primary" | "outline" | "ghost" | "destructive";
 };
 
 const base =
@@ -12,7 +12,8 @@ const variants: Record<string, string> = {
   primary: "bg-[var(--accent)] text-black hover:opacity-90",
   outline:
     "border border-[var(--border)] text-[var(--text)] hover:bg-[var(--panel)]",
-  ghost: "text-[var(--text)] hover:bg-[var(--panel)]"
+  ghost: "text-[var(--text)] hover:bg-[var(--panel)]",
+  destructive: "bg-red-600 text-white hover:bg-red-700"
 };
 
 export const Button = ({ variant = "primary", className, ...props }: Props) => (

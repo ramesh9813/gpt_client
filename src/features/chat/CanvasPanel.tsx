@@ -253,15 +253,15 @@ const CanvasPanel = ({
   return (
     <aside 
       ref={containerRef}
-      className="hidden lg:flex h-full flex-col border-l border-[var(--border)] bg-[var(--panel)] relative"
-      style={{ width: `${width}px` }}
+      className="fixed inset-0 z-50 flex flex-col bg-[var(--panel)] lg:static lg:flex lg:h-full lg:border-l lg:border-[var(--border)] lg:z-auto"
+      style={typeof window !== "undefined" && window.innerWidth >= 1024 ? { width: `${width}px` } : undefined}
     >
       <div 
-        className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[var(--accent)] transition-colors"
+        className="hidden lg:block absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[var(--accent)] transition-colors"
         onMouseDown={() => setIsResizing(true)}
         title="Drag to resize canvas"
       />
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)] pt-[max(env(safe-area-inset-top,0px),12px)] lg:pt-3">
         <div className="flex items-center gap-2">
           <div className="text-sm font-semibold">Canvas</div>
           <div className="text-xs text-[var(--muted)]">{blocks.length} blocks</div>
@@ -269,7 +269,7 @@ const CanvasPanel = ({
         {onClose ? (
           <button
             onClick={onClose}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--muted)] hover:bg-[var(--sidebar)] hover:text-[var(--text)]"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--sidebar)] text-[var(--text)] hover:bg-[var(--border)]"
             title="Close canvas"
             type="button"
           >

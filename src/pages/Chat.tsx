@@ -552,7 +552,7 @@ const Chat = () => {
   }, [model, modelOptions]);
 
   return (
-    <div className="flex h-screen bg-[var(--bg)] text-[var(--text)]">
+    <div className="flex h-full h-[100dvh] max-h-[100dvh] overflow-hidden bg-[var(--bg)] text-[var(--text)]">
       <ConversationSidebar />
       <main className="flex flex-1 min-w-0">
         <section className="flex min-w-0 flex-1 flex-col">

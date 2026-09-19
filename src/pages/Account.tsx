@@ -407,14 +407,21 @@ const Account = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-10 md:flex-row">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 md:gap-8 px-4 py-6 sm:px-6 sm:py-10 md:flex-row">
         {/* Left Sidebar */}
         <nav className="w-full flex-shrink-0 md:w-64">
-           <div className="mb-8">
+          <div className="mb-6 flex items-center gap-3">
+            <Link
+              to="/"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--panel)] text-[var(--text)] hover:bg-[var(--sidebar)] active:scale-95 transition-all"
+              title="Back to chat"
+            >
+              <i className="bi bi-arrow-left text-base"></i>
+            </Link>
             <h1 className="text-2xl font-bold">Account</h1>
           </div>
-          <ul className="flex flex-row space-x-2 overflow-x-auto md:flex-col md:space-x-0 md:space-y-1 pb-2 md:pb-0">
+          <ul className="flex flex-row space-x-2 overflow-x-auto md:flex-col md:space-x-0 md:space-y-1 pb-2 md:pb-0 scrollbar-thin">
             {tabs.map((tab) => (
               <li key={tab.id}>
                 <button

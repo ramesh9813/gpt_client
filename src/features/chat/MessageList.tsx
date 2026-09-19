@@ -349,7 +349,7 @@ const MessageList = ({
 
   return (
     <div className="relative flex-1 overflow-y-auto scrollbar-thin" ref={listRef}>
-      <div className="mx-auto max-w-3xl space-y-0 px-4 py-6">
+      <div className="mx-auto max-w-3xl space-y-0 px-2.5 sm:px-4 py-3 sm:py-6">
         {messages.map((message) => {
           if (message.role === "SYSTEM") {
             return (
@@ -372,10 +372,10 @@ const MessageList = ({
             return (
               <div
                 key={message.id}
-                className={`flex justify-end group ${isEditing ? "w-full" : ""}`}
+                className={`flex justify-end group py-2 ${isEditing ? "w-full" : ""}`}
               >
-                <div className={`flex flex-col items-end ${isEditing ? "w-full" : "max-w-[70%]"}`}>
-                  <div className="w-full rounded-xl bg-[#303030] px-4 py-3 text-base text-white">
+                <div className={`flex flex-col items-end ${isEditing ? "w-full" : "max-w-[88%] sm:max-w-[80%] md:max-w-[70%]"}`}>
+                  <div className="w-full rounded-2xl bg-[#303030] px-3.5 py-2.5 sm:px-4 sm:py-3 text-[15px] sm:text-base text-white shadow-sm">
                     {isEditing ? (
                       <div className="w-full min-w-[300px]">
                         <Textarea
@@ -437,7 +437,7 @@ const MessageList = ({
                     )}
                   </div>
                   {!isEditing && (
-                    <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity px-1">
+                    <div className="flex items-center gap-3 opacity-90 md:opacity-0 md:group-hover:opacity-100 transition-opacity px-1 py-0.5">
                       <CopyButton 
                         text={message.content} 
                         showText={false}
@@ -468,7 +468,7 @@ const MessageList = ({
           return (
             <div
               key={message.id}
-              className="rounded-xl bg-[var(--assistantRow)] p-4 group"
+              className="rounded-xl bg-[var(--assistantRow)] p-3 sm:p-4 group"
             >
               <div className="markdown max-w-none text-base leading-relaxed w-full">
                 {message.status === "STREAMING" && !displayContent ? (
@@ -534,7 +534,7 @@ const MessageList = ({
                       )}
                     </>
                   ) : (
-                    <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-3 opacity-90 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       {onRegenerate && (
                         <RegenerateMenu 
                           messageId={message.id} 
@@ -556,23 +556,25 @@ const MessageList = ({
           );
         })}
       </div>
-      <div className="fixed bottom-24 right-10 flex flex-col gap-2 z-20">
+      <div className="fixed bottom-20 md:bottom-24 right-3 md:right-8 flex flex-col gap-2 z-20">
         {!atTop && (
           <button
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--panel)] text-[var(--text)] shadow-md hover:bg-[var(--sidebar)] transition-all"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--panel)] text-[var(--text)] shadow-md hover:bg-[var(--sidebar)] active:scale-95 transition-all"
             onClick={scrollToTop}
             title="Jump to top"
+            type="button"
           >
-            <i className="bi bi-arrow-up"></i>
+            <i className="bi bi-arrow-up text-xs"></i>
           </button>
         )}
         {!atBottom && (
           <button
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--panel)] text-[var(--text)] shadow-md hover:bg-[var(--sidebar)] transition-all"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--panel)] text-[var(--text)] shadow-md hover:bg-[var(--sidebar)] active:scale-95 transition-all"
             onClick={scrollToBottom}
             title="Jump to bottom"
+            type="button"
           >
-            <i className="bi bi-arrow-down"></i>
+            <i className="bi bi-arrow-down text-xs"></i>
           </button>
         )}
       </div>

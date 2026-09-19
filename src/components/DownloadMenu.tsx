@@ -105,7 +105,11 @@ export const DownloadMenu = ({ content, messages, chatContainerRef }: DownloadMe
 
     // Small delay to allow React to render the spinner state
     setTimeout(async () => {
-      const originalElement = chatContainerRef.current;
+      const originalElement = chatContainerRef?.current;
+      if (!originalElement) {
+        setIsGenerating(false);
+        return;
+      }
       const clone = originalElement.cloneNode(true) as HTMLElement;
 
       // Position off-screen but visible for rendering

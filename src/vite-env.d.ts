@@ -13,3 +13,8 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+declare module "jspdf";
+declare module "html2canvas";
+declare module "firebase/app";
+declare module "firebase/auth";
