@@ -127,7 +127,7 @@ const Composer = ({
   void handleEditLast;
 
   return (
-    <div className="relative group/composer mx-auto mb-2 md:mb-4 w-full max-w-3xl px-3 md:px-4 pb-[max(env(safe-area-inset-bottom,0px),6px)]">
+    <div className="composer-dock relative group/composer mx-auto mb-2 md:mb-4 w-full max-w-3xl px-3 md:px-4 pb-[max(env(safe-area-inset-bottom,0px),6px)]">
       <div className="composer-input-container flex w-full flex-col rounded-[26px] bg-[#f4f4f4] dark:bg-[#2f2f2f] text-[#0d0d0d] dark:text-[#ececf1] border border-[#e5e7eb] dark:border-[#383838] p-1.5 sm:p-2 shadow-xs transition-all duration-200 focus-within:border-[var(--muted)]/40">
         {/* Image preview strip */}
         {images.length > 0 && (

@@ -210,6 +210,30 @@ const Chat = () => {
     };
   }, [isMobile, drawerOpen, sidebarState, openDrawer, closeDrawer, showSidebar, hideSidebar]);
 
+  // Keep input above mobile keyboard: track visualViewport shrink and expose --kb-height.
+  // With interactive-widget=resizes-content the layout already shrinks; this var covers
+  // overlay keyboards (iOS Safari) plus adds a little extra lift so the lower section stays visible.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const EXTRA_LIFT = 8;
+    const update = () => {
+      const kb = Math.max(0, window.innerHeight - vv.height - (vv.offsetTop || 0));
+      const val = kb > 0 ? Math.round(kb + EXTRA_LIFT) : 0;
+      document.documentElement.style.setProperty("--kb-height", `${val}px`);
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    window.addEventListener("orientationchange", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+      window.removeEventListener("orientationchange", update);
+      document.documentElement.style.setProperty("--kb-height", "0px");
+    };
+  }, []);
+
   const streamAssistant = async ({
     tempAssistantId,
     conversationId,

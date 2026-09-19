@@ -235,6 +235,15 @@ pre code {
   border-radius: 999px;
 }
 
+:root {
+  --kb-height: 0px;
+}
+
+/* Keep composer above mobile keyboard + a little extra lift */
+.composer-dock {
+  padding-bottom: calc(max(env(safe-area-inset-bottom, 0px), 6px) + var(--kb-height, 0px) + env(keyboard-inset-height, 0px)) !important;
+}
+
 /* DeepSeek-style history sidebar: smooth width/transform, a11y focus, reduced-motion */
 #conversation-history {
   min-width: 0;
