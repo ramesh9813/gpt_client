@@ -72,6 +72,10 @@ const Composer = ({
     if (compressing) return;
     onSend(trimmed, images.length > 0 ? [...images] : undefined);
     setValue("");
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (el) adjustTextareaHeight(el);
+    });
     setImages([]);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -120,7 +124,26 @@ const Composer = ({
     if (inputRef) {
       inputRef.current = node;
     }
+    if (node) adjustTextareaHeight(node);
   };
+
+  // Single row initially, grow line-by-line up to 4 rows, then scroll inside.
+  const adjustTextareaHeight = (el: HTMLTextAreaElement) => {
+    el.style.height = "auto";
+    const cs = window.getComputedStyle(el);
+    const lineHeight = parseFloat(cs.lineHeight) || 24;
+    const padding =
+      (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+    const maxHeight = Math.round(lineHeight * 4 + padding);
+    const next = Math.min(el.scrollHeight, maxHeight);
+    el.style.height = `${next}px`;
+    el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
+  };
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (el) adjustTextareaHeight(el);
+  }, [value]);
 
   const currentModelLabel =
     modelOptions.find((o) => o.value === model)?.label || "Model";
@@ -165,9 +188,12 @@ const Composer = ({
         <div className="flex w-full min-w-0 flex-col gap-1">
           <textarea
             ref={setTextareaRefs}
-            rows={2}
+            rows={1}
             value={value}
-            onChange={(e) => setValue(e.target.value)}
+            onChange={(e) => {
+              setValue(e.target.value);
+              adjustTextareaHeight(e.target);
+            }}
             onKeyDown={onKeyDown}
             onPaste={(e) => {
               const files = e.clipboardData?.files;
@@ -182,7 +208,7 @@ const Composer = ({
               }
             }}
             placeholder="Send a message"
-            className="composer-textarea w-full min-w-0 min-h-[52px] max-h-48 bg-transparent border-none outline-none focus:ring-0 shadow-none py-1.5 px-3 text-base text-[#0d0d0d] dark:text-[#ececf1] placeholder:text-[#6b7280] dark:placeholder:text-[#a1a1aa] resize-none overflow-y-auto"
+            className="composer-textarea w-full min-w-0 min-h-[28px] max-h-48 bg-transparent border-none outline-none focus:ring-0 shadow-none py-1.5 px-3 text-base text-[#0d0d0d] dark:text-[#ececf1] placeholder:text-[#6b7280] dark:placeholder:text-[#a1a1aa] resize-none overflow-y-auto"
           />
 
           <div className="flex w-full min-w-0 items-center gap-1 px-1">
