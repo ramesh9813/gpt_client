@@ -162,7 +162,30 @@ const Composer = ({
           </div>
         )}
 
-        <div className="flex w-full min-w-0 items-end gap-2">
+        <div className="flex w-full min-w-0 flex-col gap-1">
+          <textarea
+            ref={setTextareaRefs}
+            rows={2}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={onKeyDown}
+            onPaste={(e) => {
+              const files = e.clipboardData?.files;
+              if (files && files.length > 0) {
+                const imgs = Array.from(files).filter((f) => f.type.startsWith("image/"));
+                if (imgs.length > 0) {
+                  e.preventDefault();
+                  const dt = new DataTransfer();
+                  imgs.forEach((f) => dt.items.add(f));
+                  void handleFiles(dt.files);
+                }
+              }
+            }}
+            placeholder="Send a message"
+            className="composer-textarea w-full min-w-0 min-h-[52px] max-h-48 bg-transparent border-none outline-none focus:ring-0 shadow-none py-1.5 px-3 text-base text-[#0d0d0d] dark:text-[#ececf1] placeholder:text-[#6b7280] dark:placeholder:text-[#a1a1aa] resize-none overflow-y-auto"
+          />
+
+          <div className="flex w-full min-w-0 items-center gap-1 px-1">
           <div className="relative z-50 flex-shrink-0" ref={menuRef}>
             <Button
               variant="ghost"
@@ -379,28 +402,7 @@ const Composer = ({
             onChange={(e) => handleFiles(e.target.files)}
           />
 
-          <textarea
-            ref={setTextareaRefs}
-            rows={2}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={onKeyDown}
-            onPaste={(e) => {
-              const files = e.clipboardData?.files;
-              if (files && files.length > 0) {
-                const imgs = Array.from(files).filter((f) => f.type.startsWith("image/"));
-                if (imgs.length > 0) {
-                  e.preventDefault();
-                  const dt = new DataTransfer();
-                  imgs.forEach((f) => dt.items.add(f));
-                  void handleFiles(dt.files);
-                }
-              }
-            }}
-            placeholder="Send a message"
-            className="composer-textarea flex-1 w-full min-w-0 min-h-[52px] max-h-48 bg-transparent border-none outline-none focus:ring-0 shadow-none py-1 px-2 text-base text-[#0d0d0d] dark:text-[#ececf1] placeholder:text-[#6b7280] dark:placeholder:text-[#a1a1aa] resize-none overflow-y-auto"
-          />
-
+            <div className="min-w-0 flex-1" />
           {streaming ? (
             <Button
               onClick={onStop}
@@ -425,6 +427,7 @@ const Composer = ({
               <i className="bi bi-arrow-up-circle-fill text-2xl" />
             </Button>
           )}
+          </div>
         </div>
       </div>
       {error ? (
