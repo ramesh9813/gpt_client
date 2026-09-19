@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch, ApiResponse } from "./api";
 
-export type UserRole = "owner" | "premium" | "lite" | "user";
+export type UserRole = "admin" | "owner" | "user";
 
 export type User = {
   id: string;
