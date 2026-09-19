@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import ConversationSidebar from "../features/chat/ConversationSidebar";
@@ -12,6 +12,7 @@ import { useMe } from "../lib/hooks";
 
 const Chat = () => {
   const { conversationId } = useParams();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
@@ -19,6 +20,12 @@ const Chat = () => {
   const [model, setModel] = useState("default");
   const [lastUserMessage, setLastUserMessage] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "cheapest" | "free">("name");
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.innerWidth >= 1024;
+    }
+    return false;
+  });
   const composerInputRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const cancelRef = useRef(false);
@@ -53,6 +60,38 @@ const Chat = () => {
     staleTime: 1000 * 60 * 5,
     retry: 1
   });
+
+  const { data: convsData } = useQuery({
+    queryKey: ["conversations"],
+    queryFn: () =>
+      apiFetch<ApiResponse<{ items: Array<{ id: string; title: string }> }>>(
+        "/api/conversations"
+      )
+  });
+
+  const currentConv = convsData?.data?.items?.find((c) => c.id === conversationId);
+  const currentConversationTitle = currentConv?.title;
+
+  const handleNewChat = async () => {
+    try {
+      const res = await apiFetch<ApiResponse<{ conversation: { id: string } }>>(
+        "/api/conversations",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}"
+        }
+      );
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["folders"] });
+      navigate(`/c/${res.data.conversation.id}`);
+      if (typeof window !== "undefined" && window.innerWidth < 1024) {
+        setSidebarOpen(false);
+      }
+    } catch {
+      navigate("/");
+    }
+  };
 
   useEffect(() => {
     if (messageData?.data?.messages) {
@@ -553,11 +592,38 @@ const Chat = () => {
 
   return (
     <div className="flex h-full h-[100dvh] max-h-[100dvh] overflow-hidden bg-[var(--bg)] text-[var(--text)]">
-      <ConversationSidebar />
-      <main className="flex flex-1 min-w-0">
-        <section className="flex min-w-0 flex-1 flex-col">
-          {canvasData.blocks.length > 0 ? (
-            <div className="flex items-center justify-end px-4 pt-3">
+      <ConversationSidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        onToggle={() => setSidebarOpen((prev) => !prev)}
+      />
+      <main className="flex flex-1 min-w-0 flex-col h-full overflow-hidden">
+        {/* Top Header Bar with small history button */}
+        <header className="flex h-12 sm:h-14 items-center justify-between border-b border-[var(--border)] px-3 sm:px-4 bg-[var(--bg)] z-30 pt-[env(safe-area-inset-top,0px)] flex-shrink-0">
+          <div className="flex items-center gap-2 overflow-hidden">
+            {!sidebarOpen && (
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="inline-flex h-8 w-8 min-h-[32px] min-w-[32px] items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--panel)] text-[var(--text)] hover:bg-[var(--sidebar)] active:scale-95 transition-all shadow-xs"
+                title="Open history"
+                aria-label="Open history"
+                type="button"
+              >
+                <i className="bi bi-layout-sidebar-inset text-base"></i>
+              </button>
+            )}
+            <div className="font-semibold text-sm sm:text-base flex items-center gap-1.5 overflow-hidden">
+              <span className="text-[var(--text)] flex-shrink-0">ChatGPT</span>
+              {currentConversationTitle && (
+                <span className="hidden sm:inline-block text-xs text-[var(--muted)] max-w-[240px] truncate font-normal">
+                  / {currentConversationTitle}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {canvasData.blocks.length > 0 ? (
               <button
                 onClick={() => {
                   if (showCanvas) {
@@ -568,49 +634,64 @@ const Chat = () => {
                     setCanvasDismissed(false);
                   }
                 }}
-                className="inline-flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 py-1.5 text-xs text-[var(--text)] hover:bg-[var(--sidebar)]"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--panel)] px-2.5 py-1 text-xs text-[var(--text)] hover:bg-[var(--sidebar)] active:scale-95 transition-all"
                 type="button"
               >
                 <i className={`bi ${showCanvas ? "bi-layout-sidebar-inset" : "bi-layout-sidebar-inset-reverse"}`}></i>
-                {showCanvas ? "Hide Canvas" : "Show Canvas"}
+                <span className="hidden sm:inline">{showCanvas ? "Hide Canvas" : "Show Canvas"}</span>
+                <span className="sm:hidden">Canvas</span>
               </button>
-            </div>
+            ) : null}
+            <button
+              onClick={handleNewChat}
+              className="inline-flex h-8 w-8 min-h-[32px] min-w-[32px] items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--panel)] text-[var(--text)] hover:bg-[var(--sidebar)] active:scale-95 transition-all shadow-xs"
+              title="New chat"
+              aria-label="New chat"
+              type="button"
+            >
+              <i className="bi bi-pencil-square text-sm"></i>
+            </button>
+          </div>
+        </header>
+
+        <div className="flex flex-1 min-h-0 overflow-hidden relative">
+          <section className="flex min-w-0 flex-1 flex-col h-full overflow-hidden">
+            <MessageList
+              messages={messages}
+              onEditSubmit={handleEditSubmit}
+              editDisabled={streaming}
+              modelOptions={modelOptions}
+              onRegenerate={handleRegenerate}
+              onStopStreaming={stopStreaming}
+              activeStreamId={activeStreamId}
+              contentOverrides={showCanvas ? canvasData.displayMap : undefined}
+              hasCanvasCode={showCanvas ? canvasData.hasCodeMap : undefined}
+            />
+            <Composer
+              onSend={sendMessage}
+              disabled={streaming}
+              error={composerError}
+              lastUserMessage={lastUserMessage}
+              model={model}
+              modelOptions={modelOptions}
+              onModelChange={setModel}
+              inputRef={composerInputRef}
+              sort={sortBy}
+              onSortChange={setSortBy}
+              streaming={streaming}
+              onStop={stopStreaming}
+            />
+          </section>
+          {showCanvas ? (
+            <CanvasPanel
+              blocks={canvasData.blocks}
+              onClose={() => {
+                setShowCanvas(false);
+                setCanvasDismissed(true);
+              }}
+            />
           ) : null}
-          <MessageList
-            messages={messages}
-            onEditSubmit={handleEditSubmit}
-            editDisabled={streaming}
-            modelOptions={modelOptions}
-            onRegenerate={handleRegenerate}
-            onStopStreaming={stopStreaming}
-            activeStreamId={activeStreamId}
-            contentOverrides={showCanvas ? canvasData.displayMap : undefined}
-            hasCanvasCode={showCanvas ? canvasData.hasCodeMap : undefined}
-          />
-          <Composer
-            onSend={sendMessage}
-            disabled={streaming}
-            error={composerError}
-            lastUserMessage={lastUserMessage}
-            model={model}
-            modelOptions={modelOptions}
-            onModelChange={setModel}
-            inputRef={composerInputRef}
-            sort={sortBy}
-            onSortChange={setSortBy}
-            streaming={streaming}
-            onStop={stopStreaming}
-          />
-        </section>
-        {showCanvas ? (
-          <CanvasPanel
-            blocks={canvasData.blocks}
-            onClose={() => {
-              setShowCanvas(false);
-              setCanvasDismissed(true);
-            }}
-          />
-        ) : null}
+        </div>
       </main>
     </div>
   );

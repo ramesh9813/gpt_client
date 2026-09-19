@@ -26,8 +26,36 @@ export type Folder = {
   _count?: { conversations: number };
 };
 
-const ConversationSidebar = () => {
-  const [collapsed, setCollapsed] = useState(false);
+export interface ConversationSidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+  onToggle?: () => void;
+}
+
+const ConversationSidebar = ({
+  isOpen: controlledIsOpen,
+  onClose: controlledOnClose,
+  onToggle: controlledOnToggle,
+}: ConversationSidebarProps = {}) => {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalOpen;
+
+  const handleClose = () => {
+    if (controlledOnClose) {
+      controlledOnClose();
+    } else {
+      setInternalOpen(false);
+    }
+  };
+
+  const handleToggle = () => {
+    if (controlledOnToggle) {
+      controlledOnToggle();
+    } else {
+      setInternalOpen((prev) => !prev);
+    }
+  };
+
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
@@ -183,13 +211,18 @@ const ConversationSidebar = () => {
       >
         <button
           className="flex-1 text-left overflow-hidden whitespace-normal h-5 leading-5 font-sans"
-          onClick={() => navigate(`/c/${conversation.id}`)}
+          onClick={() => {
+            navigate(`/c/${conversation.id}`);
+            if (typeof window !== "undefined" && window.innerWidth < 1024) {
+              handleClose();
+            }
+          }}
           title={conversation.title}
         >
           {conversation.title}
         </button>
         <div
-          className={`relative h-6 w-6 ${menuOpen === conversation.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"} transition-opacity`}
+          className={`relative h-6 w-6 ${menuOpen === conversation.id ? "opacity-100" : "opacity-90 md:opacity-0 md:group-hover:opacity-100"} transition-opacity`}
           onMouseLeave={() => setMenuOpen(null)}
         >
           <IconButton
@@ -237,83 +270,55 @@ const ConversationSidebar = () => {
   };
 
   return (
-    <aside
-      className={`flex h-full flex-col border-r border-[var(--border)] bg-[var(--sidebar)] transition-all duration-200 ${
-        collapsed ? "w-14" : "w-72"
-      }`}
-    >
-      <div
-        className={`flex items-center justify-between ${
-          collapsed ? "px-2 py-2" : "px-3 py-3"
+    <>
+      {/* Dimmed mobile overlay backdrop */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs transition-opacity duration-300 lg:hidden"
+          onClick={handleClose}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex h-full flex-col bg-[var(--sidebar)] border-r border-[var(--border)] transition-all duration-300 ease-in-out lg:static lg:z-auto ${
+          isOpen
+            ? "w-72 sm:w-80 translate-x-0 shadow-2xl lg:shadow-none"
+            : "-translate-x-full lg:w-0 lg:overflow-hidden lg:border-r-0 pointer-events-none"
         }`}
       >
-        {!collapsed && (
+        <div className="flex h-12 sm:h-14 items-center justify-between px-3 py-2 border-b border-[var(--border)] pt-[max(env(safe-area-inset-top,0px),8px)] lg:pt-2">
           <Button
-            className="flex-1 justify-start gap-2 border-0 bg-transparent hover:bg-[var(--panel)] px-2 text-black dark:text-white"
-            onClick={() => createMutation.mutate(undefined)}
+            className="flex-1 justify-start gap-2 border-0 bg-transparent hover:bg-[var(--panel)] px-2 text-black dark:text-white active:scale-95 transition-transform"
+            onClick={() => {
+              createMutation.mutate(undefined);
+              if (typeof window !== "undefined" && window.innerWidth < 1024) {
+                handleClose();
+              }
+            }}
           >
             <i className="bi bi-plus-lg text-base"></i>
             <span>New chat</span>
           </Button>
-        )}
-        <IconButton
-          onClick={() => setCollapsed((prev) => !prev)}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="h-8 w-8 !border-0"
-        >
-          <i className="bi bi-layout-sidebar-inset text-base"></i>
-        </IconButton>
-      </div>
-      {collapsed ? (
-        <div className="relative flex flex-1 flex-col items-center gap-1 py-3">
           <IconButton
-            onClick={() => createMutation.mutate(undefined)}
-            aria-label="New chat"
-            title="New chat"
-            className="h-9 w-9"
+            onClick={handleClose}
+            aria-label="Hide history"
+            title="Hide history"
+            className="h-8 w-8 !border-0 text-[var(--muted)] hover:text-[var(--text)] active:scale-95"
           >
-            <span className="text-lg">+</span>
+            <i className="bi bi-layout-sidebar-inset text-base"></i>
           </IconButton>
-          {/* ... existing collapsed search and history ... */}
-          <div className="flex-1 w-full overflow-y-auto px-2 pb-3 scrollbar-thin">
-            <div className="space-y-2">
-              {(data?.data?.items || []).map((conversation) => {
-                const active = params.conversationId === conversation.id;
-                const compact = conversation.title.trim().slice(0, 2).toUpperCase();
-                return (
-                  <button
-                    key={conversation.id}
-                    className={`h-9 w-full rounded-lg text-xs font-semibold ${
-                      active ? "bg-[var(--panel)] text-[var(--text)]" : "text-[var(--text)] hover:bg-[var(--panel)]"
-                    }`}
-                    onClick={() => navigate(`/c/${conversation.id}`)}
-                    title={conversation.title}
-                  >
-                    {compact || "??"}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          <div className="mt-auto pb-3">
-            <Link to="/account" title="Account">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-purple-600 text-sm font-medium text-white shadow-sm hover:bg-purple-700">
-                {initial}
-              </div>
-            </Link>
-          </div>
         </div>
-      ) : (
-        <div className="flex flex-1 flex-col">
-          <div className="px-3 pb-2">
+
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <div className="px-3 py-2">
             <div className="relative">
               <i className="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[var(--muted)]"></i>
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search"
-                className="bg-transparent border-0 pl-9 focus:ring-0"
+                className="bg-transparent border-0 pl-9 focus:ring-0 text-sm"
               />
             </div>
           </div>
@@ -325,7 +330,7 @@ const ConversationSidebar = () => {
                   Categories
                 </div>
                 <IconButton 
-                  className="h-5 w-5 !border-0" 
+                  className="h-5 w-5 !border-0 opacity-90 md:opacity-0 md:group-hover:opacity-100" 
                   onClick={() => setIsCreatingFolder(true)}
                   title="New Folder"
                 >
@@ -370,7 +375,7 @@ const ConversationSidebar = () => {
                         )}
                       </div>
                       <IconButton 
-                        className="h-5 w-5 !border-0 opacity-0 group-hover:opacity-100" 
+                        className="h-5 w-5 !border-0 opacity-90 md:opacity-0 md:group-hover:opacity-100" 
                         onClick={() => createMutation.mutate(folder.id)}
                         title="New Chat in Folder"
                       >
@@ -400,8 +405,16 @@ const ConversationSidebar = () => {
               </div>
             </div>
           </div>
-          <div className="border-t border-[var(--border)] px-4 py-3">
-            <Link to="/account" className="flex items-center gap-3 hover:text-[var(--text)]">
+          <div className="border-t border-[var(--border)] px-4 py-3 pb-[max(env(safe-area-inset-bottom,0px),12px)]">
+            <Link
+              to="/account"
+              className="flex items-center gap-3 hover:text-[var(--text)] active:opacity-80 transition-opacity"
+              onClick={() => {
+                if (typeof window !== "undefined" && window.innerWidth < 1024) {
+                  handleClose();
+                }
+              }}
+            >
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-600 text-xs font-medium text-white shadow-sm">
                 {initial}
               </div>
@@ -412,7 +425,6 @@ const ConversationSidebar = () => {
             </Link>
           </div>
         </div>
-      )}
       <Modal
 
         open={!!renameId}
@@ -461,6 +473,7 @@ const ConversationSidebar = () => {
         </div>
       </Modal>
     </aside>
+  </>
   );
 };
 
