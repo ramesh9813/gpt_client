@@ -664,7 +664,7 @@ const MessageList = ({
         })}
       </div>
       {messages.length > 0 && canScroll && (!atTop || !atBottom) && (
-        <div className="fixed bottom-28 md:bottom-32 right-3 md:right-8 flex flex-col gap-2 z-20">
+        <div className="fixed bottom-44 md:bottom-48 right-3 md:right-8 flex flex-col gap-2 z-20">
           {!atTop && (
             <button
               className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--panel)] text-[var(--text)] shadow-md hover:bg-[var(--sidebar)] active:scale-95 transition-all"
