@@ -3,6 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import ConversationSidebar from "../features/chat/ConversationSidebar";
+import SidebarToggle from "../components/SidebarToggle";
+import { useSidebar } from "../features/chat/useSidebar";
 import MessageList, { ChatMessage } from "../features/chat/MessageList";
 import Composer from "../features/chat/Composer";
 import { apiFetch, ApiResponse, getCsrfToken } from "../lib/api";
@@ -20,12 +22,19 @@ const Chat = () => {
   const [model, setModel] = useState("default");
   const [lastUserMessage, setLastUserMessage] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "cheapest" | "free">("name");
-  const [sidebarOpen, setSidebarOpen] = useState(() => {
-    if (typeof window !== "undefined") {
-      return window.innerWidth >= 1024;
-    }
-    return false;
-  });
+  const {
+    sidebarState,
+    drawerOpen,
+    isMobile,
+    expand: expandSidebar,
+    collapse: collapseSidebar,
+    hide: hideSidebar,
+    show: showSidebar,
+    toggleCollapse: toggleSidebarCollapse,
+    openDrawer,
+    closeDrawer,
+    toggleDrawer,
+  } = useSidebar();
   const composerInputRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const cancelRef = useRef(false);
@@ -85,8 +94,8 @@ const Chat = () => {
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
       queryClient.invalidateQueries({ queryKey: ["folders"] });
       navigate(`/c/${res.data.conversation.id}`);
-      if (typeof window !== "undefined" && window.innerWidth < 1024) {
-        setSidebarOpen(false);
+      if (isMobile) {
+        closeDrawer();
       }
     } catch {
       navigate("/");
@@ -135,6 +144,7 @@ const Chat = () => {
   }, []);
 
   // Horizontal swipe gesture to open/close history sidebar on touch devices (Android & mobile)
+  // Mobile: controls transient drawer. Desktop: show/hide persisted sidebar.
   useEffect(() => {
     let touchStartX = 0;
     let touchStartY = 0;
@@ -174,12 +184,20 @@ const Chat = () => {
 
       // Ensure horizontal swipe is dominant (horizontal delta > 1.3x vertical delta) and at least 45px
       if (Math.abs(deltaX) >= 45 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3) {
-        if (deltaX > 0 && !sidebarOpen) {
-          // Swipe Right -> Open history sidebar
-          setSidebarOpen(true);
-        } else if (deltaX < 0 && sidebarOpen) {
-          // Swipe Left -> Hide history sidebar
-          setSidebarOpen(false);
+        if (deltaX > 0) {
+          // Swipe Right -> Open history (drawer on mobile, expanded on desktop)
+          if (isMobile) {
+            if (!drawerOpen) openDrawer();
+          } else if (sidebarState !== "expanded") {
+            showSidebar();
+          }
+        } else {
+          // Swipe Left -> Hide history (close drawer on mobile, hide on desktop)
+          if (isMobile) {
+            if (drawerOpen) closeDrawer();
+          } else if (sidebarState === "expanded") {
+            hideSidebar();
+          }
         }
       }
     };
@@ -190,7 +208,7 @@ const Chat = () => {
       window.removeEventListener("touchstart", handleTouchStart);
       window.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [sidebarOpen]);
+  }, [isMobile, drawerOpen, sidebarState, openDrawer, closeDrawer, showSidebar, hideSidebar]);
 
   const streamAssistant = async ({
     tempAssistantId,
@@ -648,28 +666,39 @@ const Chat = () => {
     }
   }, [model, modelOptions]);
 
+  const handleHeaderToggle = () => {
+    if (isMobile) {
+      toggleDrawer();
+    } else if (sidebarState === "hidden") {
+      showSidebar();
+    } else {
+      toggleSidebarCollapse();
+    }
+  };
+
   return (
     <div className="flex h-full h-[100dvh] max-h-[100dvh] overflow-hidden bg-[var(--bg)] text-[var(--text)]">
       <ConversationSidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        onToggle={() => setSidebarOpen((prev) => !prev)}
+        sidebarState={sidebarState}
+        drawerOpen={drawerOpen}
+        isMobile={isMobile}
+        onExpand={expandSidebar}
+        onCollapse={collapseSidebar}
+        onHide={hideSidebar}
+        onCloseDrawer={closeDrawer}
+        onOpenDrawer={openDrawer}
       />
       <main className="flex flex-1 min-w-0 flex-col h-full overflow-hidden">
-        {/* Top Header Bar with small history button */}
+        {/* Top Header Bar with history toggle (always accessible, even when hidden) */}
         <header className="flex h-12 sm:h-14 items-center justify-between border-b border-[var(--border)] px-3 sm:px-4 bg-[var(--bg)] z-30 pt-[env(safe-area-inset-top,0px)] flex-shrink-0">
           <div className="flex items-center gap-2 overflow-hidden">
-            {!sidebarOpen && (
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="inline-flex h-8 w-8 min-h-[32px] min-w-[32px] items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--panel)] text-[var(--text)] hover:bg-[var(--sidebar)] active:scale-95 transition-all shadow-xs"
-                title="Open history"
-                aria-label="Open history"
-                type="button"
-              >
-                <i className="bi bi-layout-sidebar-inset text-base"></i>
-              </button>
-            )}
+            <SidebarToggle
+              sidebarState={sidebarState}
+              isMobile={isMobile}
+              drawerOpen={drawerOpen}
+              onClick={handleHeaderToggle}
+              className="h-9 w-9 min-h-[36px] min-w-[36px] sm:h-10 sm:w-10 sm:min-h-[40px] sm:min-w-[40px]"
+            />
             <div className="font-semibold text-sm sm:text-base flex items-center gap-1.5 overflow-hidden">
               <span className="text-[var(--text)] flex-shrink-0">ChatGPT</span>
               {currentConversationTitle && (

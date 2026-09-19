@@ -234,3 +234,24 @@ pre code {
   background: rgba(148, 163, 184, 0.4);
   border-radius: 999px;
 }
+
+/* DeepSeek-style history sidebar: smooth width/transform, a11y focus, reduced-motion */
+#conversation-history {
+  min-width: 0;
+  will-change: width, transform;
+}
+
+#conversation-history :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #conversation-history,
+  #conversation-history *,
+  #conversation-history::before,
+  #conversation-history::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

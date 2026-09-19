@@ -9,6 +9,8 @@ import { Dropdown } from "../../components/Dropdown";
 import { Modal } from "../../components/Modal";
 import { IconButton } from "../../components/IconButton";
 import { useMe } from "../../lib/hooks";
+import type { SidebarState } from "./sidebarState";
+import { cn } from "../../lib/utils";
 
 export type Conversation = {
   id: string;
@@ -27,35 +29,25 @@ export type Folder = {
 };
 
 export interface ConversationSidebarProps {
-  isOpen?: boolean;
-  onClose?: () => void;
-  onToggle?: () => void;
+  sidebarState: SidebarState;
+  drawerOpen: boolean;
+  isMobile: boolean;
+  onExpand: () => void;
+  onCollapse: () => void;
+  onHide: () => void;
+  onCloseDrawer: () => void;
+  onOpenDrawer?: () => void;
 }
 
 const ConversationSidebar = ({
-  isOpen: controlledIsOpen,
-  onClose: controlledOnClose,
-  onToggle: controlledOnToggle,
-}: ConversationSidebarProps = {}) => {
-  const [internalOpen, setInternalOpen] = useState(false);
-  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalOpen;
-
-  const handleClose = () => {
-    if (controlledOnClose) {
-      controlledOnClose();
-    } else {
-      setInternalOpen(false);
-    }
-  };
-
-  const handleToggle = () => {
-    if (controlledOnToggle) {
-      controlledOnToggle();
-    } else {
-      setInternalOpen((prev) => !prev);
-    }
-  };
-
+  sidebarState,
+  drawerOpen,
+  isMobile,
+  onExpand,
+  onCollapse,
+  onHide,
+  onCloseDrawer,
+}: ConversationSidebarProps) => {
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
@@ -67,13 +59,43 @@ const ConversationSidebar = ({
   const [newFolderName, setNewFolderName] = useState("");
 
   const searchRef = useRef<HTMLDivElement>(null);
+  const asideRef = useRef<HTMLElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const params = useParams();
   const { data: meData } = useMe();
-  
+
   const user = meData?.data?.user;
   const initial = (user?.name?.[0] || user?.email?.[0] || "?").toUpperCase();
+
+  const hiddenCompletely = isMobile ? !drawerOpen : sidebarState === "hidden";
+  useEffect(() => {
+    const el = asideRef.current as unknown as { inert?: boolean } | null;
+    if (el) el.inert = hiddenCompletely;
+  }, [hiddenCompletely]);
+
+  useEffect(() => {
+    const el = panelRef.current as unknown as { inert?: boolean } | null;
+    if (!el) return;
+    el.inert = !isMobile && sidebarState === "collapsed";
+  }, [isMobile, sidebarState]);
+
+  useEffect(() => {
+    if (!isMobile || !drawerOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCloseDrawer();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isMobile, drawerOpen, onCloseDrawer]);
+
+  useEffect(() => {
+    if (isMobile && drawerOpen) {
+      closeBtnRef.current?.focus();
+    }
+  }, [isMobile, drawerOpen]);
 
   const { data: foldersData } = useQuery({
     queryKey: ["folders"],
@@ -93,16 +115,17 @@ const ConversationSidebar = ({
     mutationFn: (folderId?: string) =>
       apiFetch<ApiResponse<{ conversation: Conversation }>>(
         "/api/conversations",
-        { 
-          method: "POST", 
-          headers: { "Content-Type": "application/json" }, 
-          body: JSON.stringify({ folderId }) 
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ folderId })
         }
       ),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
       queryClient.invalidateQueries({ queryKey: ["folders"] });
       navigate(`/c/${res.data.conversation.id}`);
+      if (isMobile) onCloseDrawer();
     }
   });
 
@@ -153,10 +176,8 @@ const ConversationSidebar = ({
   const { folders, groupedConversations, uncategorized } = useMemo(() => {
     const fs = foldersData?.data?.items || [];
     const cs = data?.data?.items || [];
-    
     const groups: Record<string, Conversation[]> = {};
     const uncat: Conversation[] = [];
-    
     cs.forEach(c => {
       if (c.folderId) {
         if (!groups[c.folderId]) groups[c.folderId] = [];
@@ -165,10 +186,9 @@ const ConversationSidebar = ({
         uncat.push(c);
       }
     });
-
-    return { 
-      folders: fs, 
-      groupedConversations: groups, 
+    return {
+      folders: fs,
+      groupedConversations: groups,
       uncategorized: uncat.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     };
   }, [foldersData, data]);
@@ -198,6 +218,11 @@ const ConversationSidebar = ({
     return () => document.removeEventListener("mousedown", handleClick);
   }, [searchOpen]);
 
+  const handleSelectConversation = (id: string) => {
+    navigate(`/c/${id}`);
+    if (isMobile) onCloseDrawer();
+  };
+
   const renderConversation = (conversation: Conversation) => {
     const active = params.conversationId === conversation.id;
     return (
@@ -211,12 +236,7 @@ const ConversationSidebar = ({
       >
         <button
           className="flex-1 text-left overflow-hidden whitespace-normal h-5 leading-5 font-sans"
-          onClick={() => {
-            navigate(`/c/${conversation.id}`);
-            if (typeof window !== "undefined" && window.innerWidth < 1024) {
-              handleClose();
-            }
-          }}
+          onClick={() => handleSelectConversation(conversation.id)}
           title={conversation.title}
         >
           {conversation.title}
@@ -239,10 +259,7 @@ const ConversationSidebar = ({
           {menuOpen === conversation.id && (
             <div className="absolute top-full left-0 w-full h-2 bg-transparent z-30" />
           )}
-          <Dropdown 
-            open={menuOpen === conversation.id} 
-            className="mt-0"
-          >
+          <Dropdown open={menuOpen === conversation.id} className="mt-0">
             <button
               className="w-full rounded-md px-3 py-2 text-left text-sm hover:bg-[var(--sidebar)]"
               onClick={() => {
@@ -269,211 +286,278 @@ const ConversationSidebar = ({
     );
   };
 
+  const showBackdrop = isMobile && drawerOpen;
+  const isCollapsedDesktop = !isMobile && sidebarState === "collapsed";
+
+  const asideClasses = cn(
+    "flex h-full flex-col shrink-0 bg-[var(--sidebar)] border-r border-[var(--border)] overflow-hidden",
+    "fixed inset-y-0 left-0 z-50 w-72 sm:w-80 shadow-2xl",
+    "lg:static lg:z-auto lg:shadow-none",
+    drawerOpen ? "translate-x-0" : "-translate-x-full",
+    "lg:translate-x-0",
+    !isMobile && sidebarState === "expanded" && "lg:w-[300px]",
+    !isMobile && sidebarState === "collapsed" && "lg:w-14",
+    !isMobile && sidebarState === "hidden" && "lg:w-0 lg:border-r-0 lg:pointer-events-none",
+    isMobile && !drawerOpen && "pointer-events-none",
+    "transition-[width,transform] duration-200 ease-out motion-reduce:transition-none motion-reduce:transform-none"
+  );
+
   return (
     <>
-      {/* Dimmed mobile overlay backdrop */}
-      {isOpen && (
+      {showBackdrop && (
         <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs transition-opacity duration-300 lg:hidden"
-          onClick={handleClose}
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs lg:hidden"
+          onClick={onCloseDrawer}
           aria-hidden="true"
         />
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex h-full flex-col bg-[var(--sidebar)] border-r border-[var(--border)] transition-all duration-300 ease-in-out lg:static lg:z-auto ${
-          isOpen
-            ? "w-72 sm:w-80 translate-x-0 shadow-2xl lg:shadow-none"
-            : "-translate-x-full lg:w-0 lg:overflow-hidden lg:border-r-0 pointer-events-none"
-        }`}
+        ref={asideRef}
+        id="conversation-history"
+        aria-label="Conversation history"
+        aria-hidden={hiddenCompletely}
+        className={asideClasses}
       >
-        <div className="flex h-12 sm:h-14 items-center justify-between px-3 py-2 border-b border-[var(--border)] pt-[max(env(safe-area-inset-top,0px),8px)] lg:pt-2">
-          <Button
-            className="flex-1 justify-start gap-2 border-0 bg-transparent hover:bg-[var(--panel)] px-2 text-[var(--text)] active:scale-95 transition-transform"
-            onClick={() => {
-              createMutation.mutate(undefined);
-              if (typeof window !== "undefined" && window.innerWidth < 1024) {
-                handleClose();
-              }
-            }}
-          >
-            <i className="bi bi-plus-lg text-base"></i>
-            <span>New chat</span>
-          </Button>
-          <IconButton
-            onClick={handleClose}
-            aria-label="Hide history"
-            title="Hide history"
-            className="h-8 w-8 !border-0 text-[var(--muted)] hover:text-[var(--text)] active:scale-95"
-          >
-            <i className="bi bi-layout-sidebar-inset text-base"></i>
-          </IconButton>
-        </div>
-
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <div className="px-3 py-2">
-            <div className="relative">
-              <i className="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[var(--muted)]"></i>
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search"
-                className="bg-transparent border-0 pl-9 focus:ring-0 text-sm"
-              />
+        {isCollapsedDesktop && (
+          <div className="hidden lg:flex flex-col items-center gap-2 py-3 h-full w-14 shrink-0">
+            <button
+              type="button"
+              onClick={onExpand}
+              aria-label="Open conversation history"
+              title="Open conversation history"
+              aria-expanded={false}
+              aria-controls="conversation-history"
+              className="inline-flex h-10 w-10 min-h-[40px] min-w-[40px] items-center justify-center rounded-lg text-[var(--text)] hover:bg-[var(--panel)] active:scale-95 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            >
+              <i className="bi bi-layout-sidebar-inset-reverse text-lg" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={() => createMutation.mutate(undefined)}
+              aria-label="New chat"
+              title="New chat"
+              className="inline-flex h-10 w-10 min-h-[40px] min-w-[40px] items-center justify-center rounded-lg text-[var(--text)] hover:bg-[var(--panel)] active:scale-95 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            >
+              <i className="bi bi-pencil-square text-base" aria-hidden="true" />
+            </button>
+            <div className="mt-auto flex flex-col items-center gap-2">
+              <button
+                type="button"
+                onClick={onHide}
+                aria-label="Hide conversation history"
+                title="Hide conversation history"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--text)] active:scale-95 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              >
+                <i className="bi bi-x-lg text-sm" aria-hidden="true" />
+              </button>
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto px-3 pb-4 scrollbar-thin">
-            {/* Category Section */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2 px-2">
-                <div className="text-sm font-bold font-sans text-[var(--text)] uppercase tracking-wider opacity-60">
-                  Categories
-                </div>
-                <IconButton 
-                  className="h-5 w-5 !border-0 opacity-100 md:opacity-0 md:group-hover:opacity-100" 
-                  onClick={() => setIsCreatingFolder(true)}
-                  title="New Folder"
+        )}
+
+        <div
+          ref={panelRef}
+          className={cn(
+            "flex-col flex-1 min-h-0 min-w-0 h-full",
+            !isMobile && sidebarState === "collapsed" ? "hidden" : "flex"
+          )}
+          aria-hidden={!isMobile && sidebarState !== "expanded"}
+        >
+          <div className="flex h-12 sm:h-14 items-center justify-between gap-1 px-3 py-2 border-b border-[var(--border)] pt-[max(env(safe-area-inset-top,0px),8px)] lg:pt-2 shrink-0">
+            <Button
+              className="flex-1 justify-start gap-2 border-0 bg-transparent hover:bg-[var(--panel)] px-2 text-[var(--text)] active:scale-95 transition-transform min-h-[40px]"
+              onClick={() => createMutation.mutate(undefined)}
+            >
+              <i className="bi bi-plus-lg text-base"></i>
+              <span>New chat</span>
+            </Button>
+            {isMobile ? (
+              <button
+                ref={closeBtnRef}
+                type="button"
+                onClick={onCloseDrawer}
+                aria-label="Close conversation history"
+                title="Close conversation history"
+                aria-expanded={drawerOpen}
+                aria-controls="conversation-history"
+                className="inline-flex h-10 w-10 min-h-[40px] min-w-[40px] items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--text)] active:scale-95 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              >
+                <i className="bi bi-x-lg text-base" aria-hidden="true" />
+              </button>
+            ) : (
+              <div className="flex items-center gap-1 shrink-0">
+                <IconButton
+                  onClick={onCollapse}
+                  aria-label="Collapse conversation history"
+                  title="Collapse conversation history"
+                  aria-expanded={sidebarState === "expanded"}
+                  aria-controls="conversation-history"
+                  className="h-9 w-9 !border-0 text-[var(--muted)] hover:text-[var(--text)] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                 >
-                  <i className="bi bi-folder-plus text-xs"></i>
+                  <i className="bi bi-layout-sidebar-inset text-base"></i>
+                </IconButton>
+                <IconButton
+                  onClick={onHide}
+                  aria-label="Hide conversation history"
+                  title="Hide conversation history"
+                  aria-controls="conversation-history"
+                  className="h-9 w-9 !border-0 text-[var(--muted)] hover:text-[var(--text)] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                >
+                  <i className="bi bi-x-lg text-sm"></i>
                 </IconButton>
               </div>
+            )}
+          </div>
 
-              {isCreatingFolder && (
-                <div className="px-2 mb-2">
-                  <Input 
-                    autoFocus
-                    placeholder="Folder name..."
-                    className="h-8 text-sm"
-                    value={newFolderName}
-                    onChange={(e) => setNewFolderName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") createFolderMutation.mutate(newFolderName);
-                      if (e.key === "Escape") setIsCreatingFolder(false);
-                    }}
-                    onBlur={() => {
-                      if (!newFolderName.trim()) setIsCreatingFolder(false);
-                    }}
-                  />
-                </div>
-              )}
-
-              <div className="space-y-1">
-                {folders.map((folder) => (
-                  <div key={folder.id} className="space-y-1">
-                    <div className="group flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-[var(--panel)] cursor-pointer text-sm font-medium text-[var(--text)]">
-                      <div 
-                        className="flex flex-1 items-center gap-2 overflow-hidden"
-                        onClick={() => toggleFolder(folder.id)}
-                      >
-                        <i className={`bi bi-chevron-${expandedFolders.has(folder.id) ? "down" : "right"} text-[10px] opacity-50`}></i>
-                        <i className={`bi bi-folder${expandedFolders.has(folder.id) ? "-fill" : ""} text-xs text-yellow-500/80`}></i>
-                        <span className="truncate">{folder.name}</span>
-                        {(folder._count?.conversations || 0) > 0 && (
-                          <span className="shrink-0 flex items-center justify-center min-w-[16px] h-[16px] px-1 text-[9px] font-bold bg-yellow-400 text-yellow-900 rounded-full shadow-sm border border-yellow-500/30 transform -translate-y-1.5 -ml-1">
-                            {folder._count?.conversations}
-                          </span>
-                        )}
-                      </div>
-                      <IconButton 
-                        className="h-5 w-5 !border-0 opacity-100 md:opacity-0 md:group-hover:opacity-100" 
-                        onClick={() => createMutation.mutate(folder.id)}
-                        title="New Chat in Folder"
-                      >
-                        <i className="bi bi-plus-lg text-[10px]"></i>
-                      </IconButton>
-                    </div>
-                    {expandedFolders.has(folder.id) && (
-                      <div className="ml-4 pl-2 border-l border-[var(--border)] space-y-1 mt-1">
-                        {groupedConversations[folder.id]?.map(renderConversation)}
-                        {(!groupedConversations[folder.id] || groupedConversations[folder.id].length === 0) && (
-                          <div className="text-[11px] text-[var(--muted)] py-1 px-2 italic">No chats</div>
-                        )}
-                      </div>
-                    )}
+          <div className="flex flex-1 flex-col overflow-hidden min-h-0">
+            <div className="px-3 py-2 shrink-0">
+              <div className="relative">
+                <i className="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[var(--muted)]"></i>
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search"
+                  className="bg-transparent border-0 pl-9 focus:ring-0 text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto px-3 pb-4 scrollbar-thin min-h-0">
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2 px-2">
+                  <div className="text-sm font-bold font-sans text-[var(--text)] uppercase tracking-wider opacity-60">
+                    Categories
                   </div>
-                ))}
-              </div>
-            </div>
+                  <IconButton
+                    className="h-5 w-5 !border-0 opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                    onClick={() => setIsCreatingFolder(true)}
+                    title="New Folder"
+                  >
+                    <i className="bi bi-folder-plus text-xs"></i>
+                  </IconButton>
+                </div>
 
-            {/* History Section (Uncategorized) */}
-            <div className="mb-4">
-              <div className="mb-2 px-2 text-sm font-bold font-sans text-[var(--text)] uppercase tracking-wider opacity-60">
-                History
+                {isCreatingFolder && (
+                  <div className="px-2 mb-2">
+                    <Input
+                      autoFocus
+                      placeholder="Folder name..."
+                      className="h-8 text-sm"
+                      value={newFolderName}
+                      onChange={(e) => setNewFolderName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") createFolderMutation.mutate(newFolderName);
+                        if (e.key === "Escape") setIsCreatingFolder(false);
+                      }}
+                      onBlur={() => {
+                        if (!newFolderName.trim()) setIsCreatingFolder(false);
+                      }}
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  {folders.map((folder) => (
+                    <div key={folder.id} className="space-y-1">
+                      <div className="group flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-[var(--panel)] cursor-pointer text-sm font-medium text-[var(--text)]">
+                        <div className="flex flex-1 items-center gap-2 overflow-hidden" onClick={() => toggleFolder(folder.id)}>
+                          <i className={`bi bi-chevron-${expandedFolders.has(folder.id) ? "down" : "right"} text-[10px] opacity-50`}></i>
+                          <i className={`bi bi-folder${expandedFolders.has(folder.id) ? "-fill" : ""} text-xs text-yellow-500/80`}></i>
+                          <span className="truncate">{folder.name}</span>
+                          {(folder._count?.conversations || 0) > 0 && (
+                            <span className="shrink-0 flex items-center justify-center min-w-[16px] h-[16px] px-1 text-[9px] font-bold bg-yellow-400 text-yellow-900 rounded-full shadow-sm border border-yellow-500/30 transform -translate-y-1.5 -ml-1">
+                              {folder._count?.conversations}
+                            </span>
+                          )}
+                        </div>
+                        <IconButton
+                          className="h-5 w-5 !border-0 opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                          onClick={() => createMutation.mutate(folder.id)}
+                          title="New Chat in Folder"
+                        >
+                          <i className="bi bi-plus-lg text-[10px]"></i>
+                        </IconButton>
+                      </div>
+                      {expandedFolders.has(folder.id) && (
+                        <div className="ml-4 pl-2 border-l border-[var(--border)] space-y-1 mt-1">
+                          {groupedConversations[folder.id]?.map(renderConversation)}
+                          {(!groupedConversations[folder.id] || groupedConversations[folder.id].length === 0) && (
+                            <div className="text-[11px] text-[var(--muted)] py-1 px-2 italic">No chats</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="space-y-1">
-                {uncategorized.map(renderConversation)}
+
+              <div className="mb-4">
+                <div className="mb-2 px-2 text-sm font-bold font-sans text-[var(--text)] uppercase tracking-wider opacity-60">
+                  History
+                </div>
+                <div className="space-y-1">
+                  {uncategorized.map(renderConversation)}
+                </div>
               </div>
             </div>
-          </div>
-          <div className="border-t border-[var(--border)] px-4 py-3 pb-[max(env(safe-area-inset-bottom,0px),12px)]">
-            <Link
-              to="/account"
-              className="flex items-center gap-3 hover:text-[var(--text)] active:opacity-80 transition-opacity"
-              onClick={() => {
-                if (typeof window !== "undefined" && window.innerWidth < 1024) {
-                  handleClose();
-                }
-              }}
-            >
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-600 text-xs font-medium text-white shadow-sm">
-                {initial}
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-medium">{user?.name || "User"}</span>
-                <span className="text-[10px] text-[var(--muted)]">{user?.email}</span>
-              </div>
-            </Link>
+            <div className="border-t border-[var(--border)] px-4 py-3 pb-[max(env(safe-area-inset-bottom,0px),12px)] shrink-0">
+              <Link
+                to="/account"
+                className="flex items-center gap-3 hover:text-[var(--text)] active:opacity-80 transition-opacity"
+                onClick={() => {
+                  if (isMobile) onCloseDrawer();
+                }}
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-600 text-xs font-medium text-white shadow-sm">
+                  {initial}
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm font-medium truncate">{user?.name || "User"}</span>
+                  <span className="text-[10px] text-[var(--muted)] truncate">{user?.email}</span>
+                </div>
+              </Link>
+            </div>
           </div>
         </div>
-      <Modal
-
-        open={!!renameId}
-        title="Rename conversation"
-        onClose={() => {
-          setRenameId(null);
-          setRenameError(null);
-        }}
-      >
-        <div className="space-y-3">
-          <Input
-            value={renameTitle}
-            onChange={(e) => setRenameTitle(e.target.value)}
-          />
-          {renameError ? (
-            <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-2 text-xs text-red-200">
-              {renameError}
-            </div>
-          ) : null}
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setRenameId(null)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                if (renameId) {
-                  const validation = renameSchema.safeParse(renameTitle.trim());
-                  if (!validation.success) {
-                    setRenameError(
-                      validation.error.errors[0]?.message || "Invalid title"
-                    );
-                    return;
+        <Modal
+          open={!!renameId}
+          title="Rename conversation"
+          onClose={() => {
+            setRenameId(null);
+            setRenameError(null);
+          }}
+        >
+          <div className="space-y-3">
+            <Input value={renameTitle} onChange={(e) => setRenameTitle(e.target.value)} />
+            {renameError ? (
+              <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-2 text-xs text-red-200">
+                {renameError}
+              </div>
+            ) : null}
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setRenameId(null)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  if (renameId) {
+                    const validation = renameSchema.safeParse(renameTitle.trim());
+                    if (!validation.success) {
+                      setRenameError(validation.error.errors[0]?.message || "Invalid title");
+                      return;
+                    }
+                    setRenameError(null);
+                    renameMutation.mutate({ id: renameId, title: renameTitle.trim() });
+                    setRenameId(null);
                   }
-                  setRenameError(null);
-                  renameMutation.mutate({
-                    id: renameId,
-                    title: renameTitle.trim()
-                  });
-                  setRenameId(null);
-                }
-              }}
-            >
-              Save
-            </Button>
+                }}
+              >
+                Save
+              </Button>
+            </div>
           </div>
-        </div>
-      </Modal>
-    </aside>
-  </>
+        </Modal>
+      </aside>
+    </>
   );
 };
 
