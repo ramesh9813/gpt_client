@@ -62,7 +62,7 @@ const Chat = () => {
     enabled: !!conversationId
   });
 
-  const { data: modelsData } = useQuery({
+  const { data: modelsData, isLoading: modelsLoading } = useQuery({
     queryKey: ["models"],
     queryFn: () =>
       apiFetch<ApiResponse<{ models: OpenRouterModel[] }>>("/api/models"),
@@ -629,17 +629,6 @@ const Chat = () => {
     }
   };
 
-  const fallbackModelOptions = useMemo(
-    () =>
-      isFreeRole
-        ? []
-        : [
-            { label: "OpenAI GPT-4o mini", value: "openai/gpt-4o-mini" },
-            { label: "Anthropic Claude 3 Haiku", value: "anthropic/claude-3-haiku" }
-          ],
-    [isFreeRole]
-  );
-
   const dynamicModelOptions = useMemo(() => {
     const models = modelsData?.data?.models ?? [];
     const sorted = [...models].sort((a, b) => {
@@ -687,25 +676,26 @@ const Chat = () => {
       });
   }, [modelsData?.data?.models, sortBy]);
 
+  // Fully dynamic: no hardcoded models. List comes from GET /api/models (OpenRouter,
+  // role-filtered server-side) on page load. Only sentinel is "default" (server resolves it).
   const modelOptions = useMemo(() => {
-    const options =
-      dynamicModelOptions.length > 0 ? dynamicModelOptions : fallbackModelOptions;
     return [
       {
         label: isFreeRole ? "Default free model" : "Default model",
         value: "default"
       },
-      ...options
+      ...dynamicModelOptions
     ];
-  }, [dynamicModelOptions, fallbackModelOptions, isFreeRole]);
+  }, [dynamicModelOptions, isFreeRole]);
 
   useEffect(() => {
     if (model === "default") return;
+    if (modelsLoading) return; // don't reset while list still loading
     const allowed = modelOptions.some((option) => option.value === model);
     if (!allowed) {
       setModel("default");
     }
-  }, [model, modelOptions]);
+  }, [model, modelOptions, modelsLoading]);
 
   const handleHeaderToggle = () => {
     if (isMobile) {
@@ -796,6 +786,7 @@ const Chat = () => {
               hasCanvasCode={showCanvas ? canvasData.hasCodeMap : undefined}
             />
             <Composer
+              modelsLoading={modelsLoading}
               onSend={sendMessage}
               disabled={streaming}
               error={composerError}

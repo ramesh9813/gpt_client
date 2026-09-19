@@ -15,6 +15,7 @@ const Composer = ({
   lastUserMessage,
   model,
   modelOptions,
+  modelsLoading,
   onModelChange,
   inputRef,
   sort = "name",
@@ -29,6 +30,7 @@ const Composer = ({
   lastUserMessage?: string;
   model: string;
   modelOptions: ModelOption[];
+  modelsLoading?: boolean;
   onModelChange: (value: string) => void;
   inputRef?: MutableRefObject<HTMLTextAreaElement | null>;
   sort?: SortOption;
@@ -329,18 +331,24 @@ const Composer = ({
                           </button>
                         );
                         })}
-                      {modelOptions.filter((option) => {
-                        const q = modelQuery.trim().toLowerCase();
-                        if (!q) return true;
-                        return (
-                          option.label.toLowerCase().includes(q) ||
-                          option.value.toLowerCase().includes(q)
-                        );
-                      }).length === 0 && (
-                        <div className="px-2.5 py-4 text-center text-xs text-[var(--muted)]">
-                          No models found
-                        </div>
-                      )}
+                      {(() => {
+                        const filtered = modelOptions.filter((option) => {
+                          const q = modelQuery.trim().toLowerCase();
+                          if (!q) return true;
+                          return (
+                            option.label.toLowerCase().includes(q) ||
+                            option.value.toLowerCase().includes(q)
+                          );
+                        });
+                        if (filtered.length === 0) {
+                          return (
+                            <div className="px-2.5 py-4 text-center text-xs text-[var(--muted)]">
+                              {modelsLoading ? "Loading models…" : modelQuery.trim() ? "No models found" : "No models available"}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   </div>
                 )}
