@@ -341,6 +341,7 @@ const MessageList = ({
   const listRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
   const [atTop, setAtTop] = useState(true);
+  const [canScroll, setCanScroll] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
   const [editingError, setEditingError] = useState<string | null>(null);
@@ -368,14 +369,26 @@ const MessageList = ({
   useEffect(() => {
     const el = listRef.current;
     if (!el) return;
-    const onScroll = () => {
+    const update = () => {
       const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
       setAtBottom(distance < 120);
       setAtTop(el.scrollTop < 100);
+      setCanScroll(el.scrollHeight > el.clientHeight + 10);
     };
-    el.addEventListener("scroll", onScroll);
-    return () => el.removeEventListener("scroll", onScroll);
+    update();
+    el.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    return () => {
+      el.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
   }, []);
+
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    setCanScroll(el.scrollHeight > el.clientHeight + 10);
+  }, [messages]);
 
   useEffect(() => {
     if (!editingId) return;
@@ -650,28 +663,32 @@ const MessageList = ({
           );
         })}
       </div>
-      <div className="fixed bottom-20 md:bottom-24 right-3 md:right-8 flex flex-col gap-2 z-20">
-        {!atTop && (
-          <button
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--panel)] text-[var(--text)] shadow-md hover:bg-[var(--sidebar)] active:scale-95 transition-all"
-            onClick={scrollToTop}
-            title="Jump to top"
-            type="button"
-          >
-            <i className="bi bi-arrow-up text-xs"></i>
-          </button>
-        )}
-        {!atBottom && (
-          <button
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--panel)] text-[var(--text)] shadow-md hover:bg-[var(--sidebar)] active:scale-95 transition-all"
-            onClick={scrollToBottom}
-            title="Jump to bottom"
-            type="button"
-          >
-            <i className="bi bi-arrow-down text-xs"></i>
-          </button>
-        )}
-      </div>
+      {messages.length > 0 && canScroll && (!atTop || !atBottom) && (
+        <div className="fixed bottom-28 md:bottom-32 right-3 md:right-8 flex flex-col gap-2 z-20">
+          {!atTop && (
+            <button
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--panel)] text-[var(--text)] shadow-md hover:bg-[var(--sidebar)] active:scale-95 transition-all"
+              onClick={scrollToTop}
+              title="Jump to top"
+              aria-label="Scroll to top"
+              type="button"
+            >
+              <i className="bi bi-arrow-up text-xs" aria-hidden="true"></i>
+            </button>
+          )}
+          {!atBottom && (
+            <button
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--panel)] text-[var(--text)] shadow-md hover:bg-[var(--sidebar)] active:scale-95 transition-all"
+              onClick={scrollToBottom}
+              title="Jump to bottom"
+              aria-label="Scroll to bottom"
+              type="button"
+            >
+              <i className="bi bi-arrow-down text-xs" aria-hidden="true"></i>
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };
