@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "../components/Button";
 import { Input } from "../components/Input";
 import { apiFetch } from "../lib/api";
@@ -24,6 +25,7 @@ type FormValues = z.infer<typeof schema>;
 
 const Signup = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const {
     register,
@@ -39,6 +41,7 @@ const Signup = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values)
       });
+      await queryClient.invalidateQueries({ queryKey: ["me"] });
       navigate("/", { replace: true });
     } catch (err: any) {
       setError(err?.error?.message || err?.message || "Signup failed");

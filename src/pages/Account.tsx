@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { Button } from "../components/Button";
 import { Input } from "../components/Input";
-import { apiFetch, ApiResponse } from "../lib/api";
+import { apiFetch, ApiResponse, clearAuthStorage } from "../lib/api";
 import { useMe, useSettings } from "../lib/hooks";
 import { applyTheme } from "../lib/theme";
 import { UsageChart, UsageLog } from "../features/settings/UsageChart";
@@ -259,6 +259,7 @@ type Tab = "profile" | "settings" | "security" | "data_controls" | "payment" | "
 const Account = () => {
   const { data: meData } = useMe();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<Tab>("profile");
   const [loading, setLoading] = useState(false);
 
@@ -266,9 +267,13 @@ const Account = () => {
     setLoading(true);
     try {
       await apiFetch("/api/auth/logout", { method: "POST" });
-      navigate("/login", { replace: true });
+    } catch {
+      // ignore network errors
     } finally {
+      clearAuthStorage();
+      queryClient.clear();
       setLoading(false);
+      navigate("/login", { replace: true });
     }
   };
 
