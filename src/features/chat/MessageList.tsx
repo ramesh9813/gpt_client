@@ -14,6 +14,7 @@ export type ChatMessage = {
   content: string;
   status?: "COMPLETE" | "STREAMING" | "ERROR";
   model?: string | null;
+  images?: string[];
 };
 
 type ModelOption = { label: string; value: string };
@@ -119,6 +120,23 @@ const ShareButton = ({
         } text-sm`}
       ></i>
     </button>
+  );
+};
+
+const MessageImages = ({ images }: { images?: string[] }) => {
+  if (!images || images.length === 0) return null;
+  return (
+    <div className="mb-2 flex min-w-0 flex-wrap gap-2">
+      {images.map((src, i) => (
+        <img
+          key={i}
+          src={src}
+          alt={`Attachment ${i + 1}`}
+          loading="lazy"
+          className="max-h-48 w-auto max-w-full rounded-xl border border-black/10 dark:border-white/10 object-cover"
+        />
+      ))}
+    </div>
   );
 };
 
@@ -434,10 +452,11 @@ const MessageList = ({
                 key={message.id}
                 className={`flex justify-end group py-2 ${isEditing ? "w-full" : ""}`}
               >
-                <div className={`flex flex-col items-end ${isEditing ? "w-full" : "max-w-[88%] sm:max-w-[80%] md:max-w-[70%]"}`}>
-                  <div className="user-message-card w-full rounded-2xl bg-[#f4f4f4] dark:bg-[#2f2f2f] text-[#0d0d0d] dark:text-[#ececf1] border border-[#e5e7eb] dark:border-transparent px-3.5 py-2.5 sm:px-4 sm:py-3 text-[15px] sm:text-base shadow-xs">
+                <div className={`flex flex-col items-end min-w-0 ${isEditing ? "w-full" : "max-w-[88%] sm:max-w-[80%] md:max-w-[70%]"}`}>
+                  <div className="user-message-card w-full rounded-2xl bg-[#f4f4f4] dark:bg-[#2f2f2f] text-[#0d0d0d] dark:text-[#ececf1] border border-[#e5e7eb] dark:border-transparent px-3.5 py-2.5 sm:px-4 sm:py-3 text-[15px] sm:text-base shadow-xs min-w-0">
                     {isEditing ? (
                       <div className="w-full min-w-[260px] sm:min-w-[300px]">
+                        <MessageImages images={message.images} />
                         <Textarea
                           ref={editRef}
                           rows={2}
@@ -472,30 +491,35 @@ const MessageList = ({
                         </div>
                       </div>
                     ) : (
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          pre(props) {
-                            return <div className="p-0 m-0 bg-transparent">{props.children}</div>;
-                          },
-                          code(props) {
-                            const { children, className, node, ...rest } = props;
-                            const match = /language-(\w+)/.exec(className || "");
-                            return match ? (
-                              <CodeBlockWithRun
-                                language={match[1]}
-                                code={String(children)}
-                              />
-                            ) : (
-                              <code {...rest} className={className}>
-                                {children}
-                              </code>
-                            );
-                          }
-                        }}
-                      >
-                        {message.content}
-                      </ReactMarkdown>
+                      <>
+                        <MessageImages images={message.images} />
+                        {message.content.trim().length > 0 ? (
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              pre(props) {
+                                return <div className="p-0 m-0 bg-transparent">{props.children}</div>;
+                              },
+                              code(props) {
+                                const { children, className, node, ...rest } = props;
+                                const match = /language-(\w+)/.exec(className || "");
+                                return match ? (
+                                  <CodeBlockWithRun
+                                    language={match[1]}
+                                    code={String(children)}
+                                  />
+                                ) : (
+                                  <code {...rest} className={className}>
+                                    {children}
+                                  </code>
+                                );
+                              }
+                            }}
+                          >
+                            {message.content}
+                          </ReactMarkdown>
+                        ) : null}
+                      </>
                     )}
                   </div>
                   {!isEditing && (
@@ -523,16 +547,17 @@ const MessageList = ({
             );
           }
 
-          if (!message.content && message.status !== "STREAMING") {
+          if (!message.content && !(message.images && message.images.length > 0) && message.status !== "STREAMING") {
             return null;
           }
 
           return (
             <div
               key={message.id}
-              className="rounded-xl bg-[var(--assistantRow)] p-3 sm:p-4 group"
+              className="rounded-xl bg-[var(--assistantRow)] p-3 sm:p-4 group min-w-0"
             >
-              <div className="markdown max-w-none text-base leading-relaxed w-full">
+              <div className="markdown max-w-none text-base leading-relaxed w-full min-w-0">
+                <MessageImages images={message.images} />
                 {message.status === "STREAMING" && !displayContent ? (
                   <div className="flex gap-1 py-2 items-center">
                     <div className="h-1.5 w-1.5 rounded-full bg-[var(--muted)] animate-bounce [animation-delay:-0.3s]"></div>

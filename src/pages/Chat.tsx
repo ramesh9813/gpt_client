@@ -214,12 +214,14 @@ const Chat = () => {
     tempAssistantId,
     conversationId,
     userMessage,
+    images,
     existingUserMessageId,
     selectedModel
   }: {
     tempAssistantId: string;
     conversationId: string;
     userMessage?: string;
+    images?: string[];
     existingUserMessageId?: string;
     selectedModel?: string;
   }) => {
@@ -240,6 +242,7 @@ const Chat = () => {
         body: JSON.stringify({
           conversationId,
           userMessage,
+          ...(images && images.length > 0 ? { images } : {}),
           existingUserMessageId,
           model:
             selectedModel && selectedModel !== "default"
@@ -408,21 +411,34 @@ const Chat = () => {
     setActiveStreamId(null);
   };
 
-  const sendMessage = async (text: string) => {
+  const sendMessage = async (text: string, images?: string[]) => {
     if (!conversationId) return;
-    const validation = messageSchema.safeParse(text);
-    if (!validation.success) {
-      setComposerError(validation.error.errors[0]?.message || "Invalid message");
+    const trimmed = text.trim();
+    const hasImages = !!images && images.length > 0;
+    if (!trimmed && !hasImages) {
+      setComposerError("Message is required");
       return;
     }
+    if (trimmed) {
+      const validation = messageSchema.safeParse(trimmed);
+      if (!validation.success) {
+        setComposerError(validation.error.errors[0]?.message || "Invalid message");
+        return;
+      }
+    }
     setComposerError(null);
-    setLastUserMessage(text);
+    setLastUserMessage(trimmed);
     const tempUserId = `local-user-${Date.now()}`;
     const tempAssistantId = `local-assistant-${Date.now()}`;
 
     setMessages((prev) => [
       ...prev,
-      { id: tempUserId, role: "USER", content: text },
+      {
+        id: tempUserId,
+        role: "USER",
+        content: trimmed,
+        ...(hasImages ? { images: [...images!] } : {}),
+      },
       {
         id: tempAssistantId,
         role: "ASSISTANT",
@@ -438,7 +454,8 @@ const Chat = () => {
       await streamAssistant({
         tempAssistantId,
         conversationId,
-        userMessage: text,
+        userMessage: trimmed,
+        images: hasImages ? images : undefined,
         selectedModel: model
       });
     } catch (err: any) {
