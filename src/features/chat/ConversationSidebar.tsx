@@ -222,7 +222,7 @@ const ConversationSidebar = ({
           {conversation.title}
         </button>
         <div
-          className={`relative h-6 w-6 ${menuOpen === conversation.id ? "opacity-100" : "opacity-90 md:opacity-0 md:group-hover:opacity-100"} transition-opacity`}
+          className={`relative h-6 w-6 ${menuOpen === conversation.id ? "opacity-100" : "opacity-100 md:opacity-0 md:group-hover:opacity-100"} transition-opacity`}
           onMouseLeave={() => setMenuOpen(null)}
         >
           <IconButton
@@ -289,7 +289,7 @@ const ConversationSidebar = ({
       >
         <div className="flex h-12 sm:h-14 items-center justify-between px-3 py-2 border-b border-[var(--border)] pt-[max(env(safe-area-inset-top,0px),8px)] lg:pt-2">
           <Button
-            className="flex-1 justify-start gap-2 border-0 bg-transparent hover:bg-[var(--panel)] px-2 text-black dark:text-white active:scale-95 transition-transform"
+            className="flex-1 justify-start gap-2 border-0 bg-transparent hover:bg-[var(--panel)] px-2 text-[var(--text)] active:scale-95 transition-transform"
             onClick={() => {
               createMutation.mutate(undefined);
               if (typeof window !== "undefined" && window.innerWidth < 1024) {
@@ -330,7 +330,7 @@ const ConversationSidebar = ({
                   Categories
                 </div>
                 <IconButton 
-                  className="h-5 w-5 !border-0 opacity-90 md:opacity-0 md:group-hover:opacity-100" 
+                  className="h-5 w-5 !border-0 opacity-100 md:opacity-0 md:group-hover:opacity-100" 
                   onClick={() => setIsCreatingFolder(true)}
                   title="New Folder"
                 >
@@ -375,7 +375,7 @@ const ConversationSidebar = ({
                         )}
                       </div>
                       <IconButton 
-                        className="h-5 w-5 !border-0 opacity-90 md:opacity-0 md:group-hover:opacity-100" 
+                        className="h-5 w-5 !border-0 opacity-100 md:opacity-0 md:group-hover:opacity-100" 
                         onClick={() => createMutation.mutate(folder.id)}
                         title="New Chat in Folder"
                       >

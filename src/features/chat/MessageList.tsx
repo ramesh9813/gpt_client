@@ -40,7 +40,9 @@ const CopyButton = ({
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(text);
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -50,20 +52,76 @@ const CopyButton = ({
       onClick={handleCopy}
       className={
         className ||
-        "flex items-center gap-2 hover:text-white transition-colors opacity-70 hover:opacity-100"
+        "inline-flex h-8 w-8 min-h-[32px] min-w-[32px] items-center justify-center rounded-md text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--panel)] active:scale-95 transition-all"
       }
-      title="Copy"
+      title={copied ? "Copied!" : "Copy"}
+      aria-label="Copy"
       type="button"
     >
       <i
         className={`bi ${
-          copied ? "bi-check text-[var(--text)]" : "bi-copy"
-        } text-[13px]`}
+          copied ? "bi-check2 text-[var(--accent)]" : "bi-copy"
+        } text-sm`}
       ></i>
-      {showText && (copied ? "Copied!" : "Copy")}
+      {showText && <span className="ml-1 text-xs">{copied ? "Copied!" : "Copy"}</span>}
     </button>
   );
 };
+
+const ShareButton = ({
+  text,
+  title = "ChatGPT Response",
+  className
+}: {
+  text: string;
+  title?: string;
+  className?: string;
+}) => {
+  const [shared, setShared] = useState(false);
+
+  const handleShare = async () => {
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({
+          title,
+          text
+        });
+        setShared(true);
+        setTimeout(() => setShared(false), 2000);
+      } catch (err: any) {
+        if (err.name !== "AbortError") {
+          navigator.clipboard?.writeText(text);
+          setShared(true);
+          setTimeout(() => setShared(false), 2000);
+        }
+      }
+    } else if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleShare}
+      className={
+        className ||
+        "inline-flex h-8 w-8 min-h-[32px] min-w-[32px] items-center justify-center rounded-md text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--panel)] active:scale-95 transition-all"
+      }
+      title={shared ? "Shared!" : "Share response"}
+      aria-label="Share response"
+      type="button"
+    >
+      <i
+        className={`bi ${
+          shared ? "bi-check2 text-[var(--accent)]" : "bi-share"
+        } text-sm`}
+      ></i>
+    </button>
+  );
+};
+
 
 const CodeBlockWithRun = ({
   language,
@@ -207,24 +265,26 @@ const RegenerateMenu = ({
   }, []);
 
   return (
-    <div className="relative inline-block ml-2" ref={containerRef}>
+    <div className="relative inline-block" ref={containerRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="inline-flex items-center gap-1 text-[13px] text-[var(--muted)] hover:text-[var(--text)] transition-colors"
+        className="inline-flex h-8 w-8 min-h-[32px] min-w-[32px] items-center justify-center rounded-md text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--panel)] active:scale-95 transition-all"
         title="Regenerate response"
+        aria-label="Regenerate response"
+        type="button"
       >
-        <i className="bi bi-arrow-repeat"></i>
+        <i className="bi bi-arrow-repeat text-sm"></i>
       </button>
 
       <Dropdown open={open} placement="top" align="start" className="w-64 z-50">
         <div className="max-h-64 overflow-y-auto px-1 py-1">
-          <div className="px-3 py-2 text-xs uppercase text-[var(--muted)]">
+          <div className="px-3 py-2 text-xs uppercase font-medium tracking-wide text-[var(--muted)]">
             Regenerate with...
           </div>
           {modelOptions.map((option) => (
             <button
               key={option.value}
-              className="w-full rounded-md px-3 py-2 text-left text-xs text-[var(--text)] hover:bg-[var(--sidebar)]"
+              className="w-full rounded-md px-3 py-2 text-left text-xs text-[var(--text)] hover:bg-[var(--sidebar)] transition-colors"
               onClick={() => {
                 onRegenerate(messageId, option.value);
                 setOpen(false);
@@ -375,35 +435,37 @@ const MessageList = ({
                 className={`flex justify-end group py-2 ${isEditing ? "w-full" : ""}`}
               >
                 <div className={`flex flex-col items-end ${isEditing ? "w-full" : "max-w-[88%] sm:max-w-[80%] md:max-w-[70%]"}`}>
-                  <div className="w-full rounded-2xl bg-[#303030] px-3.5 py-2.5 sm:px-4 sm:py-3 text-[15px] sm:text-base text-white shadow-sm">
+                  <div className="w-full rounded-2xl bg-[var(--userBubble)] text-[var(--text)] border border-[var(--border)] dark:border-transparent px-3.5 py-2.5 sm:px-4 sm:py-3 text-[15px] sm:text-base shadow-xs">
                     {isEditing ? (
-                      <div className="w-full min-w-[300px]">
+                      <div className="w-full min-w-[260px] sm:min-w-[300px]">
                         <Textarea
                           ref={editRef}
                           rows={2}
                           value={editingValue}
                           onChange={(e) => setEditingValue(e.target.value)}
                           onKeyDown={onEditKeyDown}
-                          className="min-h-[64px] w-full text-right"
+                          className="min-h-[64px] w-full text-right bg-transparent text-[var(--text)]"
                           aria-invalid={!!editingError}
                         />
                         {editingError ? (
-                          <div className="mt-2 text-xs text-red-300">
+                          <div className="mt-2 text-xs text-red-500 dark:text-red-300">
                             {editingError}
                           </div>
                         ) : null}
                         <div className="mt-2 flex items-center justify-end gap-2 text-xs">
                           <button
-                            className="rounded-md border border-[var(--border)] px-2 py-1 text-[var(--muted)] hover:text-[var(--text)]"
+                            className="rounded-md border border-[var(--border)] bg-transparent px-2.5 py-1 text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--sidebar)] transition-colors"
                             onClick={cancelEdit}
                             disabled={savingId === message.id}
+                            type="button"
                           >
                             Cancel
                           </button>
                           <button
-                            className="rounded-md border border-[var(--border)] px-2 py-1 text-[var(--text)] hover:bg-[var(--panel)]"
+                            className="rounded-md border border-[var(--border)] bg-[var(--panel)] px-2.5 py-1 text-[var(--text)] hover:bg-[var(--sidebar)] transition-colors"
                             onClick={submitEdit}
                             disabled={savingId === message.id}
+                            type="button"
                           >
                             {savingId === message.id ? "Saving..." : "Save & run"}
                           </button>
@@ -437,21 +499,21 @@ const MessageList = ({
                     )}
                   </div>
                   {!isEditing && (
-                    <div className="flex items-center gap-3 opacity-90 md:opacity-0 md:group-hover:opacity-100 transition-opacity px-1 py-0.5">
+                    <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity px-1 py-0.5 mt-0.5">
                       <CopyButton 
                         text={message.content} 
                         showText={false}
-                        className="text-gray-400 hover:text-white transition-colors"
                       />
                       {onEditSubmit && !editDisabled && (
                         <button
-                          className="text-gray-400 hover:text-white transition-colors"
+                          className="inline-flex h-8 w-8 min-h-[32px] min-w-[32px] items-center justify-center rounded-md text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--panel)] active:scale-95 transition-all"
                           onClick={() => startEdit(message)}
                           disabled={editDisabled}
                           title="Edit message"
+                          aria-label="Edit message"
                           type="button"
                         >
-                          <i className="bi bi-pencil text-[13px]"></i>
+                          <i className="bi bi-pencil text-sm"></i>
                         </button>
                       )}
                     </div>
@@ -507,9 +569,9 @@ const MessageList = ({
                     {displayContent}
                   </ReactMarkdown>
                 )}
-                <div className="mt-2 flex items-center gap-3 min-h-[20px]">
+                <div className="mt-2 flex items-center gap-1.5 min-h-[24px]">
                   {message.model && (
-                    <div className="text-[11px] text-[var(--muted)] opacity-60 mr-1">
+                    <div className="text-[11px] text-[var(--muted)] opacity-60 mr-1 truncate max-w-[150px]">
                       {message.model.split('/').pop()}
                     </div>
                   )}
@@ -517,16 +579,17 @@ const MessageList = ({
                     <>
                       {onStopStreaming && activeStreamId === message.id ? (
                         <button
-                          className="inline-flex items-center gap-1 text-[12px] text-[var(--muted)] hover:text-[var(--text)] transition-colors"
+                          className="inline-flex h-8 w-8 min-h-[32px] min-w-[32px] items-center justify-center rounded-md text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--panel)] active:scale-95 transition-all"
                           onClick={onStopStreaming}
                           title="Stop response"
+                          aria-label="Stop response"
                           type="button"
                         >
-                          <i className="bi bi-stop-circle"></i>
+                          <i className="bi bi-stop-circle text-sm"></i>
                         </button>
                       ) : null}
                       {message.content && (
-                        <div className="flex gap-1 items-center ml-2" title="Generating...">
+                        <div className="flex gap-1 items-center ml-1" title="Generating...">
                           <div className="h-1 w-1 rounded-full bg-[var(--accent)] animate-bounce [animation-delay:-0.3s]"></div>
                           <div className="h-1 w-1 rounded-full bg-[var(--accent)] animate-bounce [animation-delay:-0.15s]"></div>
                           <div className="h-1 w-1 rounded-full bg-[var(--accent)] animate-bounce"></div>
@@ -534,7 +597,19 @@ const MessageList = ({
                       )}
                     </>
                   ) : (
-                    <div className="flex items-center gap-3 opacity-90 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                      <CopyButton 
+                        text={message.content} 
+                        showText={false}
+                      />
+                      <ShareButton 
+                        text={message.content} 
+                      />
+                      <DownloadMenu 
+                        content={message.content} 
+                        messages={messages} 
+                        chatContainerRef={listRef} 
+                      />
                       {onRegenerate && (
                         <RegenerateMenu 
                           messageId={message.id} 
@@ -542,12 +617,6 @@ const MessageList = ({
                           onRegenerate={onRegenerate} 
                         />
                       )}
-                      <CopyButton 
-                        text={message.content} 
-                        showText={false}
-                        className="inline-flex items-center gap-1 text-[13px] text-[var(--muted)] hover:text-[var(--text)]"
-                      />
-                      <DownloadMenu content={message.content} messages={messages} chatContainerRef={listRef} />
                     </div>
                   )}
                 </div>
