@@ -134,6 +134,64 @@ const Chat = () => {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  // Horizontal swipe gesture to open/close history sidebar on touch devices (Android & mobile)
+  useEffect(() => {
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartTime = 0;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        // Don't trigger if user is interacting with an input, textarea, or editable element
+        if (target.closest("textarea, input, [contenteditable='true']")) {
+          touchStartX = 0;
+          return;
+        }
+        // Don't trigger if swiping inside a horizontally scrollable code block or pre element
+        const scrollable = target.closest("pre, code, .overflow-x-auto");
+        if (scrollable && scrollable.scrollWidth > scrollable.clientWidth) {
+          touchStartX = 0;
+          return;
+        }
+      }
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      touchStartTime = Date.now();
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (!touchStartX) return;
+      const touch = e.changedTouches[0];
+      const deltaX = touch.clientX - touchStartX;
+      const deltaY = touch.clientY - touchStartY;
+      const deltaTime = Date.now() - touchStartTime;
+      touchStartX = 0;
+
+      // Quick gesture within 600ms
+      if (deltaTime > 600) return;
+
+      // Ensure horizontal swipe is dominant (horizontal delta > 1.3x vertical delta) and at least 45px
+      if (Math.abs(deltaX) >= 45 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3) {
+        if (deltaX > 0 && !sidebarOpen) {
+          // Swipe Right -> Open history sidebar
+          setSidebarOpen(true);
+        } else if (deltaX < 0 && sidebarOpen) {
+          // Swipe Left -> Hide history sidebar
+          setSidebarOpen(false);
+        }
+      }
+    };
+
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchend", handleTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [sidebarOpen]);
+
   const streamAssistant = async ({
     tempAssistantId,
     conversationId,
