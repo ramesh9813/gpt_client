@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useParams } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import ConversationSidebar from "../features/chat/ConversationSidebar";
 import SidebarToggle from "../components/SidebarToggle";
@@ -14,6 +14,7 @@ import { useMe } from "../lib/hooks";
 
 const Chat = () => {
   const { conversationId } = useParams();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
@@ -79,6 +80,23 @@ const Chat = () => {
 
   const currentConv = convsData?.data?.items?.find((c) => c.id === conversationId);
   const currentConversationTitle = currentConv?.title;
+
+  const newChatMutation = useMutation({
+    mutationFn: () =>
+      apiFetch<ApiResponse<{ conversation: { id: string } }>>(
+        "/api/conversations",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}"
+        }
+      ),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["folders"] });
+      navigate(`/c/${res.data.conversation.id}`);
+    }
+  });
 
   useEffect(() => {
     if (messageData?.data?.messages) {
@@ -716,6 +734,16 @@ const Chat = () => {
                 </span>
               )}
             </div>
+            <button
+              onClick={() => newChatMutation.mutate()}
+              disabled={newChatMutation.isPending}
+              className="inline-flex h-9 w-9 min-h-[36px] min-w-[36px] flex-shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--panel)] text-[var(--text)] shadow-xs transition-all hover:bg-[var(--sidebar)] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              title="New chat"
+              aria-label="New chat"
+              type="button"
+            >
+              <i className="bi bi-pencil-square text-sm" aria-hidden="true"></i>
+            </button>
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
