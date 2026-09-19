@@ -1,5 +1,6 @@
 import { KeyboardEvent, MutableRefObject, useEffect, useRef, useState } from "react";
 import { Button } from "../../components/Button";
+import { Input } from "../../components/Input";
 import { compressImageFile, MAX_IMAGES_PER_MESSAGE } from "../../lib/image";
 
 type ModelOption = { label: string; value: string };
@@ -39,6 +40,7 @@ const Composer = ({
   const [menuOpen, setMenuOpen] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
+  const [modelQuery, setModelQuery] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -183,7 +185,7 @@ const Composer = ({
                     <button
                       type="button"
                       className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm text-[var(--text)] hover:bg-[var(--sidebar)] active:bg-[var(--border)] transition-colors"
-                      onClick={() => setModelMenuOpen(true)}
+                      onClick={() => { setModelQuery(""); setModelMenuOpen(true); }}
                     >
                       <div className="flex items-center gap-2 overflow-hidden">
                         <i className="bi bi-cpu text-xs text-[var(--accent)]"></i>
@@ -227,7 +229,7 @@ const Composer = ({
                     <div className="flex items-center justify-between px-2 py-1.5 border-b border-[var(--border)] mb-1">
                       <button
                         type="button"
-                        onClick={() => setModelMenuOpen(false)}
+                        onClick={() => { setModelQuery(""); setModelMenuOpen(false); }}
                         className="flex items-center gap-1 text-xs text-[var(--muted)] hover:text-[var(--text)] p-1 transition-colors"
                       >
                         <i className="bi bi-chevron-left text-xs"></i>
@@ -269,8 +271,42 @@ const Composer = ({
                         </div>
                       )}
                     </div>
+                    <div className="px-1 pb-1">
+                      <div className="relative">
+                        <i className="bi bi-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-[var(--muted)]" aria-hidden="true"></i>
+                        <Input
+                          autoFocus
+                          value={modelQuery}
+                          onChange={(e) => setModelQuery(e.target.value)}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          placeholder="Search models..."
+                          aria-label="Search models"
+                          className="h-8 pl-8 pr-7 text-xs bg-transparent"
+                        />
+                        {modelQuery && (
+                          <button
+                            type="button"
+                            onClick={() => setModelQuery("")}
+                            aria-label="Clear model search"
+                            title="Clear"
+                            className="absolute right-1.5 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--sidebar)] transition-colors"
+                          >
+                            <i className="bi bi-x text-xs" aria-hidden="true"></i>
+                          </button>
+                        )}
+                      </div>
+                    </div>
                     <div className="max-h-60 overflow-y-auto px-1 pb-1 pt-1 scrollbar-thin">
-                      {modelOptions.map((option) => {
+                      {modelOptions
+                        .filter((option) => {
+                          const q = modelQuery.trim().toLowerCase();
+                          if (!q) return true;
+                          return (
+                            option.label.toLowerCase().includes(q) ||
+                            option.value.toLowerCase().includes(q)
+                          );
+                        })
+                        .map((option) => {
                         const active = option.value === model;
                         return (
                           <button
@@ -283,6 +319,7 @@ const Composer = ({
                             }`}
                             onClick={() => {
                               onModelChange(option.value);
+                              setModelQuery("");
                               setModelMenuOpen(false);
                               setMenuOpen(false);
                             }}
@@ -291,7 +328,19 @@ const Composer = ({
                             {active && <i className="bi bi-check text-sm text-[var(--accent)]"></i>}
                           </button>
                         );
-                      })}
+                        })}
+                      {modelOptions.filter((option) => {
+                        const q = modelQuery.trim().toLowerCase();
+                        if (!q) return true;
+                        return (
+                          option.label.toLowerCase().includes(q) ||
+                          option.value.toLowerCase().includes(q)
+                        );
+                      }).length === 0 && (
+                        <div className="px-2.5 py-4 text-center text-xs text-[var(--muted)]">
+                          No models found
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
