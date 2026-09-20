@@ -16,12 +16,23 @@ export const ArtifactCard = ({ artifact }: ArtifactCardProps) => {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"preview" | "code">("preview");
   const [copied, setCopied] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     setOpen(false);
     setMode("preview");
     setCopied(false);
+    setExpanded(false);
   }, [artifact.id, artifact.code]);
+
+  useEffect(() => {
+    if (!expanded) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setExpanded(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [expanded]);
 
   const copyCode = () => {
     const done = () => {
@@ -97,7 +108,7 @@ export const ArtifactCard = ({ artifact }: ArtifactCardProps) => {
 
   return (
     <div
-      className="artifact-card artifact-card--open"
+      className={`artifact-card artifact-card--open${expanded ? " artifact-card--fullpage" : ""}`}
       role="group"
       aria-label={`Interactive simulation: ${title}`}
     >
@@ -143,6 +154,16 @@ export const ArtifactCard = ({ artifact }: ArtifactCardProps) => {
           <button
             type="button"
             className="artifact-card-tool"
+            onClick={() => setExpanded(true)}
+            title="Expand to full page"
+            aria-label="Expand simulation to full page"
+            aria-pressed={false}
+          >
+            <i className="bi bi-arrows-expand" aria-hidden="true"></i>
+          </button>
+          <button
+            type="button"
+            className="artifact-card-tool"
             onClick={() => setOpen(false)}
             title="Collapse simulation"
             aria-label="Collapse simulation"
@@ -152,6 +173,17 @@ export const ArtifactCard = ({ artifact }: ArtifactCardProps) => {
           </button>
         </div>
       </div>
+      {expanded && (
+        <button
+          type="button"
+          className="artifact-card-float-close"
+          onClick={() => setExpanded(false)}
+          title="Exit full page"
+          aria-label="Exit full page simulation"
+        >
+          <i className="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+      )}
       <div className="artifact-card-stage">
         {mode === "preview" ? (
           <iframe
