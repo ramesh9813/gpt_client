@@ -1,8 +1,8 @@
 /* ============================ 2. CHATGPT (light, neutral minimal) ======== */
 [data-brand="chatgpt"] {
-  --theme-font-ui: "Söhne", "OpenAI Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --theme-font-response: "Söhne", "OpenAI Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --theme-font-mono: "Söhne Mono", "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --theme-font-ui: "Söhne", ui-sans-serif, -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --theme-font-response: "Söhne", ui-sans-serif, -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --theme-font-mono: "Söhne Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --theme-font-size-xs: 12px; --theme-font-size-sm: 14px; --theme-font-size-base: 16px; --theme-font-size-lg: 18px; --theme-font-size-xl: 20px;
   --theme-font-weight-normal: 400; --theme-font-weight-medium: 500; --theme-font-weight-semibold: 600; --theme-font-weight-bold: 700;
   --theme-text-primary: #0d0d0d; --theme-text-secondary: #5d5d5d; --theme-text-muted: #8f8f8f;
