@@ -24,7 +24,6 @@ type AssistantMessageProps = {
   activeStreamId?: string | null;
   listRef: RefObject<HTMLDivElement>;
   artifacts?: ArtifactBlock[];
-  onOpenArtifact?: (artifact: ArtifactBlock) => void;
 };
 
 export const AssistantMessage = memo(
@@ -42,8 +41,7 @@ export const AssistantMessage = memo(
     activeStreamId,
     listRef,
     artifacts,
-    onOpenArtifact
-  }: AssistantMessageProps) => {
+    }: AssistantMessageProps) => {
   const messageArtifacts = useMemo(
     () =>
       artifacts && artifacts.length > 0
@@ -107,7 +105,6 @@ export const AssistantMessage = memo(
                   <ArtifactCard
                     key={artifact.id}
                     artifact={artifact}
-                    onOpenArtifact={onOpenArtifact}
                   />
                 ))}
               </div>

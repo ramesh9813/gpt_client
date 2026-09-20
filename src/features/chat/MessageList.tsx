@@ -22,7 +22,6 @@ type MessageListProps = {
   contentOverrides?: Record<string, string>;
   hasCanvasCode?: Record<string, boolean>;
   artifacts?: ArtifactBlock[];
-  onOpenArtifact?: (artifact: ArtifactBlock) => void;
   onScrollDirection?: (direction: "up" | "down") => void;
 };
 
@@ -40,7 +39,6 @@ const MessageList = ({
   contentOverrides,
   hasCanvasCode,
   artifacts,
-  onOpenArtifact,
   onScrollDirection
 }: MessageListProps) => {
   const listRef = useRef<HTMLDivElement>(null);
@@ -199,7 +197,6 @@ const MessageList = ({
               activeStreamId={activeStreamId}
               listRef={listRef}
               artifacts={artifacts}
-              onOpenArtifact={onOpenArtifact}
             />
           );
         })}

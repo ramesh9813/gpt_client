@@ -93,3 +93,105 @@
     transition: none;
   }
 }
+
+/* Open state: the same card expands in place to a 75vh simulation stage. */
+.artifact-card--open {
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  animation: artifact-card-open 260ms cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+.artifact-card-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+.artifact-card-bar-title {
+  flex: 1 1 0%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.artifact-card-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+.artifact-card-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.25rem;
+  width: 2.25rem;
+  min-height: 36px;
+  min-width: 36px;
+  border-radius: 0.5rem;
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: var(--muted);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 150ms, color 150ms;
+}
+.artifact-card-tool:hover {
+  background-color: var(--sidebar);
+  color: var(--text);
+}
+.artifact-card-tool:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.artifact-card-stage {
+  height: 75vh;
+  min-height: 20rem;
+  overflow: auto;
+}
+.artifact-card--expanded .artifact-card-stage {
+  height: 90vh;
+}
+.artifact-card-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  border: 0;
+  background-color: var(--bg);
+}
+.artifact-card-code {
+  margin: 0;
+  padding: 0.75rem;
+  min-height: 100%;
+  box-sizing: border-box;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text);
+  background-color: var(--codeBg);
+  white-space: pre;
+}
+@keyframes artifact-card-open {
+  from { transform: translateY(16px) scale(0.99); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+.artifact-card-stage,
+.artifact-card--expanded .artifact-card-stage {
+  transition: height 240ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .artifact-card--open {
+    animation: none;
+  }
+  .artifact-card-stage,
+  .artifact-card--expanded .artifact-card-stage {
+    transition: none;
+  }
+}
