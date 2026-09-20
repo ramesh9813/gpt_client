@@ -56,7 +56,7 @@ export const useChatMessages = ({
     }
   }, [messageData, conversationId]);
 
-  const sendMessage = async (text: string, images?: string[]) => {
+  const sendMessage = async (text: string, images?: string[], opts?: { research?: boolean }) => {
     if (!conversationId) return;
     const trimmed = text.trim();
     const hasImages = !!images && images.length > 0;
@@ -102,6 +102,7 @@ export const useChatMessages = ({
         userMessage: trimmed,
         images: hasImages ? images : undefined,
         selectedModel: model,
+        ...(opts?.research ? { research: true as const } : {}),
       });
     } catch (err: any) {
       if (cancelRef.current) {

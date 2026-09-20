@@ -10,7 +10,7 @@ export type { ModelOption, SortOption };
 
 export type ComposerProps = {
   // images?:string[] is optional → backward compat with (value: string) => void
-  onSend: (value: string, images?: string[]) => void;
+  onSend: (value: string, images?: string[], opts?: { research?: boolean }) => void;
   onStop?: () => void;
   disabled?: boolean;
   streaming?: boolean;
@@ -43,6 +43,8 @@ const Composer = ({
   const [value, setValue] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
+  // Armed when the user picks a model from the Deep Research list.
+  const [researchArmed, setResearchArmed] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const { images, compressing, fileInputRef, handleFiles, removeImage, clearImages } =
@@ -70,8 +72,10 @@ const Composer = ({
     const trimmed = value.trim();
     if (!trimmed && images.length === 0) return;
     if (compressing) return;
-    onSend(trimmed, images.length > 0 ? [...images] : undefined);
+    onSend(trimmed, images.length > 0 ? [...images] : undefined, researchArmed ? { research: true } : undefined);
     setValue("");
+    // One-shot: disarm research mode after sending.
+    setResearchArmed(false);
     requestAnimationFrame(() => {
       const el = textareaRef.current;
       if (el) adjustTextareaHeight(el);
@@ -138,6 +142,25 @@ const Composer = ({
         {/* Image preview strip */}
         <ImageAttachments images={images} compressing={compressing} onRemove={removeImage} />
 
+        {/* Armed research mode indicator */}
+        {researchArmed && (
+          <div className="composer-research-chip">
+            <i className="bi bi-compass composer-research-icon" aria-hidden="true"></i>
+            <span className="composer-research-label" title={currentModelLabel}>
+              Deep Research • {currentModelLabel}
+            </span>
+            <button
+              type="button"
+              className="composer-research-clear"
+              onClick={() => setResearchArmed(false)}
+              aria-label="Cancel deep research"
+              title="Cancel deep research"
+            >
+              <i className="bi bi-x" aria-hidden="true"></i>
+            </button>
+          </div>
+        )}
+
         <div className="composer-body">
           <textarea
             ref={setTextareaRefs}
@@ -195,6 +218,7 @@ const Composer = ({
                 menuOpen={menuOpen}
                 onModelMenuOpenChange={setModelMenuOpen}
                 onCloseMenu={() => setMenuOpen(false)}
+                onResearchSelect={() => setResearchArmed(true)}
               />
             )}
           </div>

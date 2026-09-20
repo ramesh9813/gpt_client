@@ -12,6 +12,7 @@ export type StreamAssistantArgs = {
   images?: string[];
   existingUserMessageId?: string;
   selectedModel?: string;
+  research?: boolean;
 };
 
 export const useChatStreaming = () => {
@@ -30,6 +31,7 @@ export const useChatStreaming = () => {
       images,
       existingUserMessageId,
       selectedModel,
+      research,
     }: StreamAssistantArgs
   ) => {
     cancelRef.current = false;
@@ -55,6 +57,7 @@ export const useChatStreaming = () => {
             selectedModel && selectedModel !== "default"
               ? selectedModel
               : undefined,
+          ...(research ? { research: true } : {}),
         }),
         signal: controller.signal,
       });
