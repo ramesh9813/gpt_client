@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Dropdown } from "../../../components/Dropdown";
 import { IconButton } from "../../../components/IconButton";
 import type { Conversation, Folder } from "./types";
@@ -27,6 +28,12 @@ export function ConversationRow({
   folders,
   onMove,
 }: ConversationRowProps) {
+  // Two-level menu: first card holds actions, second card lists all folders.
+  const [moveOpen, setMoveOpen] = useState(false);
+  const isOpen = menuOpen === conversation.id;
+  useEffect(() => {
+    if (!isOpen) setMoveOpen(false);
+  }, [isOpen]);
   return (
     <div
       key={conversation.id}
@@ -56,43 +63,65 @@ export function ConversationRow({
           <div className="conv-side-menu-bridge" />
         )}
         <Dropdown open={menuOpen === conversation.id} className="conv-side-conv-dropdown">
-          <button
-            className="conv-side-dropdown-item"
-            onClick={() => onRename(conversation)}
-          >
-            Rename
-          </button>
-          <button
-            className="conv-side-dropdown-item conv-side-dropdown-item--danger"
-            onClick={() => onDelete(conversation.id)}
-          >
-            Delete
-          </button>
-          <div className="conv-side-move-label" aria-hidden="true">
-            Move to
-          </div>
-          <div className="conv-side-move-list" role="group" aria-label="Move conversation to folder">
-            <button
-              className="conv-side-dropdown-item conv-side-move-item"
-              data-selected={conversation.folderId ? "false" : "true"}
-              onClick={() => onMove(conversation.id, null)}
-            >
-              <i className={`bi ${conversation.folderId ? "bi-circle" : "bi-check-circle-fill"} conv-side-move-check`} aria-hidden="true"></i>
-              <span className="conv-side-move-name">Uncategorized</span>
-            </button>
-            {folders.map((folder) => (
+          {!moveOpen ? (
+            <>
               <button
-                key={folder.id}
-                className="conv-side-dropdown-item conv-side-move-item"
-                data-selected={conversation.folderId === folder.id ? "true" : "false"}
-                onClick={() => onMove(conversation.id, folder.id)}
-                title={folder.name}
+                className="conv-side-dropdown-item"
+                onClick={() => onRename(conversation)}
               >
-                <i className={`bi ${conversation.folderId === folder.id ? "bi-check-circle-fill" : "bi-circle"} conv-side-move-check`} aria-hidden="true"></i>
-                <span className="conv-side-move-name">{folder.name}</span>
+                Rename
               </button>
-            ))}
-          </div>
+              <button
+                className="conv-side-dropdown-item conv-side-dropdown-item--danger"
+                onClick={() => onDelete(conversation.id)}
+              >
+                Delete
+              </button>
+              <button
+                className="conv-side-dropdown-item conv-side-move-open"
+                onClick={() => setMoveOpen(true)}
+                aria-haspopup="true"
+              >
+                <span className="conv-side-move-name">Move to category</span>
+                <i className="bi bi-chevron-right conv-side-move-chev" aria-hidden="true"></i>
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                className="conv-side-dropdown-item conv-side-move-back"
+                onClick={() => setMoveOpen(false)}
+              >
+                <i className="bi bi-chevron-left" aria-hidden="true"></i>
+                <span>Back</span>
+              </button>
+              <div className="conv-side-move-label" aria-hidden="true">
+                Move to
+              </div>
+              <div className="conv-side-move-list" role="group" aria-label="Move conversation to folder">
+                <button
+                  className="conv-side-dropdown-item conv-side-move-item"
+                  data-selected={conversation.folderId ? "false" : "true"}
+                  onClick={() => onMove(conversation.id, null)}
+                >
+                  <i className={`bi ${conversation.folderId ? "bi-circle" : "bi-check-circle-fill"} conv-side-move-check`} aria-hidden="true"></i>
+                  <span className="conv-side-move-name">Uncategorized</span>
+                </button>
+                {folders.map((folder) => (
+                  <button
+                    key={folder.id}
+                    className="conv-side-dropdown-item conv-side-move-item"
+                    data-selected={conversation.folderId === folder.id ? "true" : "false"}
+                    onClick={() => onMove(conversation.id, folder.id)}
+                    title={folder.name}
+                  >
+                    <i className={`bi ${conversation.folderId === folder.id ? "bi-check-circle-fill" : "bi-circle"} conv-side-move-check`} aria-hidden="true"></i>
+                    <span className="conv-side-move-name">{folder.name}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </Dropdown>
       </div>
     </div>

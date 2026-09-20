@@ -222,6 +222,25 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* First-card entry that opens the folder list second card */
+.conv-side-move-open {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.conv-side-move-chev {
+  font-size: 0.75rem;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+/* Back button on the folder list second card */
+.conv-side-move-back {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--muted);
+}
 
 /* Folder three-dot menu */
 .conv-side-folder-menu {
