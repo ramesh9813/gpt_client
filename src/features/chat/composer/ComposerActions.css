@@ -126,6 +126,55 @@
   line-height: 2rem;
 }
 
+/* Mic voice-input button beside Send. */
+.composer-mic-btn {
+  height: 2.25rem;
+  width: 2.25rem;
+  min-height: 36px;
+  min-width: 36px;
+  border-radius: 9999px;
+  padding: 0;
+  flex-shrink: 0;
+  margin-bottom: 0.125rem;
+  color: var(--muted);
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.composer-mic-btn:hover {
+  background-color: var(--sidebar);
+  color: var(--text);
+}
+
+.composer-mic-btn:active {
+  transform: scale(0.95);
+}
+
+.composer-mic-icon {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+
+.composer-mic-btn-listening {
+  color: #ef4444;
+}
+
+.composer-mic-btn-listening .composer-mic-icon {
+  animation: composer-mic-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes composer-mic-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .composer-mic-btn-listening .composer-mic-icon {
+    animation: none;
+  }
+}
+
 /* Armed deep-research indicator above the input row. */
 .composer-research-chip {
   display: flex;
