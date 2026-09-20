@@ -14,6 +14,7 @@ type ArtifactViewerProps = {
 
 const ArtifactViewer = ({ artifact, onClose }: ArtifactViewerProps) => {
   const [mode, setMode] = useState<"preview" | "code">("preview");
+  const [copied, setCopied] = useState(false);
   // Panel opens at 75% viewport height; expand takes it to 100%.
   const [expanded, setExpanded] = useState(false);
 
@@ -21,6 +22,7 @@ const ArtifactViewer = ({ artifact, onClose }: ArtifactViewerProps) => {
   useEffect(() => {
     setMode("preview");
     setExpanded(false);
+    setCopied(false);
   }, [artifact?.id]);
 
   useEffect(() => {
@@ -68,6 +70,63 @@ const ArtifactViewer = ({ artifact, onClose }: ArtifactViewerProps) => {
               aria-hidden="true"
             />
             <span className="artifact-btn-text">{mode === "preview" ? "Code" : "Preview"}</span>
+          </button>
+          <button
+            type="button"
+            className="artifact-btn"
+            onClick={() => {
+              const text = artifact.code;
+              const done = () => {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1600);
+              };
+              if (navigator.clipboard?.writeText) {
+                navigator.clipboard.writeText(text).then(done).catch(() => {});
+              } else {
+                const ta = document.createElement("textarea");
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                try {
+                  document.execCommand("copy");
+                  done();
+                } catch {
+                  // clipboard unavailable
+                }
+                document.body.removeChild(ta);
+              }
+            }}
+            title={copied ? "Copied" : "Copy code"}
+            aria-label={copied ? "Copied" : "Copy code"}
+          >
+            <i
+              className={`bi ${copied ? "bi-check-lg" : "bi-clipboard"} artifact-btn-icon`}
+              aria-hidden="true"
+            />
+          </button>
+          <button
+            type="button"
+            className="artifact-btn"
+            onClick={() => {
+              const blob = new Blob([artifact.code], { type: "text/html;charset=utf-8" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              const safe = (artifact.title || "artifact")
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, "-")
+                .replace(/^-+|-+$/g, "")
+                .slice(0, 48);
+              a.href = url;
+              a.download = `${safe || "artifact"}.html`;
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              setTimeout(() => URL.revokeObjectURL(url), 4000);
+            }}
+            title="Download code (.html)"
+            aria-label="Download code (.html)"
+          >
+            <i className="bi bi-download artifact-btn-icon" aria-hidden="true" />
           </button>
           <button
             type="button"
