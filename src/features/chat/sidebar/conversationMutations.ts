@@ -70,6 +70,31 @@ export function useConversationMutations({
     }
   });
 
+  const moveMutation = useMutation({
+    mutationFn: (payload: { id: string; folderId: string | null }) =>
+      apiFetch<ApiResponse<{ conversation: Conversation }>>(
+        `/api/conversations/${payload.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ folderId: payload.folderId })
+        }
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["folders"] });
+    }
+  });
+
+  const deleteFolderMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<ApiResponse<{}>>(`/api/folders/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["folders"] });
+    }
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) =>
       apiFetch<ApiResponse<{}>>(`/api/conversations/${id}`, { method: "DELETE" }),
@@ -87,5 +112,7 @@ export function useConversationMutations({
     createFolderMutation,
     renameMutation,
     deleteMutation,
+    moveMutation,
+    deleteFolderMutation,
   };
 }

@@ -189,3 +189,56 @@
     transition: none !important;
   }
 }
+
+/* Move-to-folder section inside conversation menu */
+.conv-side-move-label {
+  padding: 0.5rem 0.75rem 0.25rem;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.conv-side-move-list {
+  max-height: 10rem;
+  overflow-y: auto;
+  padding-bottom: 0.25rem;
+}
+.conv-side-move-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.conv-side-move-item[data-selected="true"] {
+  font-weight: 600;
+}
+.conv-side-move-check {
+  font-size: 0.875rem;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.conv-side-move-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Folder three-dot menu */
+.conv-side-folder-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+.conv-side-folder-menu-btn {
+  height: 1.25rem;
+  width: 1.25rem;
+  border: 0;
+}
+@media (hover: hover) {
+  .conv-side-folder-menu--closed .conv-side-folder-menu-btn {
+    opacity: 0;
+  }
+  .conv-side-folder-row:hover .conv-side-folder-menu-btn,
+  .conv-side-folder-menu-btn:focus-visible {
+    opacity: 1;
+  }
+}

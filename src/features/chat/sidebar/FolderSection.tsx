@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Input } from "../../../components/Input";
+import { Dropdown } from "../../../components/Dropdown";
 import { IconButton } from "../../../components/IconButton";
 import type { Conversation, Folder } from "./types";
 
@@ -15,6 +16,10 @@ export interface FolderSectionProps {
   onCancelCreateFolder: () => void;
   onSubmitCreateFolder: () => void;
   onCreateInFolder: (folderId: string) => void;
+  folderMenuOpen: string | null;
+  onToggleFolderMenu: (id: string) => void;
+  onCloseFolderMenu: () => void;
+  onDeleteFolder: (id: string) => void;
   renderConversation: (conversation: Conversation) => ReactNode;
 }
 
@@ -30,6 +35,10 @@ export function FolderSection({
   onCancelCreateFolder,
   onSubmitCreateFolder,
   onCreateInFolder,
+  folderMenuOpen,
+  onToggleFolderMenu,
+  onCloseFolderMenu,
+  onDeleteFolder,
   renderConversation,
 }: FolderSectionProps) {
   return (
@@ -87,6 +96,25 @@ export function FolderSection({
               >
                 <i className="bi bi-plus-lg conv-side-folder-add-icon"></i>
               </IconButton>
+              <div className={`conv-side-folder-menu ${folderMenuOpen === folder.id ? "conv-side-folder-menu--open" : "conv-side-folder-menu--closed"}`}
+                onMouseLeave={onCloseFolderMenu}>
+                <IconButton
+                  className="conv-side-folder-menu-btn"
+                  onClick={() => onToggleFolderMenu(folder.id)}
+                  aria-label="Folder options"
+                  title="Folder options"
+                >
+                  <i className="bi bi-three-dots"></i>
+                </IconButton>
+                <Dropdown open={folderMenuOpen === folder.id} className="conv-side-folder-dropdown">
+                  <button
+                    className="conv-side-dropdown-item conv-side-dropdown-item--danger"
+                    onClick={() => onDeleteFolder(folder.id)}
+                  >
+                    Delete folder
+                  </button>
+                </Dropdown>
+              </div>
             </div>
             {expandedFolders.has(folder.id) && (
               <div className="conv-side-folder-children">

@@ -42,6 +42,7 @@ const ConversationSidebar = ({
 }: ConversationSidebarProps) => {
   const [search, setSearch] = useState("");
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  const [folderMenuOpen, setFolderMenuOpen] = useState<string | null>(null);
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameTitle, setRenameTitle] = useState("");
   const [renameError, setRenameError] = useState<string | null>(null);
@@ -98,6 +99,8 @@ const ConversationSidebar = ({
     createFolderMutation,
     renameMutation,
     deleteMutation,
+    moveMutation,
+    deleteFolderMutation,
   } = useConversationMutations({
     isMobile,
     onCloseDrawer,
@@ -138,6 +141,11 @@ const ConversationSidebar = ({
         }}
         onDelete={(id) => {
           deleteMutation.mutate(id);
+          setMenuOpen(null);
+        }}
+        folders={folders}
+        onMove={(id, folderId) => {
+          moveMutation.mutate({ id, folderId });
           setMenuOpen(null);
         }}
       />
@@ -228,6 +236,15 @@ const ConversationSidebar = ({
                   onCancelCreateFolder={() => setIsCreatingFolder(false)}
                   onSubmitCreateFolder={() => createFolderMutation.mutate(newFolderName)}
                   onCreateInFolder={(folderId) => createMutation.mutate(folderId)}
+                  folderMenuOpen={folderMenuOpen}
+                  onToggleFolderMenu={(id) =>
+                    setFolderMenuOpen((prev) => (prev === id ? null : id))
+                  }
+                  onCloseFolderMenu={() => setFolderMenuOpen(null)}
+                  onDeleteFolder={(id) => {
+                    deleteFolderMutation.mutate(id);
+                    setFolderMenuOpen(null);
+                  }}
                   renderConversation={renderConversation}
                 />
 
