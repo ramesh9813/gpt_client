@@ -36,7 +36,7 @@ export function useSidebarData(search: string) {
     return {
       folders: fs,
       groupedConversations: groups,
-      uncategorized: uncat.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      uncategorized: uncat.sort((a, b) => Number(b.pinned ?? false) - Number(a.pinned ?? false) || new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     };
   }, [foldersData, data]);
 

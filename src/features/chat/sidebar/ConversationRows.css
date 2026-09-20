@@ -261,3 +261,9 @@
     opacity: 1;
   }
 }
+
+.conv-side-pin-icon {
+  font-size: 0.75rem;
+  color: var(--accent);
+  flex-shrink: 0;
+}

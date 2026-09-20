@@ -95,6 +95,21 @@ export function useConversationMutations({
     }
   });
 
+  const pinMutation = useMutation({
+    mutationFn: (payload: { id: string; pinned: boolean }) =>
+      apiFetch<ApiResponse<{ conversation: Conversation }>>(
+        `/api/conversations/${payload.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pinned: payload.pinned })
+        }
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    }
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) =>
       apiFetch<ApiResponse<{}>>(`/api/conversations/${id}`, { method: "DELETE" }),
@@ -111,6 +126,7 @@ export function useConversationMutations({
     createMutation,
     createFolderMutation,
     renameMutation,
+    pinMutation,
     deleteMutation,
     moveMutation,
     deleteFolderMutation,

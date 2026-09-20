@@ -12,6 +12,7 @@ export interface ConversationRowProps {
   onCloseMenu: () => void;
   onRename: (conversation: Conversation) => void;
   onDelete: (id: string) => void;
+  onPin: (conversation: Conversation) => void;
   folders: Folder[];
   onMove: (conversationId: string, folderId: string | null) => void;
 }
@@ -25,6 +26,7 @@ export function ConversationRow({
   onCloseMenu,
   onRename,
   onDelete,
+  onPin,
   folders,
   onMove,
 }: ConversationRowProps) {
@@ -41,6 +43,9 @@ export function ConversationRow({
       data-active={active ? "true" : "false"}
     >
       <span className="conv-side-conv-edge" aria-hidden="true" />
+      {conversation.pinned ? (
+        <i className="bi bi-pin-fill conv-side-pin-icon" aria-label="Pinned" title="Pinned"></i>
+      ) : null}
       <button
         className="conv-side-conv-title-btn"
         onClick={() => onSelect(conversation.id)}
@@ -70,6 +75,12 @@ export function ConversationRow({
                 onClick={() => onRename(conversation)}
               >
                 Rename
+              </button>
+              <button
+                className="conv-side-dropdown-item"
+                onClick={() => onPin(conversation)}
+              >
+                {conversation.pinned ? "Unpin" : "Pin to top"}
               </button>
               <button
                 className="conv-side-dropdown-item conv-side-dropdown-item--danger"

@@ -4,6 +4,7 @@ export type Conversation = {
   folderId?: string | null;
   createdAt: string;
   updatedAt: string;
+  pinned?: boolean;
 };
 
 export type Folder = {
