@@ -222,6 +222,36 @@
   margin-top: 0.25rem;
 }
 
+/* Font size value: muted inline detail next to the label */
+.account-font-size-value {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* Range slider: full-width, brand accent */
+.account-range {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* Range ends: small A / large A hints */
+.account-range-ends {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  color: var(--muted);
+  margin-top: 0.125rem;
+}
+.account-range-end-small {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+.account-range-end-large {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+
 /* Form actions: flex items-center gap-3 pt-2 */
 .account-form-actions {
   display: flex;
