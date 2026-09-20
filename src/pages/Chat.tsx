@@ -1,3 +1,4 @@
+import "./Chat.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -704,7 +705,7 @@ const Chat = () => {
   };
 
   return (
-    <div className="flex h-full h-[100dvh] max-h-[100dvh] overflow-hidden bg-[var(--bg)] text-[var(--text)]">
+    <div className="chat-root">
       <ConversationSidebar
         sidebarState={sidebarState}
         drawerOpen={drawerOpen}
@@ -715,21 +716,21 @@ const Chat = () => {
         onCloseDrawer={closeDrawer}
         onOpenDrawer={openDrawer}
       />
-      <main className="flex flex-1 min-w-0 flex-col h-full overflow-hidden">
+      <main className="chat-main">
         {/* Top Header Bar with history toggle (always accessible, even when hidden) */}
-        <header className="flex h-12 sm:h-14 items-center justify-between px-3 sm:px-4 bg-[var(--bg)] z-30 pt-[env(safe-area-inset-top,0px)] flex-shrink-0">
-          <div className="flex items-center gap-2 overflow-hidden">
+        <header className="chat-header">
+          <div className="chat-header-left">
             <SidebarToggle
               sidebarState={sidebarState}
               isMobile={isMobile}
               drawerOpen={drawerOpen}
               onClick={handleHeaderToggle}
-              className="h-9 w-9 min-h-[36px] min-w-[36px] sm:h-10 sm:w-10 sm:min-h-[40px] sm:min-w-[40px]"
+              className="chat-sidebar-toggle"
             />
-            <div className="font-semibold text-sm sm:text-base flex items-center gap-1.5 overflow-hidden">
-              <span className="text-[var(--text)] flex-shrink-0">ChatGPT</span>
+            <div className="chat-title">
+              <span className="chat-title-brand">ChatGPT</span>
               {currentConversationTitle && (
-                <span className="hidden sm:inline-block text-xs text-[var(--muted)] max-w-[240px] truncate font-normal">
+                <span className="chat-title-sub">
                   / {currentConversationTitle}
                 </span>
               )}
@@ -737,16 +738,16 @@ const Chat = () => {
             <button
               onClick={() => newChatMutation.mutate()}
               disabled={newChatMutation.isPending}
-              className="inline-flex h-9 w-9 min-h-[36px] min-w-[36px] flex-shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--panel)] text-[var(--text)] shadow-xs transition-all hover:bg-[var(--sidebar)] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              className="chat-newchat-btn"
               title="New chat"
               aria-label="New chat"
               type="button"
             >
-              <i className="bi bi-pencil-square text-sm" aria-hidden="true"></i>
+              <i className="bi bi-pencil-square chat-newchat-icon" aria-hidden="true"></i>
             </button>
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="chat-header-actions">
             {canvasData.blocks.length > 0 ? (
               <button
                 onClick={() => {
@@ -758,19 +759,19 @@ const Chat = () => {
                     setCanvasDismissed(false);
                   }
                 }}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--panel)] px-2.5 py-1 text-xs text-[var(--text)] hover:bg-[var(--sidebar)] active:scale-95 transition-all"
+                className="chat-canvas-toggle"
                 type="button"
               >
                 <i className={`bi ${showCanvas ? "bi-layout-sidebar-inset" : "bi-layout-sidebar-inset-reverse"}`}></i>
-                <span className="hidden sm:inline">{showCanvas ? "Hide Canvas" : "Show Canvas"}</span>
-                <span className="sm:hidden">Canvas</span>
+                <span className="chat-canvas-label-wide">{showCanvas ? "Hide Canvas" : "Show Canvas"}</span>
+                <span className="chat-canvas-label-narrow">Canvas</span>
               </button>
             ) : null}
           </div>
         </header>
 
-        <div className="flex flex-1 min-h-0 overflow-hidden relative">
-          <section className="flex min-w-0 flex-1 flex-col h-full overflow-hidden">
+        <div className="chat-content">
+          <section className="chat-thread">
             <MessageList
               messages={messages}
               onEditSubmit={handleEditSubmit}
@@ -814,4 +815,3 @@ const Chat = () => {
 };
 
 export default Chat;
-

@@ -1,3 +1,4 @@
+import "./Account.css";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -94,13 +95,13 @@ const SettingsTab = () => {
   };
 
   return (
-    <div className="max-w-xl">
-      <h2 className="mb-4 text-xl font-semibold">Appearance</h2>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <div className="account-narrow">
+      <h2 className="account-section-title">Appearance</h2>
+      <form onSubmit={handleSubmit(onSubmit)} className="account-stack-lg">
         <div>
-          <label className="mb-1 block text-sm font-medium text-[var(--text)]">Theme</label>
+          <label className="account-field-label">Theme</label>
           <select
-            className="w-full rounded-lg border border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
+            className="account-select"
             {...register("theme")}
           >
             <option value="SYSTEM">System</option>
@@ -109,22 +110,22 @@ const SettingsTab = () => {
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-[var(--text)]">Accent color</label>
-          <div className="flex items-center gap-3">
+          <label className="account-field-label">Accent color</label>
+          <div className="account-accent-row">
             <Input type="text" {...register("accentColor")} />
-            <div className="h-9 w-9 overflow-hidden rounded-full border border-[var(--border)] shadow-sm">
+            <div className="account-color-swatch">
               <input 
                 type="color" 
-                className="h-[150%] w-[150%] -translate-x-1/4 -translate-y-1/4 cursor-pointer p-0" 
+                className="account-color-input" 
                 {...register("accentColor")} 
               />
             </div>
           </div>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-[var(--text)]">Font size</label>
+          <label className="account-field-label">Font size</label>
           <select
-            className="w-full rounded-lg border border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
+            className="account-select"
             {...register("fontScale")}
           >
             <option value="SMALL">Small</option>
@@ -133,51 +134,51 @@ const SettingsTab = () => {
           </select>
         </div>
         <fieldset>
-          <legend className="mb-1 block text-sm font-medium text-[var(--text)]">
+          <legend className="account-field-label">
             Assistant theme
           </legend>
-          <div className="space-y-2">
+          <div className="account-brand-list">
             {BRANDS.map((b) => (
               <label
                 key={b.id}
-                className="flex cursor-pointer gap-3 rounded-lg border border-[var(--border)] bg-[var(--panel)] p-3 transition-colors has-[:checked]:border-[var(--accent)]"
+                className="account-brand-option"
               >
                 <input
                   type="radio"
                   value={b.id}
                   {...register("brand")}
-                  className="mt-1 h-4 w-4 shrink-0 accent-[var(--accent)]"
+                  className="account-brand-radio"
                 />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-medium text-[var(--text)]">
+                <span className="account-brand-body">
+                  <span className="account-brand-name">
                     {b.name}
                   </span>
-                  <span className="block text-xs text-[var(--muted)]">
+                  <span className="account-brand-tagline">
                     {b.tagline}
                   </span>
                   <span
                     data-brand={b.id}
                     data-theme={previewMode}
-                    className="mt-2 block rounded-md border border-[var(--border)] bg-[var(--bg)] p-2"
+                    className="account-brand-preview"
                   >
-                    <span className="block rounded bg-[var(--panel)] px-2 py-1 text-xs text-[var(--text)]">
+                    <span className="account-brand-preview-assistant">
                       Aa — assistant reply in {b.name} style
                     </span>
-                    <span className="user-message-card mt-1 block rounded px-2 py-1 text-xs">
+                    <span className="user-message-card account-brand-preview-user">
                       User bubble
                     </span>
-                    <span className="mt-1.5 block h-2 w-16 rounded-full bg-[var(--accent)]" />
+                    <span className="account-brand-preview-bar" />
                   </span>
                 </span>
               </label>
             ))}
           </div>
         </fieldset>
-        <div className="flex items-center gap-3 pt-2">
+        <div className="account-form-actions">
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Saving..." : "Save settings"}
           </Button>
-          {status ? <span className="text-sm text-[var(--muted)]">{status}</span> : null}
+          {status ? <span className="account-status">{status}</span> : null}
         </div>
       </form>
     </div>
@@ -227,58 +228,58 @@ const UsageTab = () => {
   const endIndex = Math.min(page * PAGE_SIZE, sortedLogs.length);
 
   return (
-    <div className="max-w-4xl space-y-8">
+    <div className="account-wide">
       <div>
-        <h2 className="mb-2 text-xl font-semibold">Usage Statistics (Today)</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-4">
-            <div className="text-sm text-[var(--muted)]">Tokens Used (Today)</div>
-            <div className="mt-2 text-2xl font-semibold">{totalTokensToday}</div>
+        <h2 className="account-usage-title">Usage Statistics (Today)</h2>
+        <div className="account-stat-grid">
+          <div className="account-stat-card">
+            <div className="account-stat-label">Tokens Used (Today)</div>
+            <div className="account-stat-value">{totalTokensToday}</div>
           </div>
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-4">
-             <div className="text-sm text-[var(--muted)]">Current Plan</div>
-             <div className="mt-2 text-2xl font-semibold">Free</div>
+          <div className="account-stat-card">
+             <div className="account-stat-label">Current Plan</div>
+             <div className="account-stat-value">Free</div>
           </div>
         </div>
       </div>
 
-      <div className="h-96 w-full rounded-xl border border-[var(--border)] bg-[var(--panel)] p-4">
+      <div className="account-chart-card">
         <UsageChart logs={logs} />
       </div>
 
       <div>
-        <h3 className="mb-4 text-lg font-semibold">Detailed Logs</h3>
-        <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-[var(--panel)] text-[var(--muted)]">
+        <h3 className="account-log-title">Detailed Logs</h3>
+        <div className="account-table-wrap">
+          <table className="account-table">
+            <thead className="account-table-head">
               <tr>
-                <th className="px-4 py-3 font-medium">Date & Time</th>
-                <th className="px-4 py-3 font-medium">Model</th>
-                <th className="px-4 py-3 font-medium text-right">Input</th>
-                <th className="px-4 py-3 font-medium text-right">Output</th>
-                <th className="px-4 py-3 font-medium text-right">Total</th>
+                <th className="account-table-th">Date & Time</th>
+                <th className="account-table-th">Model</th>
+                <th className="account-table-th-right">Input</th>
+                <th className="account-table-th-right">Output</th>
+                <th className="account-table-th-right">Total</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--border)] bg-[var(--bg)]">
+            <tbody className="account-table-body">
               {logs.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-[var(--muted)]">
+                  <td colSpan={5} className="account-table-empty">
                     No usage recorded yet.
                   </td>
                 </tr>
               ) : (
                 pagedLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-[var(--panel)]">
-                    <td className="px-4 py-3 whitespace-nowrap">
+                  <tr key={log.id} className="account-table-row">
+                    <td className="account-table-td-nowrap">
                       {new Date(log.createdAt).toLocaleTimeString()}
-                      <span className="ml-2 text-xs text-[var(--muted)]">
+                      <span className="account-table-date-sub">
                         {new Date(log.createdAt).toLocaleDateString()}
                       </span>
                     </td>
-                    <td className="px-4 py-3">{log.model || "-"}</td>
-                    <td className="px-4 py-3 text-right">{log.promptTokens ?? "-"}</td>
-                    <td className="px-4 py-3 text-right">{log.completionTokens ?? "-"}</td>
-                    <td className="px-4 py-3 text-right font-medium">{log.tokenCount ?? "-"}</td>
+                    <td className="account-table-td">{log.model || "-"}</td>
+                    <td className="account-table-td-right">{log.promptTokens ?? "-"}</td>
+                    <td className="account-table-td-right">{log.completionTokens ?? "-"}</td>
+                    <td className="account-table-td-right-bold">{log.tokenCount ?? "-"}</td>
                   </tr>
                 ))
               )}
@@ -286,25 +287,25 @@ const UsageTab = () => {
           </table>
         </div>
         {sortedLogs.length > 0 ? (
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--muted)]">
+          <div className="account-pagination">
             <span>
               Showing {startIndex}-{endIndex} of {sortedLogs.length}
             </span>
-            <div className="flex items-center gap-2">
+            <div className="account-pagination-controls">
               <Button
                 variant="outline"
-                className="h-9 px-3"
+                className="account-pagination-btn"
                 disabled={page === 1}
                 onClick={() => setPage((prev) => Math.max(1, prev - 1))}
               >
                 Previous
               </Button>
-              <span className="px-2">
+              <span className="account-pagination-label">
                 Page {page} of {totalPages}
               </span>
               <Button
                 variant="outline"
-                className="h-9 px-3"
+                className="account-pagination-btn"
                 disabled={page === totalPages}
                 onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
               >
@@ -357,28 +358,28 @@ const Account = () => {
     switch (activeTab) {
       case "profile":
         return (
-          <div className="max-w-xl">
-            <h2 className="mb-6 text-xl font-semibold">Profile Information</h2>
-            <div className="space-y-6">
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-6">
-                <div className="flex items-center gap-4 mb-6">
-                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-purple-600 text-2xl font-semibold text-white">
+          <div className="account-narrow">
+            <h2 className="account-section-title-spaced">Profile Information</h2>
+            <div className="account-stack-lg">
+              <div className="account-card">
+                <div className="account-profile-header">
+                   <div className="account-avatar">
                     {(meData?.data?.user?.name?.[0] || meData?.data?.user?.email?.[0] || "?").toUpperCase()}
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium">{meData?.data?.user?.name || "User"}</h3>
-                    <p className="text-[var(--muted)]">{meData?.data?.user?.email}</p>
+                    <h3 className="account-profile-name">{meData?.data?.user?.name || "User"}</h3>
+                    <p className="account-profile-email">{meData?.data?.user?.email}</p>
                   </div>
                 </div>
                 
-                <div className="space-y-4">
+                <div className="account-fields">
                   <div>
-                    <label className="text-xs uppercase font-semibold text-[var(--muted)]">Email</label>
-                    <div className="mt-1 text-sm">{meData?.data?.user?.email}</div>
+                    <label className="account-mini-label">Email</label>
+                    <div className="account-field-value">{meData?.data?.user?.email}</div>
                   </div>
                   <div>
-                    <label className="text-xs uppercase font-semibold text-[var(--muted)]">Role</label>
-                    <div className="mt-1 text-sm">{meData?.data?.user?.role}</div>
+                    <label className="account-mini-label">Role</label>
+                    <div className="account-field-value">{meData?.data?.user?.role}</div>
                   </div>
                 </div>
               </div>
@@ -395,25 +396,25 @@ const Account = () => {
         return <SettingsTab />;
       case "security":
         return (
-          <div className="max-w-xl">
-            <h2 className="mb-4 text-xl font-semibold">Security</h2>
-            <div className="space-y-6">
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-6">
-                <h3 className="mb-4 text-base font-medium">Change Password</h3>
-                <div className="space-y-4">
+          <div className="account-narrow">
+            <h2 className="account-section-title">Security</h2>
+            <div className="account-stack-lg">
+              <div className="account-card">
+                <h3 className="account-subheading">Change Password</h3>
+                <div className="account-fields">
                   <div>
-                    <label className="mb-1 block text-sm">Current Password</label>
+                    <label className="account-small-label">Current Password</label>
                     <Input type="password" disabled placeholder="••••••••" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm">New Password</label>
+                    <label className="account-small-label">New Password</label>
                     <Input type="password" disabled placeholder="••••••••" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm">Confirm New Password</label>
+                    <label className="account-small-label">Confirm New Password</label>
                     <Input type="password" disabled placeholder="••••••••" />
                   </div>
-                  <div className="pt-2">
+                  <div className="account-btn-row">
                     <Button disabled variant="outline">Update Password (Coming Soon)</Button>
                   </div>
                 </div>
@@ -423,20 +424,20 @@ const Account = () => {
         );
       case "data_controls":
          return (
-          <div className="max-w-xl">
-            <h2 className="mb-4 text-xl font-semibold">Data Controls</h2>
-            <div className="space-y-6">
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-6">
-                <h3 className="mb-2 text-base font-medium">Export Data</h3>
-                <p className="mb-4 text-sm text-[var(--muted)]">
+          <div className="account-narrow">
+            <h2 className="account-section-title">Data Controls</h2>
+            <div className="account-stack-lg">
+              <div className="account-card">
+                <h3 className="account-card-title">Export Data</h3>
+                <p className="account-card-desc">
                   Download all your conversations and account data in JSON format.
                 </p>
                 <Button variant="outline" disabled>Export All Data</Button>
               </div>
 
-              <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-6">
-                <h3 className="mb-2 text-base font-medium text-red-500">Delete Account</h3>
-                <p className="mb-4 text-sm text-[var(--muted)]">
+              <div className="account-card-danger">
+                <h3 className="account-card-title-danger">Delete Account</h3>
+                <p className="account-card-desc">
                   Permanently delete your account and all associated data. This action cannot be undone.
                 </p>
                 <Button variant="destructive" disabled>Delete Account</Button>
@@ -446,12 +447,12 @@ const Account = () => {
         );
       case "payment":
         return (
-          <div className="max-w-xl">
-            <h2 className="mb-4 text-xl font-semibold">Payment Methods</h2>
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-8 text-center text-[var(--muted)]">
-              <i className="bi bi-credit-card mb-3 block text-3xl opacity-50"></i>
+          <div className="account-narrow">
+            <h2 className="account-section-title">Payment Methods</h2>
+            <div className="account-empty-card">
+              <i className="bi bi-credit-card account-empty-icon"></i>
               <p>No payment methods added yet.</p>
-              <Button className="mt-4" variant="outline">Add Payment Method</Button>
+              <Button className="account-empty-cta" variant="outline">Add Payment Method</Button>
             </div>
           </div>
         );
@@ -459,10 +460,10 @@ const Account = () => {
         return <UsageTab />;
       case "connectapp":
         return (
-          <div className="max-w-xl">
-            <h2 className="mb-4 text-xl font-semibold">Connected Apps</h2>
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-8 text-center text-[var(--muted)]">
-               <i className="bi bi-grid mb-3 block text-3xl opacity-50"></i>
+          <div className="account-narrow">
+            <h2 className="account-section-title">Connected Apps</h2>
+            <div className="account-empty-card">
+               <i className="bi bi-grid account-empty-icon"></i>
               <p>You haven't connected any external applications.</p>
             </div>
           </div>
@@ -473,29 +474,29 @@ const Account = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 md:gap-8 px-4 py-6 sm:px-6 sm:py-10 md:flex-row">
+    <div className="account-page">
+      <div className="account-layout">
         {/* Left Sidebar */}
-        <nav className="w-full flex-shrink-0 md:w-64">
-          <div className="mb-6 flex items-center gap-3">
+        <nav className="account-sidebar">
+          <div className="account-sidebar-header">
             <Link
               to="/"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--panel)] text-[var(--text)] hover:bg-[var(--sidebar)] active:scale-95 transition-all"
+              className="account-back-link"
               title="Back to chat"
             >
-              <i className="bi bi-arrow-left text-base"></i>
+              <i className="bi bi-arrow-left account-back-icon"></i>
             </Link>
-            <h1 className="text-2xl font-bold">Account</h1>
+            <h1 className="account-title">Account</h1>
           </div>
-          <ul className="flex flex-row space-x-2 overflow-x-auto md:flex-col md:space-x-0 md:space-y-1 pb-2 md:pb-0 scrollbar-thin">
+          <ul className="account-tab-list">
             {tabs.map((tab) => (
               <li key={tab.id}>
                 <button
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex w-full items-center gap-3 rounded-lg px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
+                  className={`account-tab-btn ${
                     activeTab === tab.id
-                      ? "bg-[var(--panel)] text-[var(--text)]"
-                      : "text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--text)]"
+                      ? "account-tab-btn--active"
+                      : "account-tab-btn--inactive"
                   }`}
                 >
                   <i className={`bi ${tab.icon}`}></i>
@@ -507,7 +508,7 @@ const Account = () => {
         </nav>
 
         {/* Right Content */}
-        <main className="flex-1 min-w-0">
+        <main className="account-content">
             {renderContent()}
         </main>
       </div>

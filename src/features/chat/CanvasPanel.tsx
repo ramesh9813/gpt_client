@@ -1,3 +1,4 @@
+import "./CanvasPanel.css";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -110,7 +111,7 @@ const CopyButton = ({ text }: { text: string }) => {
   return (
     <button
       onClick={handleCopy}
-      className="inline-flex items-center gap-1 text-xs text-[var(--muted)] hover:text-[var(--text)]"
+      className="canvas-copy-btn"
       title="Copy code"
       type="button"
     >
@@ -183,7 +184,7 @@ const CanvasPanel = ({
       const container = containerRef.current;
       const rect = container.getBoundingClientRect();
       const newWidth = rect.right - e.clientX;
-      
+
       // Constrain width between 300px and 800px
       if (newWidth >= 300 && newWidth <= 800) {
         setWidth(newWidth);
@@ -251,44 +252,44 @@ const CanvasPanel = ({
   }
 
   return (
-    <aside 
+    <aside
       ref={containerRef}
-      className="fixed inset-0 z-50 flex flex-col bg-[var(--panel)] lg:static lg:flex lg:h-full lg:border-l lg:border-[var(--border)] lg:z-auto"
+      className="canvas-root"
       style={typeof window !== "undefined" && window.innerWidth >= 1024 ? { width: `${width}px` } : undefined}
     >
-      <div 
-        className="hidden lg:block absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[var(--accent)] transition-colors"
+      <div
+        className="canvas-resize"
         onMouseDown={() => setIsResizing(true)}
         title="Drag to resize canvas"
       />
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)] pt-[max(env(safe-area-inset-top,0px),12px)] lg:pt-3">
-        <div className="flex items-center gap-2">
-          <div className="text-sm font-semibold">Canvas</div>
-          <div className="text-xs text-[var(--muted)]">{blocks.length} blocks</div>
+      <div className="canvas-header">
+        <div className="canvas-title-wrap">
+          <div className="canvas-title">Canvas</div>
+          <div className="canvas-subtitle">{blocks.length} blocks</div>
         </div>
         {onClose ? (
           <button
             onClick={onClose}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--sidebar)] text-[var(--text)] hover:bg-[var(--border)]"
+            className="canvas-close-btn"
             title="Close canvas"
             type="button"
           >
-            <i className="bi bi-x-lg text-sm"></i>
+            <i className="bi bi-x-lg canvas-close-icon"></i>
           </button>
         ) : null}
       </div>
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-[var(--border)]">
+      <div className="canvas-toolbar">
         <button
-          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--muted)] hover:bg-[var(--sidebar)] hover:text-[var(--text)] disabled:opacity-40"
+          className="canvas-nav-btn"
           onClick={() => setActiveId(blocks[Math.max(0, activeIndex - 1)].id)}
           disabled={activeIndex <= 0}
           title="Previous block"
           type="button"
         >
-          <i className="bi bi-chevron-left text-sm"></i>
+          <i className="bi bi-chevron-left canvas-nav-icon"></i>
         </button>
         <select
-          className="flex-1 rounded-md border border-[var(--border)] bg-[var(--panel)] px-2 py-1 text-xs text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
+          className="canvas-select"
           value={activeBlock?.id}
           onChange={(event) => setActiveId(event.target.value)}
         >
@@ -299,18 +300,18 @@ const CanvasPanel = ({
           ))}
         </select>
         <button
-          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--muted)] hover:bg-[var(--sidebar)] hover:text-[var(--text)] disabled:opacity-40"
+          className="canvas-nav-btn"
           onClick={() => setActiveId(blocks[Math.min(blocks.length - 1, activeIndex + 1)].id)}
           disabled={activeIndex >= blocks.length - 1}
           title="Next block"
           type="button"
         >
-          <i className="bi bi-chevron-right text-sm"></i>
+          <i className="bi bi-chevron-right canvas-nav-icon"></i>
         </button>
         {previewable ? (
           <button
             onClick={() => setMode(mode === "preview" ? "code" : "preview")}
-            className="inline-flex items-center gap-1 rounded-md border border-[var(--border)] px-2 py-1 text-[11px] text-[var(--muted)] hover:bg-[var(--sidebar)] hover:text-[var(--text)]"
+            className="canvas-preview-toggle"
             title="Toggle preview"
             type="button"
           >
@@ -320,13 +321,13 @@ const CanvasPanel = ({
         ) : null}
         {activeBlock ? <CopyButton text={activeBlock.code} /> : null}
       </div>
-      <div className="flex-1 overflow-auto px-4 py-4">
+      <div className="canvas-content">
         {activeBlock && mode === "preview" && previewable ? (
           <iframe
             title="Canvas preview"
             sandbox="allow-scripts"
             referrerPolicy="no-referrer"
-            className="h-full w-full rounded-md border border-[var(--border)] bg-white"
+            className="canvas-preview-frame"
             srcDoc={buildPreviewDoc(activeBlock)}
           />
         ) : activeBlock ? (
@@ -351,10 +352,10 @@ const CanvasPanel = ({
           </SyntaxHighlighter>
         ) : null}
         {activeBlock && runnable && mode === "code" ? (
-          <div className="mt-3 flex items-center gap-2">
+          <div className="canvas-run-row">
             <button
               onClick={handleRun}
-              className="inline-flex items-center gap-2 rounded-md border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text)] hover:bg-[var(--sidebar)] disabled:opacity-60"
+              className="canvas-run-btn"
               title="Run code"
               type="button"
               disabled={isRunning}
@@ -365,14 +366,14 @@ const CanvasPanel = ({
           </div>
         ) : null}
         {activeBlock && runnable && currentRun ? (
-          <div className="mt-4 rounded-md border border-[var(--border)] bg-[var(--sidebar)] p-3 text-xs text-[var(--text)]">
-            <div className="mb-2 flex items-center justify-between text-[11px] text-[var(--muted)]">
+          <div className="canvas-output">
+            <div className="canvas-output-head">
               <span>Run output</span>
               {typeof currentRun.code === "number" ? (
                 <span>Exit {currentRun.code}</span>
               ) : null}
             </div>
-            <pre className="whitespace-pre-wrap text-[12px] leading-relaxed">
+            <pre className="canvas-output-pre">
               {currentRun.stdout || currentRun.stderr || "No output."}
             </pre>
           </div>

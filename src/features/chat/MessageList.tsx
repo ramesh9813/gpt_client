@@ -1,3 +1,4 @@
+import "./MessageList.css";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -53,7 +54,7 @@ const CopyButton = ({
       onClick={handleCopy}
       className={
         className ||
-        "inline-flex h-8 w-8 min-h-[32px] min-w-[32px] items-center justify-center rounded-md text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--panel)] active:scale-95 transition-all"
+        "msg-icon-btn"
       }
       title={copied ? "Copied!" : "Copy"}
       aria-label="Copy"
@@ -61,10 +62,10 @@ const CopyButton = ({
     >
       <i
         className={`bi ${
-          copied ? "bi-check2 text-[var(--accent)]" : "bi-copy"
-        } text-sm`}
+          copied ? "bi-check2" : "bi-copy"
+        } ${copied ? "msg-action-icon--accent" : "msg-action-icon"}`}
       ></i>
-      {showText && <span className="ml-1 text-xs">{copied ? "Copied!" : "Copy"}</span>}
+      {showText && <span className="msg-copy-label">{copied ? "Copied!" : "Copy"}</span>}
     </button>
   );
 };
@@ -108,7 +109,7 @@ const ShareButton = ({
       onClick={handleShare}
       className={
         className ||
-        "inline-flex h-8 w-8 min-h-[32px] min-w-[32px] items-center justify-center rounded-md text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--panel)] active:scale-95 transition-all"
+        "msg-icon-btn"
       }
       title={shared ? "Shared!" : "Share response"}
       aria-label="Share response"
@@ -116,8 +117,8 @@ const ShareButton = ({
     >
       <i
         className={`bi ${
-          shared ? "bi-check2 text-[var(--accent)]" : "bi-share"
-        } text-sm`}
+          shared ? "bi-check2" : "bi-share"
+        } ${shared ? "msg-action-icon--accent" : "msg-action-icon"}`}
       ></i>
     </button>
   );
@@ -126,14 +127,14 @@ const ShareButton = ({
 const MessageImages = ({ images }: { images?: string[] }) => {
   if (!images || images.length === 0) return null;
   return (
-    <div className="mb-2 flex min-w-0 flex-wrap gap-2">
+    <div className="msg-images">
       {images.map((src, i) => (
         <img
           key={i}
           src={src}
           alt={`Attachment ${i + 1}`}
           loading="lazy"
-          className="max-h-48 w-auto max-w-full rounded-xl border border-black/10 dark:border-white/10 object-cover"
+          className="msg-image"
         />
       ))}
     </div>
@@ -188,14 +189,14 @@ const CodeBlockWithRun = ({
   };
 
   return (
-    <div className="my-0 bg-black rounded-md relative">
-      <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-2 bg-black text-xs text-zinc-400 rounded-t-md">
-        <span className="font-mono">{language}</span>
-        <div className="flex items-center gap-3">
+    <div className="msg-codeblock">
+      <div className="msg-codeblock-head">
+        <span className="msg-codeblock-lang">{language}</span>
+        <div className="msg-codeblock-actions">
           {runnable && (
             <button
               onClick={handleRun}
-              className="inline-flex items-center gap-1 text-[11px] text-zinc-300 hover:text-white"
+              className="msg-codeblock-text-btn"
               disabled={runState.status === "running"}
               type="button"
               title="Run code"
@@ -213,7 +214,7 @@ const CodeBlockWithRun = ({
           {runState.status !== "idle" && (
             <button
               onClick={() => setRunState({ status: "idle" })}
-              className="inline-flex items-center gap-1 text-[11px] text-zinc-300 hover:text-white"
+              className="msg-codeblock-text-btn"
               type="button"
               title="Clear output"
             >
@@ -244,14 +245,14 @@ const CodeBlockWithRun = ({
         {code.replace(/\n$/, "")}
       </SyntaxHighlighter>
       {runnable && runState.status !== "idle" ? (
-        <div className="border-t border-white/10 bg-[#0c0c0c] px-4 py-3 text-xs text-zinc-200">
-          <div className="mb-2 flex items-center justify-between text-[11px] text-zinc-500">
+        <div className="msg-codeblock-output">
+          <div className="msg-codeblock-output-head">
             <span>Output</span>
             {typeof runState.code === "number" ? (
               <span>Exit {runState.code}</span>
             ) : null}
           </div>
-          <pre className="whitespace-pre-wrap text-[12px] leading-relaxed">
+          <pre className="msg-codeblock-output-pre">
             {runState.output || runState.stderr || "No output."}
           </pre>
         </div>
@@ -260,14 +261,14 @@ const CodeBlockWithRun = ({
   );
 };
 
-const RegenerateMenu = ({ 
-  messageId, 
-  modelOptions, 
-  onRegenerate 
-}: { 
-  messageId: string; 
-  modelOptions: ModelOption[]; 
-  onRegenerate: (messageId: string, model: string) => void; 
+const RegenerateMenu = ({
+  messageId,
+  modelOptions,
+  onRegenerate
+}: {
+  messageId: string;
+  modelOptions: ModelOption[];
+  onRegenerate: (messageId: string, model: string) => void;
 }) => {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -283,26 +284,26 @@ const RegenerateMenu = ({
   }, []);
 
   return (
-    <div className="relative inline-block" ref={containerRef}>
+    <div className="msg-regen-wrap" ref={containerRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="inline-flex h-8 w-8 min-h-[32px] min-w-[32px] items-center justify-center rounded-md text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--panel)] active:scale-95 transition-all"
+        className="msg-icon-btn"
         title="Regenerate response"
         aria-label="Regenerate response"
         type="button"
       >
-        <i className="bi bi-arrow-repeat text-sm"></i>
+        <i className="bi bi-arrow-repeat msg-action-icon"></i>
       </button>
 
-      <Dropdown open={open} placement="top" align="start" className="w-64 z-50">
-        <div className="max-h-64 overflow-y-auto px-1 py-1">
-          <div className="px-3 py-2 text-xs uppercase font-medium tracking-wide text-[var(--muted)]">
+      <Dropdown open={open} placement="top" align="start" className="msg-regen-dropdown">
+        <div className="msg-regen-list">
+          <div className="msg-regen-title">
             Regenerate with...
           </div>
           {modelOptions.map((option) => (
             <button
               key={option.value}
-              className="w-full rounded-md px-3 py-2 text-left text-xs text-[var(--text)] hover:bg-[var(--sidebar)] transition-colors"
+              className="msg-regen-option"
               onClick={() => {
                 onRegenerate(messageId, option.value);
                 setOpen(false);
@@ -439,12 +440,12 @@ const MessageList = ({
   };
 
   return (
-    <div className="relative flex-1 overflow-y-auto scrollbar-thin" ref={listRef}>
-      <div className="mx-auto max-w-3xl space-y-0 px-2.5 sm:px-4 py-3 sm:py-6">
+    <div className="msg-list scrollbar-thin" ref={listRef}>
+      <div className="msg-list-inner">
         {messages.map((message) => {
           if (message.role === "SYSTEM") {
             return (
-              <div key={message.id} className="text-xs text-[var(--muted)]">
+              <div key={message.id} className="msg-system">
                 {message.content}
               </div>
             );
@@ -463,12 +464,12 @@ const MessageList = ({
             return (
               <div
                 key={message.id}
-                className={`flex justify-end group py-2 ${isEditing ? "w-full" : ""}`}
+                className={`msg-user-row ${isEditing ? "msg-user-row--editing" : ""}`}
               >
-                <div className={`flex flex-col items-end min-w-0 ${isEditing ? "w-full" : "max-w-[88%] sm:max-w-[80%] md:max-w-[70%]"}`}>
-                  <div className="user-message-card w-full rounded-2xl bg-[#f4f4f4] dark:bg-[#2f2f2f] text-[#0d0d0d] dark:text-[#ececf1] border border-[#e5e7eb] dark:border-transparent px-3.5 py-2.5 sm:px-4 sm:py-3 text-[15px] sm:text-base shadow-xs min-w-0">
+                <div className={`msg-user-col ${isEditing ? "msg-user-col--editing" : "msg-user-col--default"}`}>
+                  <div className="user-message-card msg-user-card">
                     {isEditing ? (
-                      <div className="w-full min-w-[260px] sm:min-w-[300px]">
+                      <div className="msg-user-edit-wrap">
                         <MessageImages images={message.images} />
                         <Textarea
                           ref={editRef}
@@ -476,17 +477,17 @@ const MessageList = ({
                           value={editingValue}
                           onChange={(e) => setEditingValue(e.target.value)}
                           onKeyDown={onEditKeyDown}
-                          className="min-h-[64px] w-full text-right bg-transparent text-[var(--text)]"
+                          className="msg-user-edit-input"
                           aria-invalid={!!editingError}
                         />
                         {editingError ? (
-                          <div className="mt-2 text-xs text-red-500 dark:text-red-300">
+                          <div className="msg-user-edit-error">
                             {editingError}
                           </div>
                         ) : null}
-                        <div className="mt-2 flex items-center justify-end gap-2 text-xs">
+                        <div className="msg-user-edit-actions">
                           <button
-                            className="rounded-md border border-[var(--border)] bg-transparent px-2.5 py-1 text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--sidebar)] transition-colors"
+                            className="msg-user-edit-cancel"
                             onClick={cancelEdit}
                             disabled={savingId === message.id}
                             type="button"
@@ -494,7 +495,7 @@ const MessageList = ({
                             Cancel
                           </button>
                           <button
-                            className="rounded-md border border-[var(--border)] bg-[var(--panel)] px-2.5 py-1 text-[var(--text)] hover:bg-[var(--sidebar)] transition-colors"
+                            className="msg-user-edit-save"
                             onClick={submitEdit}
                             disabled={savingId === message.id}
                             type="button"
@@ -511,7 +512,7 @@ const MessageList = ({
                             remarkPlugins={[remarkGfm]}
                             components={{
                               pre(props) {
-                                return <div className="p-0 m-0 bg-transparent">{props.children}</div>;
+                                return <div className="msg-md-pre">{props.children}</div>;
                               },
                               code(props) {
                                 const { children, className, node, ...rest } = props;
@@ -536,21 +537,21 @@ const MessageList = ({
                     )}
                   </div>
                   {!isEditing && (
-                    <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity px-1 py-0.5 mt-0.5">
-                      <CopyButton 
-                        text={message.content} 
+                    <div className="msg-user-actions">
+                      <CopyButton
+                        text={message.content}
                         showText={false}
                       />
                       {onEditSubmit && !editDisabled && (
                         <button
-                          className="inline-flex h-8 w-8 min-h-[32px] min-w-[32px] items-center justify-center rounded-md text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--panel)] active:scale-95 transition-all"
+                          className="msg-icon-btn"
                           onClick={() => startEdit(message)}
                           disabled={editDisabled}
                           title="Edit message"
                           aria-label="Edit message"
                           type="button"
                         >
-                          <i className="bi bi-pencil text-sm"></i>
+                          <i className="bi bi-pencil msg-action-icon"></i>
                         </button>
                       )}
                     </div>
@@ -567,18 +568,18 @@ const MessageList = ({
           return (
             <div
               key={message.id}
-              className="rounded-xl bg-[var(--assistantRow)] p-3 sm:p-4 group min-w-0"
+              className="msg-assistant"
             >
-              <div className="markdown max-w-none text-base leading-relaxed w-full min-w-0">
+              <div className="markdown msg-assistant-body">
                 <MessageImages images={message.images} />
                 {message.status === "STREAMING" && !displayContent ? (
-                  <div className="flex gap-1 py-2 items-center">
-                    <div className="h-1.5 w-1.5 rounded-full bg-[var(--muted)] animate-bounce [animation-delay:-0.3s]"></div>
-                    <div className="h-1.5 w-1.5 rounded-full bg-[var(--muted)] animate-bounce [animation-delay:-0.15s]"></div>
-                    <div className="h-1.5 w-1.5 rounded-full bg-[var(--muted)] animate-bounce"></div>
+                  <div className="msg-typing">
+                    <div className="msg-typing-dot msg-typing-dot--1"></div>
+                    <div className="msg-typing-dot msg-typing-dot--2"></div>
+                    <div className="msg-typing-dot msg-typing-dot--3"></div>
                   </div>
                 ) : isCanvasOnly ? (
-                  <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-sm text-[var(--muted)]">
+                  <div className="msg-canvas-notice">
                     Code sent to Canvas
                   </div>
                 ) : (
@@ -586,7 +587,7 @@ const MessageList = ({
                     remarkPlugins={[remarkGfm]}
                     components={{
                       pre(props) {
-                        return <div className="p-0 m-0 bg-transparent">{props.children}</div>;
+                        return <div className="msg-md-pre">{props.children}</div>;
                       },
                       code(props) {
                         const { children, className, node, ...rest } = props;
@@ -607,9 +608,9 @@ const MessageList = ({
                     {displayContent}
                   </ReactMarkdown>
                 )}
-                <div className="mt-2 flex items-center gap-1.5 min-h-[24px]">
+                <div className="msg-assistant-footer">
                   {message.model && (
-                    <div className="text-[11px] text-[var(--muted)] opacity-60 mr-1 truncate max-w-[150px]">
+                    <div className="msg-model-label">
                       {message.model.split('/').pop()}
                     </div>
                   )}
@@ -617,42 +618,42 @@ const MessageList = ({
                     <>
                       {onStopStreaming && activeStreamId === message.id ? (
                         <button
-                          className="inline-flex h-8 w-8 min-h-[32px] min-w-[32px] items-center justify-center rounded-md text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--panel)] active:scale-95 transition-all"
+                          className="msg-icon-btn"
                           onClick={onStopStreaming}
                           title="Stop response"
                           aria-label="Stop response"
                           type="button"
                         >
-                          <i className="bi bi-stop-circle text-sm"></i>
+                          <i className="bi bi-stop-circle msg-action-icon"></i>
                         </button>
                       ) : null}
                       {message.content && (
-                        <div className="flex gap-1 items-center ml-1" title="Generating...">
-                          <div className="h-1 w-1 rounded-full bg-[var(--accent)] animate-bounce [animation-delay:-0.3s]"></div>
-                          <div className="h-1 w-1 rounded-full bg-[var(--accent)] animate-bounce [animation-delay:-0.15s]"></div>
-                          <div className="h-1 w-1 rounded-full bg-[var(--accent)] animate-bounce"></div>
+                        <div className="msg-generating" title="Generating...">
+                          <div className="msg-generating-dot msg-generating-dot--1"></div>
+                          <div className="msg-generating-dot msg-generating-dot--2"></div>
+                          <div className="msg-generating-dot msg-generating-dot--3"></div>
                         </div>
                       )}
                     </>
                   ) : (
-                    <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                      <CopyButton 
-                        text={message.content} 
+                    <div className="msg-assistant-actions">
+                      <CopyButton
+                        text={message.content}
                         showText={false}
                       />
-                      <ShareButton 
-                        text={message.content} 
+                      <ShareButton
+                        text={message.content}
                       />
-                      <DownloadMenu 
-                        content={message.content} 
-                        messages={messages} 
-                        chatContainerRef={listRef} 
+                      <DownloadMenu
+                        content={message.content}
+                        messages={messages}
+                        chatContainerRef={listRef}
                       />
                       {onRegenerate && (
-                        <RegenerateMenu 
-                          messageId={message.id} 
-                          modelOptions={modelOptions} 
-                          onRegenerate={onRegenerate} 
+                        <RegenerateMenu
+                          messageId={message.id}
+                          modelOptions={modelOptions}
+                          onRegenerate={onRegenerate}
                         />
                       )}
                     </div>
@@ -664,27 +665,27 @@ const MessageList = ({
         })}
       </div>
       {messages.length > 0 && canScroll && (!atTop || !atBottom) && (
-        <div className="fixed bottom-44 md:bottom-48 right-3 md:right-8 flex flex-col gap-2 z-20">
+        <div className="msg-jump-wrap">
           {!atTop && (
             <button
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--panel)] text-[var(--text)] shadow-md hover:bg-[var(--sidebar)] active:scale-95 transition-all"
+              className="msg-jump-btn"
               onClick={scrollToTop}
               title="Jump to top"
               aria-label="Scroll to top"
               type="button"
             >
-              <i className="bi bi-arrow-up text-xs" aria-hidden="true"></i>
+              <i className="bi bi-arrow-up msg-jump-icon" aria-hidden="true"></i>
             </button>
           )}
           {!atBottom && (
             <button
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--panel)] text-[var(--text)] shadow-md hover:bg-[var(--sidebar)] active:scale-95 transition-all"
+              className="msg-jump-btn"
               onClick={scrollToBottom}
               title="Jump to bottom"
               aria-label="Scroll to bottom"
               type="button"
             >
-              <i className="bi bi-arrow-down text-xs" aria-hidden="true"></i>
+              <i className="bi bi-arrow-down msg-jump-icon" aria-hidden="true"></i>
             </button>
           )}
         </div>

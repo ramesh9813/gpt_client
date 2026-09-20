@@ -1,3 +1,4 @@
+import "./ConversationSidebar.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -228,21 +229,17 @@ const ConversationSidebar = ({
     return (
       <div
         key={conversation.id}
-        className={`group flex items-center justify-between rounded-lg px-2 py-1.5 text-sm ${
-          active
-            ? "bg-[var(--panel)] text-[var(--text)]"
-            : "text-[var(--text)] hover:bg-[var(--panel)]"
-        }`}
+        className={`conv-side-conv-item ${active ? "conv-side-conv-item--active" : "conv-side-conv-item--inactive"}`}
       >
         <button
-          className="flex-1 text-left overflow-hidden whitespace-normal h-5 leading-5 font-sans"
+          className="conv-side-conv-title-btn"
           onClick={() => handleSelectConversation(conversation.id)}
           title={conversation.title}
         >
           {conversation.title}
         </button>
         <div
-          className={`relative h-6 w-6 ${menuOpen === conversation.id ? "opacity-100" : "opacity-100 md:opacity-0 md:group-hover:opacity-100"} transition-opacity`}
+          className={`conv-side-conv-menu ${menuOpen === conversation.id ? "conv-side-conv-menu--open" : "conv-side-conv-menu--closed"}`}
           onMouseLeave={() => setMenuOpen(null)}
         >
           <IconButton
@@ -252,16 +249,16 @@ const ConversationSidebar = ({
               )
             }
             aria-label="Conversation menu"
-            className="!border-0 !h-6 !w-6"
+            className="conv-side-conv-menu-btn"
           >
             <i className="bi bi-three-dots"></i>
           </IconButton>
           {menuOpen === conversation.id && (
-            <div className="absolute top-full left-0 w-full h-2 bg-transparent z-30" />
+            <div className="conv-side-menu-bridge" />
           )}
-          <Dropdown open={menuOpen === conversation.id} className="mt-0">
+          <Dropdown open={menuOpen === conversation.id} className="conv-side-conv-dropdown">
             <button
-              className="w-full rounded-md px-3 py-2 text-left text-sm hover:bg-[var(--sidebar)]"
+              className="conv-side-dropdown-item"
               onClick={() => {
                 setRenameId(conversation.id);
                 setRenameTitle(conversation.title);
@@ -272,7 +269,7 @@ const ConversationSidebar = ({
               Rename
             </button>
             <button
-              className="w-full rounded-md px-3 py-2 text-left text-sm text-red-300 hover:bg-[var(--sidebar)]"
+              className="conv-side-dropdown-item conv-side-dropdown-item--danger"
               onClick={() => {
                 deleteMutation.mutate(conversation.id);
                 setMenuOpen(null);
@@ -290,23 +287,19 @@ const ConversationSidebar = ({
   const isCollapsedDesktop = !isMobile && sidebarState === "collapsed";
 
   const asideClasses = cn(
-    "flex h-full flex-col shrink-0 bg-[var(--sidebar)] border-r border-[var(--border)] overflow-hidden",
-    "fixed inset-y-0 left-0 z-50 w-72 sm:w-80 shadow-2xl",
-    "lg:static lg:z-auto lg:shadow-none",
-    drawerOpen ? "translate-x-0" : "-translate-x-full",
-    "lg:translate-x-0",
-    !isMobile && sidebarState === "expanded" && "lg:w-[300px]",
-    !isMobile && sidebarState === "collapsed" && "lg:w-14",
-    !isMobile && sidebarState === "hidden" && "lg:w-0 lg:border-r-0 lg:pointer-events-none",
-    isMobile && !drawerOpen && "pointer-events-none",
-    "transition-[width,transform] duration-200 ease-out motion-reduce:transition-none motion-reduce:transform-none"
+    "conv-side",
+    drawerOpen ? "conv-side--drawer-open" : "conv-side--drawer-closed",
+    !isMobile && sidebarState === "expanded" && "conv-side--expanded",
+    !isMobile && sidebarState === "collapsed" && "conv-side--collapsed",
+    !isMobile && sidebarState === "hidden" && "conv-side--hidden",
+    isMobile && !drawerOpen && "conv-side--mobile-closed"
   );
 
   return (
     <>
       {showBackdrop && (
         <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs lg:hidden"
+          className="conv-side-backdrop"
           onClick={onCloseDrawer}
           aria-hidden="true"
         />
@@ -320,7 +313,7 @@ const ConversationSidebar = ({
         className={asideClasses}
       >
         {isCollapsedDesktop && (
-          <div className="hidden lg:flex flex-col items-center gap-2 py-3 h-full w-14 shrink-0">
+          <div className="conv-side-collapsed-rail">
             <button
               type="button"
               onClick={onExpand}
@@ -328,28 +321,28 @@ const ConversationSidebar = ({
               title="Open conversation history"
               aria-expanded={false}
               aria-controls="conversation-history"
-              className="inline-flex h-10 w-10 min-h-[40px] min-w-[40px] items-center justify-center rounded-lg text-[var(--text)] hover:bg-[var(--panel)] active:scale-95 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              className="conv-side-rail-btn"
             >
-              <i className="bi bi-layout-sidebar-inset-reverse text-lg" aria-hidden="true" />
+              <i className="bi bi-layout-sidebar-inset-reverse conv-side-rail-icon" aria-hidden="true" />
             </button>
             <button
               type="button"
               onClick={() => createMutation.mutate(undefined)}
               aria-label="New chat"
               title="New chat"
-              className="inline-flex h-10 w-10 min-h-[40px] min-w-[40px] items-center justify-center rounded-lg text-[var(--text)] hover:bg-[var(--panel)] active:scale-95 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              className="conv-side-rail-btn"
             >
-              <i className="bi bi-pencil-square text-base" aria-hidden="true" />
+              <i className="bi bi-pencil-square conv-side-rail-icon-sm" aria-hidden="true" />
             </button>
-            <div className="mt-auto flex flex-col items-center gap-2">
+            <div className="conv-side-rail-bottom">
               <button
                 type="button"
                 onClick={onHide}
                 aria-label="Hide conversation history"
                 title="Hide conversation history"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--text)] active:scale-95 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                className="conv-side-rail-hide-btn"
               >
-                <i className="bi bi-x-lg text-sm" aria-hidden="true" />
+                <i className="bi bi-x-lg conv-side-rail-hide-icon" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -358,17 +351,17 @@ const ConversationSidebar = ({
         <div
           ref={panelRef}
           className={cn(
-            "flex-col flex-1 min-h-0 min-w-0 h-full",
-            !isMobile && sidebarState === "collapsed" ? "hidden" : "flex"
+            "conv-side-panel",
+            !isMobile && sidebarState === "collapsed" ? "conv-side-panel--hidden" : "conv-side-panel--visible"
           )}
           aria-hidden={!isMobile && sidebarState !== "expanded"}
         >
-          <div className="flex h-12 sm:h-14 items-center justify-between gap-1 px-3 py-2 border-b border-[var(--border)] pt-[max(env(safe-area-inset-top,0px),8px)] lg:pt-2 shrink-0">
+          <div className="conv-side-header">
             <Button
-              className="flex-1 justify-start gap-2 border-0 bg-transparent hover:bg-[var(--panel)] px-2 text-[var(--text)] active:scale-95 transition-transform min-h-[40px]"
+              className="conv-side-newchat-btn"
               onClick={() => createMutation.mutate(undefined)}
             >
-              <i className="bi bi-plus-lg text-base"></i>
+              <i className="bi bi-plus-lg conv-side-newchat-icon"></i>
               <span>New chat</span>
             </Button>
             {isMobile ? (
@@ -380,68 +373,68 @@ const ConversationSidebar = ({
                 title="Close conversation history"
                 aria-expanded={drawerOpen}
                 aria-controls="conversation-history"
-                className="inline-flex h-10 w-10 min-h-[40px] min-w-[40px] items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--text)] active:scale-95 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                className="conv-side-close-btn"
               >
-                <i className="bi bi-x-lg text-base" aria-hidden="true" />
+                <i className="bi bi-x-lg conv-side-close-icon" aria-hidden="true" />
               </button>
             ) : (
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="conv-side-header-actions">
                 <IconButton
                   onClick={onCollapse}
                   aria-label="Collapse conversation history"
                   title="Collapse conversation history"
                   aria-expanded={sidebarState === "expanded"}
                   aria-controls="conversation-history"
-                  className="h-9 w-9 !border-0 text-[var(--muted)] hover:text-[var(--text)] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                  className="conv-side-header-icon-btn"
                 >
-                  <i className="bi bi-layout-sidebar-inset text-base"></i>
+                  <i className="bi bi-layout-sidebar-inset conv-side-header-icon"></i>
                 </IconButton>
                 <IconButton
                   onClick={onHide}
                   aria-label="Hide conversation history"
                   title="Hide conversation history"
                   aria-controls="conversation-history"
-                  className="h-9 w-9 !border-0 text-[var(--muted)] hover:text-[var(--text)] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                  className="conv-side-header-icon-btn"
                 >
-                  <i className="bi bi-x-lg text-sm"></i>
+                  <i className="bi bi-x-lg conv-side-header-icon-sm"></i>
                 </IconButton>
               </div>
             )}
           </div>
 
-          <div className="flex flex-1 flex-col overflow-hidden min-h-0">
-            <div className="px-3 py-2 shrink-0">
-              <div className="relative">
-                <i className="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[var(--muted)]"></i>
+          <div className="conv-side-body">
+            <div className="conv-side-search-wrap">
+              <div className="conv-side-search-inner">
+                <i className="bi bi-search conv-side-search-icon"></i>
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search"
-                  className="bg-transparent border-0 pl-9 focus:ring-0 text-sm"
+                  className="conv-side-search-input"
                 />
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto px-3 pb-4 scrollbar-thin min-h-0">
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2 px-2">
-                  <div className="text-sm font-bold font-sans text-[var(--text)] uppercase tracking-wider opacity-60">
+            <div className="conv-side-scroll scrollbar-thin">
+              <div className="conv-side-section">
+                <div className="conv-side-section-head">
+                  <div className="conv-side-section-title">
                     Categories
                   </div>
                   <IconButton
-                    className="h-5 w-5 !border-0 opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                    className="conv-side-add-folder-btn"
                     onClick={() => setIsCreatingFolder(true)}
                     title="New Folder"
                   >
-                    <i className="bi bi-folder-plus text-xs"></i>
+                    <i className="bi bi-folder-plus conv-side-add-folder-icon"></i>
                   </IconButton>
                 </div>
 
                 {isCreatingFolder && (
-                  <div className="px-2 mb-2">
+                  <div className="conv-side-newfolder-wrap">
                     <Input
                       autoFocus
                       placeholder="Folder name..."
-                      className="h-8 text-sm"
+                      className="conv-side-newfolder-input"
                       value={newFolderName}
                       onChange={(e) => setNewFolderName(e.target.value)}
                       onKeyDown={(e) => {
@@ -455,33 +448,33 @@ const ConversationSidebar = ({
                   </div>
                 )}
 
-                <div className="space-y-1">
+                <div className="conv-side-folder-list">
                   {folders.map((folder) => (
-                    <div key={folder.id} className="space-y-1">
-                      <div className="group flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-[var(--panel)] cursor-pointer text-sm font-medium text-[var(--text)]">
-                        <div className="flex flex-1 items-center gap-2 overflow-hidden" onClick={() => toggleFolder(folder.id)}>
-                          <i className={`bi bi-chevron-${expandedFolders.has(folder.id) ? "down" : "right"} text-[10px] opacity-50`}></i>
-                          <i className={`bi bi-folder${expandedFolders.has(folder.id) ? "-fill" : ""} text-xs text-yellow-500/80`}></i>
-                          <span className="truncate">{folder.name}</span>
+                    <div key={folder.id} className="conv-side-folder-group">
+                      <div className="conv-side-folder-row">
+                        <div className="conv-side-folder-main" onClick={() => toggleFolder(folder.id)}>
+                          <i className={`bi bi-chevron-${expandedFolders.has(folder.id) ? "down" : "right"} conv-side-folder-chevron`}></i>
+                          <i className={`bi bi-folder${expandedFolders.has(folder.id) ? "-fill" : ""} conv-side-folder-icon`}></i>
+                          <span className="conv-side-folder-name">{folder.name}</span>
                           {(folder._count?.conversations || 0) > 0 && (
-                            <span className="shrink-0 flex items-center justify-center min-w-[16px] h-[16px] px-1 text-[9px] font-bold bg-yellow-400 text-yellow-900 rounded-full shadow-sm border border-yellow-500/30 transform -translate-y-1.5 -ml-1">
+                            <span className="conv-side-folder-count">
                               {folder._count?.conversations}
                             </span>
                           )}
                         </div>
                         <IconButton
-                          className="h-5 w-5 !border-0 opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                          className="conv-side-folder-add-btn"
                           onClick={() => createMutation.mutate(folder.id)}
                           title="New Chat in Folder"
                         >
-                          <i className="bi bi-plus-lg text-[10px]"></i>
+                          <i className="bi bi-plus-lg conv-side-folder-add-icon"></i>
                         </IconButton>
                       </div>
                       {expandedFolders.has(folder.id) && (
-                        <div className="ml-4 pl-2 border-l border-[var(--border)] space-y-1 mt-1">
+                        <div className="conv-side-folder-children">
                           {groupedConversations[folder.id]?.map(renderConversation)}
                           {(!groupedConversations[folder.id] || groupedConversations[folder.id].length === 0) && (
-                            <div className="text-[11px] text-[var(--muted)] py-1 px-2 italic">No chats</div>
+                            <div className="conv-side-folder-empty">No chats</div>
                           )}
                         </div>
                       )}
@@ -490,29 +483,29 @@ const ConversationSidebar = ({
                 </div>
               </div>
 
-              <div className="mb-4">
-                <div className="mb-2 px-2 text-sm font-bold font-sans text-[var(--text)] uppercase tracking-wider opacity-60">
+              <div className="conv-side-section">
+                <div className="conv-side-history-head">
                   History
                 </div>
-                <div className="space-y-1">
+                <div className="conv-side-history-list">
                   {uncategorized.map(renderConversation)}
                 </div>
               </div>
             </div>
-            <div className="border-t border-[var(--border)] px-4 py-3 pb-[max(env(safe-area-inset-bottom,0px),12px)] shrink-0">
+            <div className="conv-side-footer">
               <Link
                 to="/account"
-                className="flex items-center gap-3 hover:text-[var(--text)] active:opacity-80 transition-opacity"
+                className="conv-side-account-link"
                 onClick={() => {
                   if (isMobile) onCloseDrawer();
                 }}
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-600 text-xs font-medium text-white shadow-sm">
+                <div className="conv-side-avatar">
                   {initial}
                 </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-sm font-medium truncate">{user?.name || "User"}</span>
-                  <span className="text-[10px] text-[var(--muted)] truncate">{user?.email}</span>
+                <div className="conv-side-account-info">
+                  <span className="conv-side-account-name">{user?.name || "User"}</span>
+                  <span className="conv-side-account-email">{user?.email}</span>
                 </div>
               </Link>
             </div>
@@ -526,14 +519,14 @@ const ConversationSidebar = ({
             setRenameError(null);
           }}
         >
-          <div className="space-y-3">
+          <div className="conv-side-modal-body">
             <Input value={renameTitle} onChange={(e) => setRenameTitle(e.target.value)} />
             {renameError ? (
-              <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-2 text-xs text-red-200">
+              <div className="conv-side-modal-error">
                 {renameError}
               </div>
             ) : null}
-            <div className="flex justify-end gap-2">
+            <div className="conv-side-modal-actions">
               <Button variant="ghost" onClick={() => setRenameId(null)}>
                 Cancel
               </Button>

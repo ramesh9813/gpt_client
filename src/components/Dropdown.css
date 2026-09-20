@@ -1,0 +1,28 @@
+.dropdown {
+  position: absolute;
+  z-index: 20;
+  width: 10rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background-color: var(--panel);
+  padding: 0.25rem;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.dropdown-align-start {
+  left: 0;
+}
+
+.dropdown-align-end {
+  right: 0;
+}
+
+.dropdown-placement-top {
+  bottom: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.dropdown-placement-bottom {
+  top: 100%;
+  margin-top: 0.5rem;
+}

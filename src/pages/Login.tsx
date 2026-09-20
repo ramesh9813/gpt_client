@@ -1,3 +1,4 @@
+import "./Login.css";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -65,43 +66,43 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-6">
-        <h1 className="mb-2 text-2xl font-semibold">Welcome back</h1>
-        <p className="mb-6 text-sm text-[var(--muted)]">
+    <div className="login-page">
+      <div className="login-container">
+        <h1 className="login-title">Welcome back</h1>
+        <p className="login-subtitle">
           Sign in to continue to ChatUI.
         </p>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="login-form">
           <div>
-            <label className="mb-1 block text-sm">Email</label>
+            <label className="login-label">Email</label>
             <Input type="email" placeholder="you@example.com" {...register("email")} />
           </div>
           <div>
-            <label className="mb-1 block text-sm">Password</label>
+            <label className="login-label">Password</label>
             <Input type="password" placeholder="Password" {...register("password")} />
           </div>
           {error ? (
-            <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-2 text-sm text-red-200">
+            <div className="login-error">
               {error}
             </div>
           ) : null}
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          <Button type="submit" className="login-submit" disabled={isSubmitting}>
             {isSubmitting ? "Signing in..." : "Sign in"}
           </Button>
         </form>
-        <div className="mt-4">
+        <div className="login-alt-wrap">
           <Button
             variant="outline"
-            className="w-full"
+            className="login-google-btn"
             onClick={onGoogleLogin}
             disabled={googleLoading}
           >
             {googleLoading ? "Connecting..." : "Continue with Google"}
           </Button>
         </div>
-        <p className="mt-4 text-sm text-[var(--muted)]">
+        <p className="login-footer">
           No account?{" "}
-          <Link className="text-[var(--accent)]" to="/signup">
+          <Link className="login-link" to="/signup">
             Create one
           </Link>
         </p>

@@ -1,5 +1,6 @@
 import { cn } from "../lib/utils";
 import type { SidebarState } from "../features/chat/sidebarState";
+import "./SidebarToggle.css";
 
 interface SidebarToggleProps {
   sidebarState: SidebarState;
@@ -70,12 +71,11 @@ export const SidebarToggle = ({
       aria-expanded={meta.expanded}
       aria-controls="conversation-history"
       className={cn(
-        "inline-flex h-10 w-10 min-h-[40px] min-w-[40px] items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--panel)] text-[var(--text)] shadow-xs transition-colors hover:bg-[var(--sidebar)] active:scale-95",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]",
+        "sidebar-toggle",
         className
       )}
     >
-      <i className={`${meta.icon} text-base`} aria-hidden="true" />
+      <i className={`${meta.icon} sidebar-toggle-icon`} aria-hidden="true" />
     </button>
   );
 };

@@ -1,3 +1,4 @@
+import "./HomeRedirect.css";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -36,7 +37,7 @@ const HomeRedirect = () => {
     }
   }, [data, isLoading, navigate, createMutation]);
 
-  return <div className="p-6">Loading...</div>;
+  return <div className="homeredirect-loading">Loading...</div>;
 };
 
 export default HomeRedirect;

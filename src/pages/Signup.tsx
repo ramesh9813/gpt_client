@@ -1,3 +1,4 @@
+import "./Signup.css";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -49,37 +50,37 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-6">
-        <h1 className="mb-2 text-2xl font-semibold">Create your account</h1>
-        <p className="mb-6 text-sm text-[var(--muted)]">
+    <div className="signup-page">
+      <div className="signup-container">
+        <h1 className="signup-title">Create your account</h1>
+        <p className="signup-subtitle">
           Start chatting with ChatUI.
         </p>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="signup-form">
           <div>
-            <label className="mb-1 block text-sm">Name</label>
+            <label className="signup-label">Name</label>
             <Input type="text" placeholder="Optional" {...register("name")} />
           </div>
           <div>
-            <label className="mb-1 block text-sm">Email</label>
+            <label className="signup-label">Email</label>
             <Input type="email" placeholder="you@example.com" {...register("email")} />
           </div>
           <div>
-            <label className="mb-1 block text-sm">Password</label>
+            <label className="signup-label">Password</label>
             <Input type="password" placeholder="At least 8 characters" {...register("password")} />
           </div>
           {error ? (
-            <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-2 text-sm text-red-200">
+            <div className="signup-error">
               {error}
             </div>
           ) : null}
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          <Button type="submit" className="signup-submit" disabled={isSubmitting}>
             {isSubmitting ? "Creating..." : "Create account"}
           </Button>
         </form>
-        <p className="mt-4 text-sm text-[var(--muted)]">
+        <p className="signup-footer">
           Already have an account?{" "}
-          <Link className="text-[var(--accent)]" to="/login">
+          <Link className="signup-link" to="/login">
             Sign in
           </Link>
         </p>

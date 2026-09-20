@@ -1,0 +1,185 @@
+/* CanvasPanel.css — 1:1 translation of Tailwind utilities.
+   Keeps var(--panel/sidebar/border/text/muted/accent) and hardcoded white as-is. */
+
+.canvas-root {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--panel);
+}
+@media (min-width: 1024px) {
+  .canvas-root {
+    position: static;
+    z-index: auto;
+    height: 100%;
+    border-left: 1px solid var(--border);
+  }
+}
+.canvas-resize {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0.25rem;
+  cursor: col-resize;
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 150ms;
+}
+@media (min-width: 1024px) {
+  .canvas-resize { display: block; }
+}
+.canvas-resize:hover { background-color: var(--accent); }
+
+.canvas-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  padding-top: max(env(safe-area-inset-top, 0px), 12px);
+  border-bottom: 1px solid var(--border);
+}
+@media (min-width: 1024px) {
+  .canvas-header { padding-top: 0.75rem; }
+}
+.canvas-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.canvas-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.canvas-subtitle {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.canvas-close-btn {
+  display: inline-flex;
+  height: 2rem;
+  width: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  background-color: var(--sidebar);
+  color: var(--text);
+  border: 0;
+  cursor: pointer;
+}
+.canvas-close-btn:hover { background-color: var(--border); }
+.canvas-close-icon { font-size: 0.875rem; }
+
+.canvas-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.canvas-nav-btn {
+  display: inline-flex;
+  height: 1.75rem;
+  width: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.canvas-nav-btn:hover { background-color: var(--sidebar); color: var(--text); }
+.canvas-nav-btn:disabled { opacity: 0.4; cursor: default; }
+.canvas-nav-icon { font-size: 0.875rem; }
+.canvas-select {
+  flex: 1 1 0%;
+  border-radius: 0.375rem;
+  border: 1px solid var(--border);
+  background-color: var(--panel);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text);
+}
+.canvas-select:focus { border-color: var(--accent); outline: none; }
+.canvas-preview-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 0.375rem;
+  border: 1px solid var(--border);
+  padding: 0.25rem 0.5rem;
+  font-size: 11px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+.canvas-preview-toggle:hover { background-color: var(--sidebar); color: var(--text); }
+.canvas-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.canvas-copy-btn:hover { color: var(--text); }
+
+.canvas-content {
+  flex: 1 1 0%;
+  overflow: auto;
+  padding: 1rem;
+}
+.canvas-preview-frame {
+  height: 100%;
+  width: 100%;
+  border-radius: 0.375rem;
+  border: 1px solid var(--border);
+  background-color: #fff;
+}
+.canvas-run-row {
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.canvas-run-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid var(--border);
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+.canvas-run-btn:hover { background-color: var(--sidebar); }
+.canvas-run-btn:disabled { opacity: 0.6; cursor: default; }
+.canvas-output {
+  margin-top: 1rem;
+  border-radius: 0.375rem;
+  border: 1px solid var(--border);
+  background-color: var(--sidebar);
+  padding: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text);
+}
+.canvas-output-head {
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted);
+}
+.canvas-output-pre {
+  white-space: pre-wrap;
+  font-size: 12px;
+  line-height: 1.625;
+}

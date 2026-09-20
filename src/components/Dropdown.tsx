@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { cn } from "../lib/utils";
+import "./Dropdown.css";
 
 export const Dropdown = ({
   open,
@@ -15,13 +16,13 @@ export const Dropdown = ({
   className?: string;
 }) => {
   if (!open) return null;
-  const alignClass = align === "start" ? "left-0" : "right-0";
+  const alignClass = align === "start" ? "dropdown-align-start" : "dropdown-align-end";
   const placementClass =
-    placement === "top" ? "bottom-full mb-2" : "top-full mt-2";
+    placement === "top" ? "dropdown-placement-top" : "dropdown-placement-bottom";
   return (
     <div
       className={cn(
-        "absolute z-20 w-40 rounded-lg border border-[var(--border)] bg-[var(--panel)] p-1 shadow-lg",
+        "dropdown",
         alignClass,
         placementClass,
         className

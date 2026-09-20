@@ -1,0 +1,39 @@
+.usage-chart {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+}
+
+.usage-chart-header {
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.usage-chart-title {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.usage-chart-select {
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background-color: var(--panel);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--text);
+}
+
+.usage-chart-select:focus {
+  border-color: var(--accent);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.usage-chart-body {
+  flex: 1 1 0%;
+}

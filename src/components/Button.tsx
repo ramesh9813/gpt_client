@@ -1,19 +1,18 @@
 import { ButtonHTMLAttributes } from "react";
 import { cn } from "../lib/utils";
+import "./Button.css";
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "outline" | "ghost" | "destructive";
 };
 
-const base =
-  "inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed";
+const base = "btn";
 
 const variants: Record<string, string> = {
-  primary: "bg-[var(--accent)] text-black hover:opacity-90",
-  outline:
-    "border border-[var(--border)] text-[var(--text)] hover:bg-[var(--panel)]",
-  ghost: "text-[var(--text)] hover:bg-[var(--panel)]",
-  destructive: "bg-red-600 text-white hover:bg-red-700"
+  primary: "btn-primary",
+  outline: "btn-outline",
+  ghost: "btn-ghost",
+  destructive: "btn-destructive"
 };
 
 export const Button = ({ variant = "primary", className, ...props }: Props) => (

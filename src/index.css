@@ -264,3 +264,7 @@ pre code {
     animation: none !important;
   }
 }
+
+.app-loading {
+  padding: 1.5rem;
+}

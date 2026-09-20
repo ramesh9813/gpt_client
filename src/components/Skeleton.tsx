@@ -1,3 +1,5 @@
+import "./Skeleton.css";
+
 export const Skeleton = ({ className = "" }: { className?: string }) => (
-  <div className={`animate-pulse rounded-lg bg-[var(--panel)] ${className}`} />
+  <div className={`skeleton ${className}`} />
 );

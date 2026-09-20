@@ -5,6 +5,7 @@ import JSZip from "jszip";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { Dropdown } from "./Dropdown";
+import "./DownloadMenu.css";
 
 interface SimpleMessage {
   role: string;
@@ -249,48 +250,48 @@ export const DownloadMenu = ({ content, messages, chatContainerRef }: DownloadMe
   };
 
   return (
-    <div className="relative inline-block" ref={containerRef}>
+    <div className="download-menu" ref={containerRef}>
       <button
         onClick={() => !isGenerating && setOpen(!open)}
-        className="inline-flex h-8 w-8 min-h-[32px] min-w-[32px] items-center justify-center rounded-md text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--panel)] active:scale-95 transition-all"
+        className="download-menu-trigger"
         title="Download response"
         aria-label="Download response"
         disabled={isGenerating}
         type="button"
       >
         {isGenerating ? (
-          <i className="bi bi-arrow-clockwise animate-spin text-sm"></i>
+          <i className="bi bi-arrow-clockwise download-menu-icon-spin"></i>
         ) : (
-          <i className="bi bi-download text-sm"></i>
+          <i className="bi bi-download download-menu-icon"></i>
         )}
       </button>
 
-      <Dropdown open={open} placement="top" align="end" className="w-36 z-50">
-        <div className="py-1">
+      <Dropdown open={open} placement="top" align="end" className="download-menu-dropdown">
+        <div className="download-menu-list">
           <button
             onClick={downloadText}
-            className="w-full text-left px-3 py-2 text-xs text-[var(--text)] hover:bg-[var(--sidebar)] flex items-center gap-2.5 transition-colors"
+            className="download-menu-item"
           >
-            <i className="bi bi-file-text text-sm text-[var(--muted)]"></i> Text (.txt)
+            <i className="bi bi-file-text download-menu-item-icon download-menu-item-icon-muted"></i> Text (.txt)
           </button>
           <button
             onClick={downloadDocx}
-            className="w-full text-left px-3 py-2 text-xs text-[var(--text)] hover:bg-[var(--sidebar)] flex items-center gap-2.5 transition-colors"
+            className="download-menu-item"
           >
-            <i className="bi bi-file-word text-sm text-blue-500 dark:text-blue-400"></i> Word (.docx)
+            <i className="bi bi-file-word download-menu-item-icon download-menu-item-icon-word"></i> Word (.docx)
           </button>
           <button
             onClick={downloadCode}
-            className="w-full text-left px-3 py-2 text-xs text-[var(--text)] hover:bg-[var(--sidebar)] flex items-center gap-2.5 transition-colors"
+            className="download-menu-item"
           >
-            <i className="bi bi-file-code text-sm text-[var(--accent)]"></i> Code
+            <i className="bi bi-file-code download-menu-item-icon download-menu-item-icon-code"></i> Code
           </button>
           {messages && messages.length > 0 && (
             <button
               onClick={downloadPdf}
-              className="w-full text-left px-3 py-2 text-xs text-[var(--text)] hover:bg-[var(--sidebar)] flex items-center gap-2.5 transition-colors"
+              className="download-menu-item"
             >
-              <i className="bi bi-file-pdf text-sm text-red-500 dark:text-red-400"></i> Page PDF
+              <i className="bi bi-file-pdf download-menu-item-icon download-menu-item-icon-pdf"></i> Page PDF
             </button>
           )}
         </div>

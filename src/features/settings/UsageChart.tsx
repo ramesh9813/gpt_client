@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
   Legend
 } from "recharts";
+import "./UsageChart.css";
 
 export type UsageLog = {
   id: string;
@@ -147,13 +148,13 @@ export const UsageChart = ({ logs }: Props) => {
   }, [logs, range]);
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="text-sm font-medium text-[var(--muted)]">
+    <div className="usage-chart">
+      <div className="usage-chart-header">
+        <div className="usage-chart-title">
           Usage by Model • {rangeLabel}
         </div>
         <select
-          className="rounded-lg border border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
+          className="usage-chart-select"
           value={range}
           onChange={(event) => setRange(event.target.value as RangeKey)}
           aria-label="Select usage range"
@@ -165,7 +166,7 @@ export const UsageChart = ({ logs }: Props) => {
           ))}
         </select>
       </div>
-      <div className="flex-1">
+      <div className="usage-chart-body">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} />
