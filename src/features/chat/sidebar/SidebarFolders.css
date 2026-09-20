@@ -155,12 +155,12 @@
 }
 
 
-/* Preserved semantic accent: yellow folder */
+/* Folder icon follows the selected brand style color */
 .conv-side-folder-icon {
   flex-shrink: 0;
   font-size: 13px;
   line-height: 1;
-  color: rgb(234 179 8 / 0.8);
+  color: var(--accent);
 }
 
 .conv-side-folder-name {
@@ -171,7 +171,7 @@
   white-space: nowrap;
 }
 
-/* Preserved semantic accent: yellow count badge */
+/* Count badge follows the selected brand style color (same treatment as avatar) */
 .conv-side-folder-count {
   flex-shrink: 0;
   display: inline-flex;
@@ -184,9 +184,9 @@
   font-weight: 700;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  background-color: #facc15;
-  color: #713f12;
-  border: 1px solid rgb(234 179 8 / 0.3);
+  background-color: var(--accent);
+  color: var(--bg);
+  border: 1px solid transparent;
   border-radius: 9999px;
   box-shadow: var(--shadow);
 }
