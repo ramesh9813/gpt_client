@@ -1,0 +1,94 @@
+/* expanded panel */
+.conv-side-panel {
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+}
+.conv-side-panel--visible { display: flex; }
+.conv-side-panel--hidden { display: none; }
+
+.conv-side-header {
+  display: flex;
+  height: 3rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-top: max(env(safe-area-inset-top, 0px), 8px);
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+@media (min-width: 640px) {
+  .conv-side-header { height: 3.5rem; }
+}
+@media (min-width: 1024px) {
+  .conv-side-header { padding-top: 0.5rem; }
+}
+.conv-side-newchat-btn {
+  flex: 1 1 0%;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0.5rem;
+  border: 0;
+  background: transparent;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  color: var(--text);
+  min-height: 40px;
+  cursor: pointer;
+  transition-property: transform;
+  transition-duration: 150ms;
+}
+.conv-side-newchat-btn:hover { background-color: var(--panel); }
+.conv-side-newchat-btn:active { transform: scale(0.95); }
+.conv-side-newchat-icon { font-size: 1rem; }
+.conv-side-close-btn {
+  display: inline-flex;
+  height: 2.5rem;
+  width: 2.5rem;
+  min-height: 40px;
+  min-width: 40px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 150ms;
+}
+.conv-side-close-btn:hover { background-color: var(--panel); color: var(--text); }
+.conv-side-close-btn:active { transform: scale(0.95); }
+.conv-side-close-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.conv-side-close-icon { font-size: 1rem; }
+.conv-side-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+.conv-side-header-icon-btn {
+  height: 2.25rem;
+  width: 2.25rem;
+  border: 0 !important;
+  color: var(--muted);
+  cursor: pointer;
+}
+.conv-side-header-icon-btn:hover { color: var(--text); }
+.conv-side-header-icon-btn:active { transform: scale(0.95); }
+.conv-side-header-icon-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.conv-side-header-icon { font-size: 1rem; }
+.conv-side-header-icon-sm { font-size: 0.875rem; }
+

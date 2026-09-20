@@ -1,33 +1,23 @@
 import "./ConversationSidebar.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
-import { apiFetch, ApiResponse } from "../../lib/api";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
-import { Dropdown } from "../../components/Dropdown";
 import { Modal } from "../../components/Modal";
-import { IconButton } from "../../components/IconButton";
 import { useMe } from "../../lib/hooks";
 import type { SidebarState } from "./sidebarState";
 import { cn } from "../../lib/utils";
+import type { Conversation } from "./sidebar/types";
+import { useSidebarData } from "./sidebar/useSidebarData";
+import { useConversationMutations } from "./sidebar/conversationMutations";
+import { ConversationRow } from "./sidebar/ConversationRow";
+import { FolderSection } from "./sidebar/FolderSection";
+import { HistorySection } from "./sidebar/HistorySection";
+import { SidebarRail } from "./sidebar/SidebarRail";
+import { SidebarHeader } from "./sidebar/SidebarHeader";
 
-export type Conversation = {
-  id: string;
-  title: string;
-  folderId?: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type Folder = {
-  id: string;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-  _count?: { conversations: number };
-};
+export type { Conversation, Folder } from "./sidebar/types";
 
 export interface ConversationSidebarProps {
   sidebarState: SidebarState;
@@ -50,20 +40,16 @@ const ConversationSidebar = ({
   onCloseDrawer,
 }: ConversationSidebarProps) => {
   const [search, setSearch] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameTitle, setRenameTitle] = useState("");
   const [renameError, setRenameError] = useState<string | null>(null);
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
 
-  const searchRef = useRef<HTMLDivElement>(null);
   const asideRef = useRef<HTMLElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const params = useParams();
   const { data: meData } = useMe();
@@ -98,126 +84,34 @@ const ConversationSidebar = ({
     }
   }, [isMobile, drawerOpen]);
 
-  const { data: foldersData } = useQuery({
-    queryKey: ["folders"],
-    queryFn: () =>
-      apiFetch<ApiResponse<{ items: Folder[] }>>("/api/folders")
-  });
+  const {
+    folders,
+    groupedConversations,
+    uncategorized,
+    expandedFolders,
+    toggleFolder,
+  } = useSidebarData(search);
 
-  const { data } = useQuery({
-    queryKey: ["conversations", search],
-    queryFn: () =>
-      apiFetch<ApiResponse<{ items: Conversation[] }>>(
-        `/api/conversations?search=${encodeURIComponent(search)}`
-      )
-  });
-
-  const createMutation = useMutation({
-    mutationFn: (folderId?: string) =>
-      apiFetch<ApiResponse<{ conversation: Conversation }>>(
-        "/api/conversations",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ folderId })
-        }
-      ),
-    onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      queryClient.invalidateQueries({ queryKey: ["folders"] });
-      navigate(`/c/${res.data.conversation.id}`);
-      if (isMobile) onCloseDrawer();
-    }
-  });
-
-  const createFolderMutation = useMutation({
-    mutationFn: (name: string) =>
-      apiFetch<ApiResponse<{ folder: Folder }>>(
-        "/api/folders",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name })
-        }
-      ),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["folders"] });
+  const {
+    createMutation,
+    createFolderMutation,
+    renameMutation,
+    deleteMutation,
+  } = useConversationMutations({
+    isMobile,
+    onCloseDrawer,
+    menuOpen,
+    activeConversationId: params.conversationId,
+    onFolderCreated: () => {
       setIsCreatingFolder(false);
       setNewFolderName("");
-    }
+    },
   });
-
-  const renameMutation = useMutation({
-    mutationFn: (payload: { id: string; title: string }) =>
-      apiFetch<ApiResponse<{ conversation: Conversation }>>(
-        `/api/conversations/${payload.id}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: payload.title })
-        }
-      ),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
-    }
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) =>
-      apiFetch<ApiResponse<{}>>(`/api/conversations/${id}`, { method: "DELETE" }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      queryClient.invalidateQueries({ queryKey: ["folders"] });
-      if (params.conversationId === menuOpen) {
-        navigate("/");
-      }
-    }
-  });
-
-  const { folders, groupedConversations, uncategorized } = useMemo(() => {
-    const fs = foldersData?.data?.items || [];
-    const cs = data?.data?.items || [];
-    const groups: Record<string, Conversation[]> = {};
-    const uncat: Conversation[] = [];
-    cs.forEach(c => {
-      if (c.folderId) {
-        if (!groups[c.folderId]) groups[c.folderId] = [];
-        groups[c.folderId].push(c);
-      } else {
-        uncat.push(c);
-      }
-    });
-    return {
-      folders: fs,
-      groupedConversations: groups,
-      uncategorized: uncat.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-    };
-  }, [foldersData, data]);
-
-  const toggleFolder = (id: string) => {
-    setExpandedFolders(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
 
   const renameSchema = useMemo(
     () => z.string().min(1, "Title is required").max(80, "Max 80 characters"),
     []
   );
-
-  useEffect(() => {
-    if (!searchOpen) return;
-    const handleClick = (event: MouseEvent) => {
-      if (!searchRef.current?.contains(event.target as Node)) {
-        setSearchOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [searchOpen]);
 
   const handleSelectConversation = (id: string) => {
     navigate(`/c/${id}`);
@@ -227,59 +121,25 @@ const ConversationSidebar = ({
   const renderConversation = (conversation: Conversation) => {
     const active = params.conversationId === conversation.id;
     return (
-      <div
+      <ConversationRow
         key={conversation.id}
-        className={`conv-side-conv-item ${active ? "conv-side-conv-item--active" : "conv-side-conv-item--inactive"}`}
-      >
-        <button
-          className="conv-side-conv-title-btn"
-          onClick={() => handleSelectConversation(conversation.id)}
-          title={conversation.title}
-        >
-          {conversation.title}
-        </button>
-        <div
-          className={`conv-side-conv-menu ${menuOpen === conversation.id ? "conv-side-conv-menu--open" : "conv-side-conv-menu--closed"}`}
-          onMouseLeave={() => setMenuOpen(null)}
-        >
-          <IconButton
-            onClick={() =>
-              setMenuOpen((prev) =>
-                prev === conversation.id ? null : conversation.id
-              )
-            }
-            aria-label="Conversation menu"
-            className="conv-side-conv-menu-btn"
-          >
-            <i className="bi bi-three-dots"></i>
-          </IconButton>
-          {menuOpen === conversation.id && (
-            <div className="conv-side-menu-bridge" />
-          )}
-          <Dropdown open={menuOpen === conversation.id} className="conv-side-conv-dropdown">
-            <button
-              className="conv-side-dropdown-item"
-              onClick={() => {
-                setRenameId(conversation.id);
-                setRenameTitle(conversation.title);
-                setRenameError(null);
-                setMenuOpen(null);
-              }}
-            >
-              Rename
-            </button>
-            <button
-              className="conv-side-dropdown-item conv-side-dropdown-item--danger"
-              onClick={() => {
-                deleteMutation.mutate(conversation.id);
-                setMenuOpen(null);
-              }}
-            >
-              Delete
-            </button>
-          </Dropdown>
-        </div>
-      </div>
+        conversation={conversation}
+        active={active}
+        menuOpen={menuOpen}
+        onSelect={handleSelectConversation}
+        onToggleMenu={(id) => setMenuOpen((prev) => (prev === id ? null : id))}
+        onCloseMenu={() => setMenuOpen(null)}
+        onRename={(c) => {
+          setRenameId(c.id);
+          setRenameTitle(c.title);
+          setRenameError(null);
+          setMenuOpen(null);
+        }}
+        onDelete={(id) => {
+          deleteMutation.mutate(id);
+          setMenuOpen(null);
+        }}
+      />
     );
   };
 
@@ -313,39 +173,11 @@ const ConversationSidebar = ({
         className={asideClasses}
       >
         {isCollapsedDesktop && (
-          <div className="conv-side-collapsed-rail">
-            <button
-              type="button"
-              onClick={onExpand}
-              aria-label="Open conversation history"
-              title="Open conversation history"
-              aria-expanded={false}
-              aria-controls="conversation-history"
-              className="conv-side-rail-btn"
-            >
-              <i className="bi bi-layout-sidebar-inset-reverse conv-side-rail-icon" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              onClick={() => createMutation.mutate(undefined)}
-              aria-label="New chat"
-              title="New chat"
-              className="conv-side-rail-btn"
-            >
-              <i className="bi bi-pencil-square conv-side-rail-icon-sm" aria-hidden="true" />
-            </button>
-            <div className="conv-side-rail-bottom">
-              <button
-                type="button"
-                onClick={onHide}
-                aria-label="Hide conversation history"
-                title="Hide conversation history"
-                className="conv-side-rail-hide-btn"
-              >
-                <i className="bi bi-x-lg conv-side-rail-hide-icon" aria-hidden="true" />
-              </button>
-            </div>
-          </div>
+          <SidebarRail
+            onExpand={onExpand}
+            onHide={onHide}
+            onNewChat={() => createMutation.mutate(undefined)}
+          />
         )}
 
         <div
@@ -356,51 +188,16 @@ const ConversationSidebar = ({
           )}
           aria-hidden={!isMobile && sidebarState !== "expanded"}
         >
-          <div className="conv-side-header">
-            <Button
-              className="conv-side-newchat-btn"
-              onClick={() => createMutation.mutate(undefined)}
-            >
-              <i className="bi bi-plus-lg conv-side-newchat-icon"></i>
-              <span>New chat</span>
-            </Button>
-            {isMobile ? (
-              <button
-                ref={closeBtnRef}
-                type="button"
-                onClick={onCloseDrawer}
-                aria-label="Close conversation history"
-                title="Close conversation history"
-                aria-expanded={drawerOpen}
-                aria-controls="conversation-history"
-                className="conv-side-close-btn"
-              >
-                <i className="bi bi-x-lg conv-side-close-icon" aria-hidden="true" />
-              </button>
-            ) : (
-              <div className="conv-side-header-actions">
-                <IconButton
-                  onClick={onCollapse}
-                  aria-label="Collapse conversation history"
-                  title="Collapse conversation history"
-                  aria-expanded={sidebarState === "expanded"}
-                  aria-controls="conversation-history"
-                  className="conv-side-header-icon-btn"
-                >
-                  <i className="bi bi-layout-sidebar-inset conv-side-header-icon"></i>
-                </IconButton>
-                <IconButton
-                  onClick={onHide}
-                  aria-label="Hide conversation history"
-                  title="Hide conversation history"
-                  aria-controls="conversation-history"
-                  className="conv-side-header-icon-btn"
-                >
-                  <i className="bi bi-x-lg conv-side-header-icon-sm"></i>
-                </IconButton>
-              </div>
-            )}
-          </div>
+          <SidebarHeader
+            onNewChat={() => createMutation.mutate(undefined)}
+            isMobile={isMobile}
+            drawerOpen={drawerOpen}
+            sidebarState={sidebarState}
+            onCollapse={onCollapse}
+            onHide={onHide}
+            onCloseDrawer={onCloseDrawer}
+            closeBtnRef={closeBtnRef}
+          />
 
           <div className="conv-side-body">
             <div className="conv-side-search-wrap">
@@ -415,82 +212,25 @@ const ConversationSidebar = ({
               </div>
             </div>
             <div className="conv-side-scroll scrollbar-thin">
-              <div className="conv-side-section">
-                <div className="conv-side-section-head">
-                  <div className="conv-side-section-title">
-                    Categories
-                  </div>
-                  <IconButton
-                    className="conv-side-add-folder-btn"
-                    onClick={() => setIsCreatingFolder(true)}
-                    title="New Folder"
-                  >
-                    <i className="bi bi-folder-plus conv-side-add-folder-icon"></i>
-                  </IconButton>
-                </div>
+              <FolderSection
+                folders={folders}
+                groupedConversations={groupedConversations}
+                expandedFolders={expandedFolders}
+                onToggleFolder={toggleFolder}
+                isCreatingFolder={isCreatingFolder}
+                newFolderName={newFolderName}
+                onNewFolderNameChange={setNewFolderName}
+                onOpenCreateFolder={() => setIsCreatingFolder(true)}
+                onCancelCreateFolder={() => setIsCreatingFolder(false)}
+                onSubmitCreateFolder={() => createFolderMutation.mutate(newFolderName)}
+                onCreateInFolder={(folderId) => createMutation.mutate(folderId)}
+                renderConversation={renderConversation}
+              />
 
-                {isCreatingFolder && (
-                  <div className="conv-side-newfolder-wrap">
-                    <Input
-                      autoFocus
-                      placeholder="Folder name..."
-                      className="conv-side-newfolder-input"
-                      value={newFolderName}
-                      onChange={(e) => setNewFolderName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") createFolderMutation.mutate(newFolderName);
-                        if (e.key === "Escape") setIsCreatingFolder(false);
-                      }}
-                      onBlur={() => {
-                        if (!newFolderName.trim()) setIsCreatingFolder(false);
-                      }}
-                    />
-                  </div>
-                )}
-
-                <div className="conv-side-folder-list">
-                  {folders.map((folder) => (
-                    <div key={folder.id} className="conv-side-folder-group">
-                      <div className="conv-side-folder-row">
-                        <div className="conv-side-folder-main" onClick={() => toggleFolder(folder.id)}>
-                          <i className={`bi bi-chevron-${expandedFolders.has(folder.id) ? "down" : "right"} conv-side-folder-chevron`}></i>
-                          <i className={`bi bi-folder${expandedFolders.has(folder.id) ? "-fill" : ""} conv-side-folder-icon`}></i>
-                          <span className="conv-side-folder-name">{folder.name}</span>
-                          {(folder._count?.conversations || 0) > 0 && (
-                            <span className="conv-side-folder-count">
-                              {folder._count?.conversations}
-                            </span>
-                          )}
-                        </div>
-                        <IconButton
-                          className="conv-side-folder-add-btn"
-                          onClick={() => createMutation.mutate(folder.id)}
-                          title="New Chat in Folder"
-                        >
-                          <i className="bi bi-plus-lg conv-side-folder-add-icon"></i>
-                        </IconButton>
-                      </div>
-                      {expandedFolders.has(folder.id) && (
-                        <div className="conv-side-folder-children">
-                          {groupedConversations[folder.id]?.map(renderConversation)}
-                          {(!groupedConversations[folder.id] || groupedConversations[folder.id].length === 0) && (
-                            <div className="conv-side-folder-empty">No chats</div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="conv-side-section">
-                <div className="conv-side-history-head">
-                  History
-                </div>
-                <div className="conv-side-history-list">
-                  {uncategorized.map(renderConversation)}
-                </div>
-              </div>
+              <HistorySection
+                conversations={uncategorized}
+                renderConversation={renderConversation}
+              />
             </div>
             <div className="conv-side-footer">
               <Link

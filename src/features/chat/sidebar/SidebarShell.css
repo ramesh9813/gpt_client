@@ -1,0 +1,135 @@
+/* ConversationSidebar.css — 1:1 translation of Tailwind utilities.
+   Keeps var(--sidebar/panel/border/text/muted/accent) and hardcoded hex values as-is.
+   Structural hooks aside#conversation-history, .scrollbar-thin kept in markup. */
+
+.conv-side {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  flex-shrink: 0;
+  background-color: var(--sidebar);
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 50;
+  width: 18rem;
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  transition-property: width, transform;
+  transition-duration: 200ms;
+  transition-timing-function: ease-out;
+}
+@media (min-width: 640px) {
+  .conv-side { width: 20rem; }
+}
+@media (min-width: 1024px) {
+  .conv-side {
+    position: static;
+    z-index: auto;
+    box-shadow: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .conv-side { transition: none; transform: none; }
+}
+.conv-side--drawer-open { transform: translateX(0); }
+.conv-side--drawer-closed { transform: translateX(-100%); }
+@media (min-width: 1024px) {
+  .conv-side--drawer-open,
+  .conv-side--drawer-closed { transform: translateX(0); }
+}
+@media (min-width: 1024px) {
+  .conv-side--expanded { width: 300px; }
+  .conv-side--collapsed { width: 3.5rem; }
+  .conv-side--hidden {
+    width: 0;
+    border-right: 0;
+    pointer-events: none;
+  }
+}
+.conv-side--mobile-closed { pointer-events: none; }
+
+.conv-side-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background-color: rgb(0 0 0 / 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+@media (min-width: 1024px) {
+  .conv-side-backdrop { display: none; }
+}
+
+/* collapsed rail (desktop) */
+.conv-side-collapsed-rail {
+  display: none;
+  height: 100%;
+  width: 3.5rem;
+  flex-shrink: 0;
+}
+@media (min-width: 1024px) {
+  .conv-side-collapsed-rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+}
+.conv-side-rail-btn {
+  display: inline-flex;
+  height: 2.5rem;
+  width: 2.5rem;
+  min-height: 40px;
+  min-width: 40px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 150ms;
+}
+.conv-side-rail-btn:hover { background-color: var(--panel); }
+.conv-side-rail-btn:active { transform: scale(0.95); }
+.conv-side-rail-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.conv-side-rail-bottom {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+.conv-side-rail-hide-btn {
+  display: inline-flex;
+  height: 2.25rem;
+  width: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 150ms;
+}
+.conv-side-rail-hide-btn:hover { background-color: var(--panel); color: var(--text); }
+.conv-side-rail-hide-btn:active { transform: scale(0.95); }
+.conv-side-rail-hide-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.conv-side-rail-icon { font-size: 1.125rem; }
+.conv-side-rail-icon-sm { font-size: 1rem; }
+.conv-side-rail-hide-icon { font-size: 0.875rem; }
+

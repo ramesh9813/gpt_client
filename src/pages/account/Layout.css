@@ -1,0 +1,152 @@
+/* Account page root: min-h-screen bg-[var(--bg)] text-[var(--text)] pt-[env...] pb-[env...] */
+.account-page {
+  min-height: 100vh;
+  background-color: var(--bg);
+  color: var(--text);
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Layout: mx-auto flex w-full max-w-5xl flex-col gap-6 md:gap-8 px-4 py-6 sm:px-6 sm:py-10 md:flex-row */
+.account-layout {
+  margin-left: auto;
+  margin-right: auto;
+  display: flex;
+  width: 100%;
+  max-width: 64rem;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+@media (min-width: 640px) {
+  .account-layout {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    padding-top: 2.5rem;
+    padding-bottom: 2.5rem;
+  }
+}
+@media (min-width: 768px) {
+  .account-layout {
+    gap: 2rem;
+    flex-direction: row;
+  }
+}
+
+/* Sidebar: w-full flex-shrink-0 md:w-64 */
+.account-sidebar {
+  width: 100%;
+  flex-shrink: 0;
+}
+@media (min-width: 768px) {
+  .account-sidebar {
+    width: 16rem;
+  }
+}
+
+/* Sidebar header: mb-6 flex items-center gap-3 */
+.account-sidebar-header {
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Back link: inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--panel)] text-[var(--text)] hover:bg-[var(--sidebar)] active:scale-95 transition-all */
+.account-back-link {
+  display: inline-flex;
+  height: 2.25rem;
+  width: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background-color: var(--panel);
+  color: var(--text);
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+.account-back-link:hover {
+  background-color: var(--sidebar);
+}
+.account-back-link:active {
+  transform: scale(0.95);
+}
+
+/* Back icon: text-base (bi classes stay in tsx) */
+.account-back-icon {
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+/* Title: text-2xl font-bold */
+.account-title {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 700;
+}
+
+/* Tab list: flex flex-row space-x-2 overflow-x-auto md:flex-col md:space-x-0 md:space-y-1 pb-2 md:pb-0 scrollbar-thin */
+.account-tab-list {
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  scrollbar-width: thin;
+}
+.account-tab-list > * + * {
+  margin-left: 0.5rem;
+}
+@media (min-width: 768px) {
+  .account-tab-list {
+    flex-direction: column;
+    padding-bottom: 0;
+  }
+  .account-tab-list > * + * {
+    margin-left: 0;
+    margin-top: 0.25rem;
+  }
+}
+
+/* Tab button base: flex w-full items-center gap-3 rounded-lg px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap */
+.account-tab-btn {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 0.5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  white-space: nowrap;
+}
+/* Active: bg-[var(--panel)] text-[var(--text)] */
+.account-tab-btn--active {
+  background-color: var(--panel);
+  color: var(--text);
+}
+/* Inactive: text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--text)] */
+.account-tab-btn--inactive {
+  color: var(--muted);
+}
+.account-tab-btn--inactive:hover {
+  background-color: var(--panel);
+  color: var(--text);
+}
+
+/* Content: flex-1 min-w-0 */
+.account-content {
+  flex: 1 1 0%;
+  min-width: 0;
+}

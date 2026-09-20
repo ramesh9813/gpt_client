@@ -1,0 +1,137 @@
+
+/* Standard card: rounded-xl border border-[var(--border)] bg-[var(--panel)] p-6 */
+.account-card {
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background-color: var(--panel);
+  padding: 1.5rem;
+}
+
+/* Danger card: rounded-xl border border-red-500/30 bg-red-500/5 p-6 */
+.account-card-danger {
+  border-radius: 0.75rem;
+  border: 1px solid rgb(239 68 68 / 0.3);
+  background-color: rgb(239 68 68 / 0.05);
+  padding: 1.5rem;
+}
+
+/* Profile header: flex items-center gap-4 mb-6 */
+.account-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Avatar: flex h-16 w-16 items-center justify-center rounded-full bg-purple-600 text-2xl font-semibold text-white */
+.account-avatar {
+  display: flex;
+  height: 4rem;
+  width: 4rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background-color: #9333ea;
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* Profile name: text-lg font-medium */
+.account-profile-name {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  font-weight: 500;
+}
+
+/* Profile email: text-[var(--muted)] */
+.account-profile-email {
+  color: var(--muted);
+}
+
+/* Mini label: text-xs uppercase font-semibold text-[var(--muted)] */
+.account-mini-label {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* Field value: mt-1 text-sm */
+.account-field-value {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+/* Small label: mb-1 block text-sm */
+.account-small-label {
+  margin-bottom: 0.25rem;
+  display: block;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+/* Button row: pt-2 */
+.account-btn-row {
+  padding-top: 0.5rem;
+}
+
+/* Card title mb-2: mb-2 text-base font-medium */
+.account-card-title {
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 500;
+}
+
+/* Card title danger: mb-2 text-base font-medium text-red-500 */
+.account-card-title-danger {
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 500;
+  color: #ef4444;
+}
+
+/* Subheading mb-4: mb-4 text-base font-medium */
+.account-subheading {
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 500;
+}
+
+/* Card desc: mb-4 text-sm text-[var(--muted)] */
+.account-card-desc {
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--muted);
+}
+
+/* Empty card: rounded-xl border border-[var(--border)] bg-[var(--panel)] p-8 text-center text-[var(--muted)] */
+.account-empty-card {
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background-color: var(--panel);
+  padding: 2rem;
+  text-align: center;
+  color: var(--muted);
+}
+
+/* Empty icon: mb-3 block text-3xl opacity-50 (bi classes stay in tsx) */
+.account-empty-icon {
+  margin-bottom: 0.75rem;
+  display: block;
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+  opacity: 0.5;
+}
+
+/* Empty CTA: mt-4 */
+.account-empty-cta {
+  margin-top: 1rem;
+}

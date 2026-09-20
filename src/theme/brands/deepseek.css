@@ -1,0 +1,78 @@
+/* ============================ 6. DEEPSEEK (light, compact) =============== */
+[data-brand="deepseek"] {
+  --theme-font-ui: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --theme-font-response: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --theme-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --theme-font-size-xs: 11px; --theme-font-size-sm: 13px; --theme-font-size-base: 14px; --theme-font-size-lg: 16px; --theme-font-size-xl: 18px;
+  --theme-font-weight-normal: 400; --theme-font-weight-medium: 500; --theme-font-weight-semibold: 600; --theme-font-weight-bold: 700;
+  --theme-text-primary: #1a1a2e; --theme-text-secondary: #3d3d5c; --theme-text-muted: #5b5b7a;
+  --theme-bg-app: #ffffff; --theme-bg-sidebar: #f8f8fc; --theme-bg-chat: #ffffff; --theme-bg-surface: #f2f2f7; --theme-bg-input: #f2f2f7;
+  --theme-border: #e2e2ec; --theme-border-subtle: #efeff5;
+  --theme-accent: #3b4fd8; --theme-accent-hover: #2f3fae; --theme-accent-soft: #e6e9ff;
+  --theme-user-message-bg: #ecefff; --theme-user-message-text: #1a1a2e;
+  --theme-assistant-text: #1a1a2e;
+  --theme-code-bg: #f6f6fa; --theme-code-text: #1a1a2e;
+  --theme-sidebar-width: 272px; --theme-content-max-width: 720px;
+  --theme-radius-sm: 4px; --theme-radius-md: 8px; --theme-radius-lg: 12px;
+  --theme-shadow-sm: 0 1px 2px rgba(26, 26, 46, 0.06); --theme-shadow-md: 0 4px 12px rgba(26, 26, 46, 0.08);
+  color-scheme: light;
+  --bg: var(--theme-bg-app); --panel: var(--theme-bg-surface); --sidebar: var(--theme-bg-sidebar);
+  --border: var(--theme-border); --text: var(--theme-text-primary); --muted: var(--theme-text-muted);
+  --assistantRow: var(--theme-bg-chat); --userBubble: var(--theme-user-message-bg); --codeBg: var(--theme-code-bg);
+  --accent: var(--theme-accent); --shadow: var(--theme-shadow-sm);
+}
+
+/* ============================ 6b. DEEPSEEK (dark) ======================== */
+[data-theme="dark"][data-brand="deepseek"],
+.dark[data-brand="deepseek"] {
+  --theme-text-primary: #e6e6f0; --theme-text-secondary: #c5c7d9; --theme-text-muted: #9aa0b4;
+  --theme-bg-app: #1a1b26; --theme-bg-sidebar: #12131c; --theme-bg-chat: #1a1b26; --theme-bg-surface: #242636; --theme-bg-input: #242636;
+  --theme-border: #34374e; --theme-border-subtle: #262839;
+  --theme-accent: #7c8aff; --theme-accent-hover: #9aa5ff; --theme-accent-soft: rgba(124, 138, 255, 0.16);
+  --theme-user-message-bg: #242636; --theme-user-message-text: #e6e6f0;
+  --theme-assistant-text: #e6e6f0;
+  --theme-code-bg: #12131c; --theme-code-text: #e6e6f0;
+  --theme-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4); --theme-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+  --bg: var(--theme-bg-app); --panel: var(--theme-bg-surface); --sidebar: var(--theme-bg-sidebar);
+  --border: var(--theme-border); --text: var(--theme-text-primary); --muted: var(--theme-text-muted);
+  --assistantRow: var(--theme-bg-chat); --userBubble: var(--theme-user-message-bg); --codeBg: var(--theme-code-bg);
+  --accent: var(--theme-accent); --shadow: var(--theme-shadow-sm);
+}
+
+/* deepseek: compact 14px/1.5, tighter spacing throughout */
+[data-brand="deepseek"] .markdown { font-family: var(--theme-font-response); font-size: var(--theme-font-size-base); line-height: 1.5; color: var(--theme-assistant-text); }
+[data-brand="deepseek"] .markdown h1 { font-size: 1.45em; line-height: 1.3; color: var(--theme-text-primary); }
+[data-brand="deepseek"] .markdown h2 { font-size: 1.25em; line-height: 1.35; color: var(--theme-text-primary); }
+[data-brand="deepseek"] .markdown h3 { font-size: 1.1em; line-height: 1.4; color: var(--theme-text-primary); }
+[data-brand="deepseek"] .markdown p { margin: 0.35rem 0; }
+[data-brand="deepseek"] .markdown ul, [data-brand="deepseek"] .markdown ol { margin: 0.35rem 0; padding-left: 1.1rem; }
+[data-brand="deepseek"] .markdown code { font-family: var(--theme-font-mono); background: var(--theme-code-bg); color: var(--theme-code-text); }
+[data-brand="deepseek"] .markdown pre { background: var(--theme-code-bg); border: 1px solid var(--theme-border); border-radius: var(--theme-radius-md); }
+[data-brand="deepseek"] .markdown th, [data-brand="deepseek"] .markdown td { border-color: var(--theme-border); padding: 0.35rem 0.6rem; }
+[data-brand="deepseek"] .markdown th { background: var(--theme-bg-surface); }
+[data-brand="deepseek"] .markdown blockquote { margin: 0.35rem 0; padding: 0.2rem 0 0.2rem 0.8rem; border-left: 3px solid var(--theme-accent); color: var(--theme-text-secondary); }
+[data-brand="deepseek"] .markdown a { color: var(--theme-accent); }
+[data-brand="deepseek"] .markdown a:hover { color: var(--theme-accent-hover); }
+
+:root[data-brand="deepseek"]:not(.dark):not([data-theme="dark"]) .composer-input-container,
+[data-theme="light"][data-brand="deepseek"] .composer-input-container,
+.light[data-brand="deepseek"] .composer-input-container {
+  background-color: var(--theme-bg-input) !important; color: var(--theme-text-primary) !important; border-color: var(--theme-border) !important;
+}
+:root[data-brand="deepseek"]:not(.dark):not([data-theme="dark"]) .user-message-card,
+[data-theme="light"][data-brand="deepseek"] .user-message-card,
+.light[data-brand="deepseek"] .user-message-card {
+  background-color: var(--theme-user-message-bg) !important; color: var(--theme-user-message-text) !important; border-color: var(--theme-border) !important;
+}
+[data-theme="dark"][data-brand="deepseek"] .composer-input-container,
+.dark[data-brand="deepseek"] .composer-input-container {
+  background-color: var(--theme-bg-input) !important; color: var(--theme-text-primary) !important; border-color: var(--theme-border) !important;
+}
+[data-theme="dark"][data-brand="deepseek"] .user-message-card,
+.dark[data-brand="deepseek"] .user-message-card {
+  background-color: var(--theme-user-message-bg) !important; color: var(--theme-user-message-text) !important; border-color: transparent !important;
+}
+
+[data-brand="deepseek"] .composer-input-container { border-radius: 8px; }
+[data-brand="deepseek"] .user-message-card { border-radius: 8px; }

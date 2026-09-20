@@ -1,0 +1,104 @@
+import type { ReactNode } from "react";
+import { Input } from "../../../components/Input";
+import { IconButton } from "../../../components/IconButton";
+import type { Conversation, Folder } from "./types";
+
+export interface FolderSectionProps {
+  folders: Folder[];
+  groupedConversations: Record<string, Conversation[]>;
+  expandedFolders: Set<string>;
+  onToggleFolder: (id: string) => void;
+  isCreatingFolder: boolean;
+  newFolderName: string;
+  onNewFolderNameChange: (value: string) => void;
+  onOpenCreateFolder: () => void;
+  onCancelCreateFolder: () => void;
+  onSubmitCreateFolder: () => void;
+  onCreateInFolder: (folderId: string) => void;
+  renderConversation: (conversation: Conversation) => ReactNode;
+}
+
+export function FolderSection({
+  folders,
+  groupedConversations,
+  expandedFolders,
+  onToggleFolder,
+  isCreatingFolder,
+  newFolderName,
+  onNewFolderNameChange,
+  onOpenCreateFolder,
+  onCancelCreateFolder,
+  onSubmitCreateFolder,
+  onCreateInFolder,
+  renderConversation,
+}: FolderSectionProps) {
+  return (
+    <div className="conv-side-section">
+      <div className="conv-side-section-head">
+        <div className="conv-side-section-title">
+          Categories
+        </div>
+        <IconButton
+          className="conv-side-add-folder-btn"
+          onClick={onOpenCreateFolder}
+          title="New Folder"
+        >
+          <i className="bi bi-folder-plus conv-side-add-folder-icon"></i>
+        </IconButton>
+      </div>
+
+      {isCreatingFolder && (
+        <div className="conv-side-newfolder-wrap">
+          <Input
+            autoFocus
+            placeholder="Folder name..."
+            className="conv-side-newfolder-input"
+            value={newFolderName}
+            onChange={(e) => onNewFolderNameChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onSubmitCreateFolder();
+              if (e.key === "Escape") onCancelCreateFolder();
+            }}
+            onBlur={() => {
+              if (!newFolderName.trim()) onCancelCreateFolder();
+            }}
+          />
+        </div>
+      )}
+
+      <div className="conv-side-folder-list">
+        {folders.map((folder) => (
+          <div key={folder.id} className="conv-side-folder-group">
+            <div className="conv-side-folder-row">
+              <div className="conv-side-folder-main" onClick={() => onToggleFolder(folder.id)}>
+                <i className={`bi bi-chevron-${expandedFolders.has(folder.id) ? "down" : "right"} conv-side-folder-chevron`}></i>
+                <i className={`bi bi-folder${expandedFolders.has(folder.id) ? "-fill" : ""} conv-side-folder-icon`}></i>
+                <span className="conv-side-folder-name">{folder.name}</span>
+                {(folder._count?.conversations || 0) > 0 && (
+                  <span className="conv-side-folder-count">
+                    {folder._count?.conversations}
+                  </span>
+                )}
+              </div>
+              <IconButton
+                className="conv-side-folder-add-btn"
+                onClick={() => onCreateInFolder(folder.id)}
+                title="New Chat in Folder"
+              >
+                <i className="bi bi-plus-lg conv-side-folder-add-icon"></i>
+              </IconButton>
+            </div>
+            {expandedFolders.has(folder.id) && (
+              <div className="conv-side-folder-children">
+                {groupedConversations[folder.id]?.map(renderConversation)}
+                {(!groupedConversations[folder.id] || groupedConversations[folder.id].length === 0) && (
+                  <div className="conv-side-folder-empty">No chats</div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

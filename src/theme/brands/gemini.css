@@ -1,0 +1,78 @@
+/* ============================ 4. GEMINI (light, airy blue) =============== */
+[data-brand="gemini"] {
+  --theme-font-ui: "Google Sans", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --theme-font-response: "Google Sans", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --theme-font-mono: "Google Sans Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --theme-font-size-xs: 12px; --theme-font-size-sm: 14px; --theme-font-size-base: 16px; --theme-font-size-lg: 18px; --theme-font-size-xl: 22px;
+  --theme-font-weight-normal: 400; --theme-font-weight-medium: 500; --theme-font-weight-semibold: 600; --theme-font-weight-bold: 700;
+  --theme-text-primary: #1f1f1f; --theme-text-secondary: #444746; --theme-text-muted: #5f6368;
+  --theme-bg-app: #ffffff; --theme-bg-sidebar: #f0f4ff; --theme-bg-chat: #ffffff; --theme-bg-surface: #f0f4f9; --theme-bg-input: #f0f4f9;
+  --theme-border: #dfe3ea; --theme-border-subtle: #eef1f6;
+  --theme-accent: #1a73e8; --theme-accent-hover: #1558b5; --theme-accent-soft: #e8f0fe;
+  --theme-user-message-bg: #e8f0fe; --theme-user-message-text: #1f1f1f;
+  --theme-assistant-text: #1f1f1f;
+  --theme-code-bg: #f0f4f9; --theme-code-text: #1f1f1f;
+  --theme-sidebar-width: 320px; --theme-content-max-width: 800px;
+  --theme-radius-sm: 12px; --theme-radius-md: 20px; --theme-radius-lg: 28px;
+  --theme-shadow-sm: 0 1px 2px rgba(26, 115, 232, 0.08); --theme-shadow-md: 0 4px 16px rgba(26, 115, 232, 0.12);
+  color-scheme: light;
+  --bg: var(--theme-bg-app); --panel: var(--theme-bg-surface); --sidebar: var(--theme-bg-sidebar);
+  --border: var(--theme-border); --text: var(--theme-text-primary); --muted: var(--theme-text-muted);
+  --assistantRow: var(--theme-bg-chat); --userBubble: var(--theme-user-message-bg); --codeBg: var(--theme-code-bg);
+  --accent: var(--theme-accent); --shadow: var(--theme-shadow-sm);
+}
+
+/* ============================ 4b. GEMINI (dark) ========================== */
+[data-theme="dark"][data-brand="gemini"],
+.dark[data-brand="gemini"] {
+  --theme-text-primary: #e3e3e3; --theme-text-secondary: #c7c7c7; --theme-text-muted: #9aa0a6;
+  --theme-bg-app: #131314; --theme-bg-sidebar: #1e1f20; --theme-bg-chat: #131314; --theme-bg-surface: #282a2c; --theme-bg-input: #282a2c;
+  --theme-border: #444746; --theme-border-subtle: #2f3133;
+  --theme-accent: #a8c7fa; --theme-accent-hover: #c2d7fd; --theme-accent-soft: rgba(168, 199, 250, 0.14);
+  --theme-user-message-bg: #303747; --theme-user-message-text: #e3e3e3;
+  --theme-assistant-text: #e3e3e3;
+  --theme-code-bg: #1e1f20; --theme-code-text: #e3e3e3;
+  --theme-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4); --theme-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+  --bg: var(--theme-bg-app); --panel: var(--theme-bg-surface); --sidebar: var(--theme-bg-sidebar);
+  --border: var(--theme-border); --text: var(--theme-text-primary); --muted: var(--theme-text-muted);
+  --assistantRow: var(--theme-bg-chat); --userBubble: var(--theme-user-message-bg); --codeBg: var(--theme-code-bg);
+  --accent: var(--theme-accent); --shadow: var(--theme-shadow-sm);
+}
+
+/* gemini: airy 1.7 + generous spacing, roundness via radius tokens */
+[data-brand="gemini"] .markdown { font-family: var(--theme-font-response); font-size: var(--theme-font-size-base); line-height: 1.7; color: var(--theme-assistant-text); }
+[data-brand="gemini"] .markdown h1 { font-size: 1.7em; line-height: 1.3; color: var(--theme-text-primary); }
+[data-brand="gemini"] .markdown h2 { font-size: 1.42em; line-height: 1.35; color: var(--theme-text-primary); }
+[data-brand="gemini"] .markdown h3 { font-size: 1.2em; line-height: 1.4; color: var(--theme-text-primary); }
+[data-brand="gemini"] .markdown p { margin: 0.7rem 0; }
+[data-brand="gemini"] .markdown ul, [data-brand="gemini"] .markdown ol { margin: 0.7rem 0; padding-left: 1.4rem; }
+[data-brand="gemini"] .markdown code { font-family: var(--theme-font-mono); background: var(--theme-code-bg); color: var(--theme-code-text); border-radius: var(--theme-radius-sm); }
+[data-brand="gemini"] .markdown pre { background: var(--theme-code-bg); border: 1px solid var(--theme-border); border-radius: var(--theme-radius-md); }
+[data-brand="gemini"] .markdown th, [data-brand="gemini"] .markdown td { border-color: var(--theme-border); }
+[data-brand="gemini"] .markdown th { background: var(--theme-bg-surface); }
+[data-brand="gemini"] .markdown blockquote { margin: 0.7rem 0; padding: 0.5rem 0 0.5rem 1rem; border-left: 4px solid var(--theme-accent); border-radius: 0 var(--theme-radius-sm) var(--theme-radius-sm) 0; background: var(--theme-accent-soft); color: var(--theme-text-secondary); }
+[data-brand="gemini"] .markdown a { color: var(--theme-accent); }
+[data-brand="gemini"] .markdown a:hover { color: var(--theme-accent-hover); }
+
+:root[data-brand="gemini"]:not(.dark):not([data-theme="dark"]) .composer-input-container,
+[data-theme="light"][data-brand="gemini"] .composer-input-container,
+.light[data-brand="gemini"] .composer-input-container {
+  background-color: var(--theme-bg-input) !important; color: var(--theme-text-primary) !important; border-color: var(--theme-border) !important;
+}
+:root[data-brand="gemini"]:not(.dark):not([data-theme="dark"]) .user-message-card,
+[data-theme="light"][data-brand="gemini"] .user-message-card,
+.light[data-brand="gemini"] .user-message-card {
+  background-color: var(--theme-user-message-bg) !important; color: var(--theme-user-message-text) !important; border-color: var(--theme-border) !important;
+}
+[data-theme="dark"][data-brand="gemini"] .composer-input-container,
+.dark[data-brand="gemini"] .composer-input-container {
+  background-color: var(--theme-bg-input) !important; color: var(--theme-text-primary) !important; border-color: var(--theme-border) !important;
+}
+[data-theme="dark"][data-brand="gemini"] .user-message-card,
+.dark[data-brand="gemini"] .user-message-card {
+  background-color: var(--theme-user-message-bg) !important; color: var(--theme-user-message-text) !important; border-color: transparent !important;
+}
+
+[data-brand="gemini"] .composer-input-container { border-radius: 28px; }
+[data-brand="gemini"] .user-message-card { border-radius: 20px; }

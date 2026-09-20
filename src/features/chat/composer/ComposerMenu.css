@@ -1,0 +1,237 @@
+.composer-menu-root {
+  position: relative;
+  z-index: 50;
+  flex-shrink: 0;
+}
+
+.composer-menu-btn {
+  height: 2.25rem;
+  width: 2.25rem;
+  min-height: 36px;
+  min-width: 36px;
+  border-radius: 9999px;
+  padding: 0;
+  color: var(--muted);
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.composer-menu-btn:hover {
+  background-color: var(--sidebar);
+  color: var(--text);
+}
+
+.composer-menu-btn:active {
+  transform: scale(0.95);
+}
+
+.composer-menu-icon-close {
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+.composer-menu-icon-open {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+
+.composer-popover {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 0.5rem;
+  width: 16rem;
+  max-width: 85vw;
+  border-radius: 0.75rem;
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--border);
+  background-color: var(--panel);
+  padding: 0.375rem;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  color: var(--text);
+  z-index: 50;
+  animation: composer-popover-in 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes composer-popover-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.composer-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.composer-model-sublist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.composer-option-model-btn {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 0.5rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+  text-align: left;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--text);
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.composer-option-model-btn:hover {
+  background-color: var(--sidebar);
+}
+
+.composer-option-model-btn:active {
+  background-color: var(--border);
+}
+
+.composer-option-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow: hidden;
+}
+
+.composer-option-icon-accent {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--accent);
+}
+
+.composer-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-option-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--muted);
+}
+
+.composer-option-current {
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--accent);
+}
+
+.composer-chevron-icon {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.composer-option-btn {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+  text-align: left;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--text);
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.composer-option-btn:hover {
+  background-color: var(--sidebar);
+}
+
+.composer-option-btn:active {
+  background-color: var(--border);
+}
+
+.composer-icon-blue {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: #3b82f6;
+}
+
+[data-theme="dark"] .composer-icon-blue {
+  color: #60a5fa;
+}
+
+.composer-icon-green {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: #22c55e;
+}
+
+[data-theme="dark"] .composer-icon-green {
+  color: #4ade80;
+}
+
+.composer-icon-purple {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: #a855f7;
+}
+
+[data-theme="dark"] .composer-icon-purple {
+  color: #c084fc;
+}
+
+.composer-subheader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+  border-bottom-color: var(--border);
+  margin-bottom: 0.25rem;
+}
+
+.composer-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--muted);
+  padding: 0.25rem;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.composer-back-btn:hover {
+  color: var(--text);
+}
+

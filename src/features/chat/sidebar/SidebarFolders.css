@@ -1,0 +1,182 @@
+/* body */
+.conv-side-body {
+  display: flex;
+  flex: 1 1 0%;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+.conv-side-search-wrap {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  flex-shrink: 0;
+}
+.conv-side-search-inner { position: relative; }
+.conv-side-search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  color: var(--muted);
+  pointer-events: none;
+}
+.conv-side-search-input {
+  background: transparent;
+  border: 0;
+  padding-left: 2.25rem;
+  font-size: 0.875rem;
+}
+.conv-side-search-input:focus { box-shadow: none; outline: none; }
+
+.conv-side-scroll {
+  flex: 1 1 0%;
+  overflow-y: auto;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-bottom: 1rem;
+  min-height: 0;
+}
+.conv-side-section { margin-bottom: 1rem; }
+.conv-side-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+.conv-side-section-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-family: sans-serif;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.6;
+}
+.conv-side-history-head {
+  margin-bottom: 0.5rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-family: sans-serif;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.6;
+}
+.conv-side-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.conv-side-add-folder-btn {
+  height: 1.25rem;
+  width: 1.25rem;
+  border: 0 !important;
+  opacity: 1;
+}
+@media (min-width: 768px) {
+  .conv-side-add-folder-btn { opacity: 0; }
+  .conv-side-section:hover .conv-side-add-folder-btn,
+  .conv-side-section-head:hover .conv-side-add-folder-btn { opacity: 1; }
+}
+.conv-side-add-folder-icon { font-size: 0.75rem; }
+
+/* new folder */
+.conv-side-newfolder-wrap {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.conv-side-newfolder-input {
+  height: 2rem;
+  font-size: 0.875rem;
+}
+
+/* folders */
+.conv-side-folder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.conv-side-folder-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.conv-side-folder-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text);
+}
+.conv-side-folder-row:hover { background-color: var(--panel); }
+.conv-side-folder-main {
+  display: flex;
+  flex: 1 1 0%;
+  align-items: center;
+  gap: 0.5rem;
+  overflow: hidden;
+}
+.conv-side-folder-chevron { font-size: 10px; opacity: 0.5; }
+.conv-side-folder-icon { font-size: 0.75rem; color: rgb(234 179 8 / 0.8); }
+.conv-side-folder-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.conv-side-folder-count {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+  font-size: 9px;
+  font-weight: 700;
+  background-color: #facc15;
+  color: #713f12;
+  border-radius: 9999px;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  border: 1px solid rgb(234 179 8 / 0.3);
+  transform: translateY(-0.375rem);
+  margin-left: -0.25rem;
+}
+.conv-side-folder-add-btn {
+  height: 1.25rem;
+  width: 1.25rem;
+  border: 0 !important;
+  opacity: 1;
+}
+@media (min-width: 768px) {
+  .conv-side-folder-add-btn { opacity: 0; }
+  .conv-side-folder-row:hover .conv-side-folder-add-btn { opacity: 1; }
+}
+.conv-side-folder-add-icon { font-size: 10px; }
+.conv-side-folder-children {
+  margin-left: 1rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+.conv-side-folder-empty {
+  font-size: 11px;
+  color: var(--muted);
+  padding: 0.25rem 0.5rem;
+  font-style: italic;
+}

@@ -1,0 +1,78 @@
+/* ============================ 5. GROK (light, high contrast) ============= */
+[data-brand="grok"] {
+  --theme-font-ui: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --theme-font-response: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --theme-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --theme-font-size-xs: 12px; --theme-font-size-sm: 14px; --theme-font-size-base: 16px; --theme-font-size-lg: 18px; --theme-font-size-xl: 20px;
+  --theme-font-weight-normal: 400; --theme-font-weight-medium: 500; --theme-font-weight-semibold: 600; --theme-font-weight-bold: 700;
+  --theme-text-primary: #000000; --theme-text-secondary: #333639; --theme-text-muted: #536471;
+  --theme-bg-app: #ffffff; --theme-bg-sidebar: #f7f9fa; --theme-bg-chat: #ffffff; --theme-bg-surface: #eff3f4; --theme-bg-input: #eff3f4;
+  --theme-border: #cfd9de; --theme-border-subtle: #e6ecef;
+  --theme-accent: #0b6cab; --theme-accent-hover: #095a8f; --theme-accent-soft: #d7edfd;
+  --theme-user-message-bg: #0f1419; --theme-user-message-text: #ffffff;
+  --theme-assistant-text: #000000;
+  --theme-code-bg: #f7f9fa; --theme-code-text: #000000;
+  --theme-sidebar-width: 296px; --theme-content-max-width: 768px;
+  --theme-radius-sm: 8px; --theme-radius-md: 12px; --theme-radius-lg: 16px;
+  --theme-shadow-sm: 0 1px 2px rgba(15, 20, 25, 0.12); --theme-shadow-md: 0 4px 12px rgba(15, 20, 25, 0.16);
+  color-scheme: light;
+  --bg: var(--theme-bg-app); --panel: var(--theme-bg-surface); --sidebar: var(--theme-bg-sidebar);
+  --border: var(--theme-border); --text: var(--theme-text-primary); --muted: var(--theme-text-muted);
+  --assistantRow: var(--theme-bg-chat); --userBubble: var(--theme-user-message-bg); --codeBg: var(--theme-code-bg);
+  --accent: var(--theme-accent); --shadow: var(--theme-shadow-sm);
+}
+
+/* ============================ 5b. GROK (dark, pure black first) ========== */
+[data-theme="dark"][data-brand="grok"],
+.dark[data-brand="grok"] {
+  --theme-text-primary: #ffffff; --theme-text-secondary: #e7e9ea; --theme-text-muted: #8b98a5;
+  --theme-bg-app: #000000; --theme-bg-sidebar: #16181c; --theme-bg-chat: #000000; --theme-bg-surface: #16181c; --theme-bg-input: #1d1f23;
+  --theme-border: #2f3336; --theme-border-subtle: #1c1f22;
+  --theme-accent: #1d9bf0; --theme-accent-hover: #4fb3f5; --theme-accent-soft: rgba(29, 155, 240, 0.16);
+  --theme-user-message-bg: #1d1f23; --theme-user-message-text: #ffffff;
+  --theme-assistant-text: #ffffff;
+  --theme-code-bg: #16181c; --theme-code-text: #ffffff;
+  --theme-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.6); --theme-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
+  --bg: var(--theme-bg-app); --panel: var(--theme-bg-surface); --sidebar: var(--theme-bg-sidebar);
+  --border: var(--theme-border); --text: var(--theme-text-primary); --muted: var(--theme-text-muted);
+  --assistantRow: var(--theme-bg-chat); --userBubble: var(--theme-user-message-bg); --codeBg: var(--theme-code-bg);
+  --accent: var(--theme-accent); --shadow: var(--theme-shadow-sm);
+}
+
+/* grok: dark-first high contrast, semibold headings, stark code blocks */
+[data-brand="grok"] .markdown { font-family: var(--theme-font-response); font-size: var(--theme-font-size-base); line-height: 1.6; color: var(--theme-assistant-text); }
+[data-brand="grok"] .markdown h1 { font-size: 1.6em; line-height: 1.25; font-weight: 700; color: var(--theme-text-primary); }
+[data-brand="grok"] .markdown h2 { font-size: 1.35em; line-height: 1.3; font-weight: 700; color: var(--theme-text-primary); }
+[data-brand="grok"] .markdown h3 { font-size: 1.15em; line-height: 1.35; font-weight: 600; color: var(--theme-text-primary); }
+[data-brand="grok"] .markdown p { margin: 0.55rem 0; }
+[data-brand="grok"] .markdown ul, [data-brand="grok"] .markdown ol { margin: 0.55rem 0; padding-left: 1.2rem; }
+[data-brand="grok"] .markdown code { font-family: var(--theme-font-mono); background: var(--theme-code-bg); color: var(--theme-code-text); border: 1px solid var(--theme-border); }
+[data-brand="grok"] .markdown pre { background: var(--theme-code-bg); border: 1px solid var(--theme-border); border-radius: var(--theme-radius-md); }
+[data-brand="grok"] .markdown th, [data-brand="grok"] .markdown td { border-color: var(--theme-border); }
+[data-brand="grok"] .markdown th { background: var(--theme-bg-surface); }
+[data-brand="grok"] .markdown blockquote { margin: 0.55rem 0; padding: 0.25rem 0 0.25rem 0.9rem; border-left: 3px solid var(--theme-accent); color: var(--theme-text-secondary); }
+[data-brand="grok"] .markdown a { color: var(--theme-accent); }
+[data-brand="grok"] .markdown a:hover { color: var(--theme-accent-hover); }
+
+:root[data-brand="grok"]:not(.dark):not([data-theme="dark"]) .composer-input-container,
+[data-theme="light"][data-brand="grok"] .composer-input-container,
+.light[data-brand="grok"] .composer-input-container {
+  background-color: var(--theme-bg-input) !important; color: var(--theme-text-primary) !important; border-color: var(--theme-border) !important;
+}
+:root[data-brand="grok"]:not(.dark):not([data-theme="dark"]) .user-message-card,
+[data-theme="light"][data-brand="grok"] .user-message-card,
+.light[data-brand="grok"] .user-message-card {
+  background-color: var(--theme-user-message-bg) !important; color: var(--theme-user-message-text) !important; border-color: var(--theme-border) !important;
+}
+[data-theme="dark"][data-brand="grok"] .composer-input-container,
+.dark[data-brand="grok"] .composer-input-container {
+  background-color: var(--theme-bg-input) !important; color: var(--theme-text-primary) !important; border-color: var(--theme-border) !important;
+}
+[data-theme="dark"][data-brand="grok"] .user-message-card,
+.dark[data-brand="grok"] .user-message-card {
+  background-color: var(--theme-user-message-bg) !important; color: var(--theme-user-message-text) !important; border-color: transparent !important;
+}
+
+[data-brand="grok"] .composer-input-container { border-radius: 12px; }
+[data-brand="grok"] .user-message-card { border-radius: 12px; }

@@ -1,11 +1,29 @@
 import "./Composer.css";
 import { KeyboardEvent, MutableRefObject, useEffect, useRef, useState } from "react";
 import { Button } from "../../components/Button";
-import { Input } from "../../components/Input";
-import { compressImageFile, MAX_IMAGES_PER_MESSAGE } from "../../lib/image";
+import { ImageAttachments } from "./composer/ImageAttachments";
+import { ModelMenu } from "./composer/ModelMenu";
+import type { ModelOption, SortOption } from "./composer/ModelMenu";
+import { useComposerImages } from "./composer/useComposerImages";
 
-type ModelOption = { label: string; value: string };
-type SortOption = "name" | "cheapest" | "free";
+export type { ModelOption, SortOption };
+
+export type ComposerProps = {
+  // images?:string[] is optional → backward compat with (value: string) => void
+  onSend: (value: string, images?: string[]) => void;
+  onStop?: () => void;
+  disabled?: boolean;
+  streaming?: boolean;
+  error?: string | null;
+  lastUserMessage?: string;
+  model: string;
+  modelOptions: ModelOption[];
+  modelsLoading?: boolean;
+  onModelChange: (value: string) => void;
+  inputRef?: MutableRefObject<HTMLTextAreaElement | null>;
+  sort?: SortOption;
+  onSortChange?: (sort: SortOption) => void;
+};
 
 const Composer = ({
   onSend,
@@ -21,32 +39,14 @@ const Composer = ({
   inputRef,
   sort = "name",
   onSortChange
-}: {
-  // images?:string[] is optional → backward compat with (value: string) => void
-  onSend: (value: string, images?: string[]) => void;
-  onStop?: () => void;
-  disabled?: boolean;
-  streaming?: boolean;
-  error?: string | null;
-  lastUserMessage?: string;
-  model: string;
-  modelOptions: ModelOption[];
-  modelsLoading?: boolean;
-  onModelChange: (value: string) => void;
-  inputRef?: MutableRefObject<HTMLTextAreaElement | null>;
-  sort?: SortOption;
-  onSortChange?: (sort: SortOption) => void;
-}) => {
+}: ComposerProps) => {
   const [value, setValue] = useState("");
-  const [images, setImages] = useState<string[]>([]);
-  const [compressing, setCompressing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
-  const [sortOpen, setSortOpen] = useState(false);
-  const [modelQuery, setModelQuery] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const { images, compressing, fileInputRef, handleFiles, removeImage, clearImages } =
+    useComposerImages();
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -54,7 +54,6 @@ const Composer = ({
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuOpen(false);
         setModelMenuOpen(false);
-        setSortOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -77,32 +76,7 @@ const Composer = ({
       const el = textareaRef.current;
       if (el) adjustTextareaHeight(el);
     });
-    setImages([]);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  const handleFiles = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    const picked = Array.from(files).filter((f) => f.type.startsWith("image/"));
-    if (picked.length === 0) return;
-    setCompressing(true);
-    try {
-      const room = Math.max(0, MAX_IMAGES_PER_MESSAGE - images.length);
-      const slice = picked.slice(0, room);
-      const compressed = await Promise.all(
-        slice.map((f) => compressImageFile(f, 1280, 0.8))
-      );
-      setImages((prev) => [...prev, ...compressed].slice(0, MAX_IMAGES_PER_MESSAGE));
-    } catch {
-      // Silently ignore failed decodes; caller can retry with another file.
-    } finally {
-      setCompressing(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
-
-  const removeImage = (index: number) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
+    clearImages();
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -156,35 +130,7 @@ const Composer = ({
     <div className="composer-dock">
       <div className="composer-input-container">
         {/* Image preview strip */}
-        {images.length > 0 && (
-          <div className="composer-image-strip">
-            {images.map((src, idx) => (
-              <div key={idx} className="composer-image-item">
-                <img
-                  src={src}
-                  alt={`Upload ${idx + 1}`}
-                  loading="lazy"
-                  className="composer-image-img"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeImage(idx)}
-                  aria-label={`Remove image ${idx + 1}`}
-                  title="Remove image"
-                  className="composer-image-remove"
-                >
-                  <i className="bi bi-x composer-image-remove-icon" aria-hidden="true" />
-                </button>
-              </div>
-            ))}
-            {compressing && (
-              <span className="composer-compress-label">
-                <i className="bi bi-hourglass-split composer-compress-icon" aria-hidden="true" />
-                Compressing…
-              </span>
-            )}
-          </div>
-        )}
+        <ImageAttachments images={images} compressing={compressing} onRemove={removeImage} />
 
         <div className="composer-body">
           <textarea
@@ -231,178 +177,19 @@ const Composer = ({
 
             {/* Options Menu */}
             {menuOpen && (
-              <div className="composer-popover">
-                {!modelMenuOpen ? (
-                  <div className="composer-options-list">
-                    <button
-                      type="button"
-                      className="composer-option-model-btn"
-                      onClick={() => { setModelQuery(""); setModelMenuOpen(true); }}
-                    >
-                      <div className="composer-option-label">
-                        <i className="bi bi-cpu composer-option-icon-accent"></i>
-                        <span className="composer-ellipsis">Model</span>
-                      </div>
-                      <div className="composer-option-meta">
-                        <span className="composer-option-current">
-                          {currentModelLabel}
-                        </span>
-                        <i className="bi bi-chevron-right composer-chevron-icon"></i>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      className="composer-option-btn"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      <i className="bi bi-compass composer-icon-blue"></i>
-                      <span>Deep Research</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="composer-option-btn"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      <i className="bi bi-globe composer-icon-green"></i>
-                      <span>Web Search</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="composer-option-btn"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      <i className="bi bi-image composer-icon-purple"></i>
-                      <span>Image Generation</span>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="composer-model-sublist">
-                    <div className="composer-subheader">
-                      <button
-                        type="button"
-                        onClick={() => { setModelQuery(""); setModelMenuOpen(false); }}
-                        className="composer-back-btn"
-                      >
-                        <i className="bi bi-chevron-left composer-chevron-icon"></i>
-                        <span>Back</span>
-                      </button>
-                      {onSortChange && (
-                        <div className="composer-sort-root">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSortOpen(!sortOpen);
-                            }}
-                            className="composer-sort-btn"
-                          >
-                            <span>{sort === "name" ? "Name" : sort === "cheapest" ? "Price" : "Free"}</span>
-                            <i className="bi bi-chevron-down composer-sort-chevron"></i>
-                          </button>
-                          {sortOpen && (
-                            <div className="composer-sort-menu">
-                              {(["name", "cheapest", "free"] as SortOption[]).map((s) => (
-                                <button
-                                  key={s}
-                                  type="button"
-                                  className={`composer-sort-option ${
-                                    sort === s ? "composer-sort-option-active" : ""
-                                  }`}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onSortChange(s);
-                                    setSortOpen(false);
-                                  }}
-                                >
-                                  {s.charAt(0).toUpperCase() + s.slice(1)}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <div className="composer-query-wrap">
-                      <div className="composer-query-box">
-                        <i className="bi bi-search composer-query-icon" aria-hidden="true"></i>
-                        <Input
-                          autoFocus
-                          value={modelQuery}
-                          onChange={(e) => setModelQuery(e.target.value)}
-                          onKeyDown={(e) => e.stopPropagation()}
-                          placeholder="Search models..."
-                          aria-label="Search models"
-                          className="composer-query-input"
-                        />
-                        {modelQuery && (
-                          <button
-                            type="button"
-                            onClick={() => setModelQuery("")}
-                            aria-label="Clear model search"
-                            title="Clear"
-                            className="composer-query-clear"
-                          >
-                            <i className="bi bi-x composer-clear-icon" aria-hidden="true"></i>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <div className="composer-model-listbox">
-                      {modelOptions
-                        .filter((option) => {
-                          const q = modelQuery.trim().toLowerCase();
-                          if (!q) return true;
-                          return (
-                            option.label.toLowerCase().includes(q) ||
-                            option.value.toLowerCase().includes(q)
-                          );
-                        })
-                        .map((option) => {
-                        const active = option.value === model;
-                        return (
-                          <button
-                            key={option.value}
-                            type="button"
-                            className={`composer-model-item ${
-                              active
-                                ? "composer-model-item-active"
-                                : "composer-model-item-idle"
-                            }`}
-                            onClick={() => {
-                              onModelChange(option.value);
-                              setModelQuery("");
-                              setModelMenuOpen(false);
-                              setMenuOpen(false);
-                            }}
-                          >
-                            <span className="composer-model-label">{option.label}</span>
-                            {active && <i className="bi bi-check composer-model-check"></i>}
-                          </button>
-                        );
-                        })}
-                      {(() => {
-                        const filtered = modelOptions.filter((option) => {
-                          const q = modelQuery.trim().toLowerCase();
-                          if (!q) return true;
-                          return (
-                            option.label.toLowerCase().includes(q) ||
-                            option.value.toLowerCase().includes(q)
-                          );
-                        });
-                        if (filtered.length === 0) {
-                          return (
-                            <div className="composer-model-empty">
-                              {modelsLoading ? "Loading models…" : modelQuery.trim() ? "No models found" : "No models available"}
-                            </div>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <ModelMenu
+                model={model}
+                modelOptions={modelOptions}
+                modelsLoading={modelsLoading}
+                sort={sort}
+                onSortChange={onSortChange}
+                onModelChange={onModelChange}
+                currentModelLabel={currentModelLabel}
+                modelMenuOpen={modelMenuOpen}
+                menuOpen={menuOpen}
+                onModelMenuOpenChange={setModelMenuOpen}
+                onCloseMenu={() => setMenuOpen(false)}
+              />
             )}
           </div>
 
