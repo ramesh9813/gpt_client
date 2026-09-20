@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Input } from "../../../components/Input";
 
-export type ModelOption = { label: string; value: string };
+export type ModelOption = { label: string; value: string; supportsResearch?: boolean };
 export type SortOption = "name" | "cheapest" | "free";
 
 type ModelMenuProps = {
@@ -16,6 +16,7 @@ type ModelMenuProps = {
   menuOpen: boolean;
   onModelMenuOpenChange: (open: boolean) => void;
   onCloseMenu: () => void;
+  onResearchSelect?: () => void;
 };
 
 export const ModelMenu = ({
@@ -30,14 +31,18 @@ export const ModelMenu = ({
   menuOpen,
   onModelMenuOpenChange,
   onCloseMenu,
+  onResearchSelect,
 }: ModelMenuProps) => {
   const [modelQuery, setModelQuery] = useState("");
   const [sortOpen, setSortOpen] = useState(false);
+  // Research mode: list only deep-research-capable models.
+  const [researchOnly, setResearchOnly] = useState(false);
 
   useEffect(() => {
     if (!menuOpen) {
       setModelQuery("");
       setSortOpen(false);
+      setResearchOnly(false);
     }
   }, [menuOpen]);
 
@@ -48,31 +53,48 @@ export const ModelMenu = ({
     }
   }, [modelMenuOpen]);
 
+  const researchOptions = useMemo(
+    () => modelOptions.filter((option) => option.supportsResearch),
+    [modelOptions]
+  );
+
+  const visibleOptions = researchOnly ? researchOptions : modelOptions;
+
   const filtered = useMemo(() => {
     const q = modelQuery.trim().toLowerCase();
-    if (!q) return modelOptions;
-    return modelOptions.filter(
+    if (!q) return visibleOptions;
+    return visibleOptions.filter(
       (option) =>
         option.label.toLowerCase().includes(q) ||
         option.value.toLowerCase().includes(q)
     );
-  }, [modelOptions, modelQuery]);
+  }, [visibleOptions, modelQuery]);
 
   if (!menuOpen) return null;
 
   const openModelList = () => {
     setModelQuery("");
+    setResearchOnly(false);
+    onModelMenuOpenChange(true);
+  };
+
+  const openResearchList = () => {
+    setModelQuery("");
+    setResearchOnly(true);
     onModelMenuOpenChange(true);
   };
 
   const closeModelList = () => {
     setModelQuery("");
+    setResearchOnly(false);
     onModelMenuOpenChange(false);
   };
 
   const selectModel = (value: string) => {
     onModelChange(value);
+    if (researchOnly) onResearchSelect?.();
     setModelQuery("");
+    setResearchOnly(false);
     onModelMenuOpenChange(false);
     onCloseMenu();
   };
@@ -101,7 +123,7 @@ export const ModelMenu = ({
           <button
             type="button"
             className="composer-option-btn"
-            onClick={onCloseMenu}
+            onClick={openResearchList}
           >
             <i className="bi bi-compass composer-icon-blue"></i>
             <span>Deep Research</span>
@@ -178,8 +200,8 @@ export const ModelMenu = ({
                 value={modelQuery}
                 onChange={(e) => setModelQuery(e.target.value)}
                 onKeyDown={(e) => e.stopPropagation()}
-                placeholder="Search models..."
-                aria-label="Search models"
+                placeholder={researchOnly ? "Search research models..." : "Search models..."}
+                aria-label={researchOnly ? "Search research models" : "Search models"}
                 className="composer-query-input"
               />
               {modelQuery && (
@@ -216,7 +238,13 @@ export const ModelMenu = ({
             })}
             {filtered.length === 0 && (
               <div className="composer-model-empty">
-                {modelsLoading ? "Loading models…" : modelQuery.trim() ? "No models found" : "No models available"}
+                {modelsLoading
+                  ? "Loading models…"
+                  : researchOnly
+                    ? "No deep-research models available on your plan"
+                    : modelQuery.trim()
+                      ? "No models found"
+                      : "No models available"}
               </div>
             )}
           </div>
