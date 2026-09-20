@@ -2,6 +2,7 @@ import { RefObject, memo } from "react";
 import { DownloadMenu } from "../../../components/DownloadMenu";
 import type { ChatMessage, ModelOption, QuizRound } from "./types";
 import { MessageImages } from "./MessageImages";
+import { VideoBlock } from "./VideoBlock";
 import { MarkdownContent } from "./MarkdownContent";
 import { CopyButton, ShareButton } from "./MessageButtons";
 import { RegenerateMenu } from "./RegenerateMenu";
@@ -37,7 +38,7 @@ export const AssistantMessage = memo(
     activeStreamId,
     listRef
   }: AssistantMessageProps) => {
-  if (!message.content && !(message.images && message.images.length > 0) && !message.quiz && message.status !== "STREAMING") {
+  if (!message.content && !(message.images && message.images.length > 0) && !(message.videos && message.videos.length > 0) && !message.quiz && message.status !== "STREAMING") {
     return null;
   }
 
@@ -73,6 +74,7 @@ export const AssistantMessage = memo(
     >
       <div className="markdown msg-assistant-body">
         <MessageImages images={message.images} />
+        <VideoBlock videos={message.videos} />
         {message.status === "STREAMING" && !displayContent && !message.quiz ? (
           <div className="msg-typing">
             <div className="msg-typing-dot msg-typing-dot--1"></div>

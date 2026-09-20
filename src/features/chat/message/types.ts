@@ -20,6 +20,7 @@ export type ChatMessage = {
   status?: "COMPLETE" | "STREAMING" | "ERROR";
   model?: string | null;
   images?: string[];
+  videos?: string[];
   followups?: string[];
   quiz?: QuizRound;
 };

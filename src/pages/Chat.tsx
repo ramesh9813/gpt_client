@@ -47,8 +47,20 @@ const Chat = () => {
     stopStreaming,
   } = useChatStreaming();
 
-  const { model, setModel, sortBy, setSortBy, modelOptions, modelsLoading } =
-    useChatModels();
+  const {
+    model,
+    setModel,
+    sortBy,
+    setSortBy,
+    modelOptions,
+    modelsLoading,
+    modelsTotal,
+    modelsUpdatedAt,
+    modelsStale,
+    modelResetNotice,
+    refreshModels,
+    modelsRefreshing,
+  } = useChatModels();
 
   const {
     messages,
@@ -244,6 +256,12 @@ const Chat = () => {
               lastUserMessage={lastUserMessage}
               model={model}
               modelOptions={modelOptions}
+              modelsTotal={modelsTotal}
+              modelsUpdatedAt={modelsUpdatedAt}
+              modelsStale={modelsStale}
+              modelResetNotice={modelResetNotice}
+              onRefreshModels={refreshModels}
+              modelsRefreshing={modelsRefreshing}
               onModelChange={setModel}
               inputRef={composerInputRef}
               sort={sortBy}

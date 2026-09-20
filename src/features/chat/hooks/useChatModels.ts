@@ -1,17 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import {
+  readCatalogCache,
+  writeCatalogCache,
+  isDeprecatedModel,
+  type CachedCatalog,
+  type ModelsMeta,
+  type OpenRouterModel,
+} from "./modelCache";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, ApiResponse } from "../../../lib/api";
 import { useMe, useSettings } from "../../../lib/hooks";
+import { formatUpdatedAgo } from "../utils/formatUpdatedAgo";
 
 export type SortOption = "name" | "cheapest" | "free";
 
-type OpenRouterModel = {
-  id: string;
-  name?: string;
-  pricing?: { prompt: string; completion: string };
-};
-
 export type ModelOption = { label: string; value: string; supportsResearch?: boolean };
+
+export type ModelsStale = { offline: boolean; updatedAgo: string };
 
 // Dedicated deep-research models (e.g. perplexity/sonar-deep-research,
 // openai/o3-deep-research) autonomously search and synthesize reports.
@@ -30,6 +35,15 @@ export const useChatModels = () => {
 
   const { data: settingsData } = useSettings(!!meData?.data?.user);
 
+  // Stale-while-revalidate: paint instantly from localStorage on mount.
+  const [cachedCatalog, setCachedCatalog] = useState<CachedCatalog | null>(() =>
+    readCatalogCache()
+  );
+  const [modelResetNotice, setModelResetNotice] = useState<string | null>(null);
+  const [refreshInFlight, setRefreshInFlight] = useState(false);
+  const [refreshFailed, setRefreshFailed] = useState(false);
+  const queryClient = useQueryClient();
+
   // Restore last selected model from the database once (sticks across reloads).
   useEffect(() => {
     if (modelInitialized.current) return;
@@ -41,7 +55,7 @@ export const useChatModels = () => {
   }, [settingsData]);
 
   // Persist every explicit change so the next load restores it.
-  const setModel = useCallback((next: string) => {
+  const persistModel = useCallback((next: string) => {
     modelInitialized.current = true;
     setModelState(next);
     void apiFetch("/api/me/settings", {
@@ -53,7 +67,22 @@ export const useChatModels = () => {
     });
   }, []);
 
-  const { data: modelsData, isLoading: modelsLoading } = useQuery({
+  // Wrapper: any explicit (valid) selection dismisses the reset notice.
+  const setModel = useCallback(
+    (next: string) => {
+      setModelResetNotice(null);
+      persistModel(next);
+    },
+    [persistModel]
+  );
+
+  const {
+    data: modelsData,
+    isLoading: modelsLoading,
+    isFetching,
+    isError: queryFailed,
+    refetch,
+  } = useQuery({
     queryKey: ["models"],
     queryFn: () =>
       apiFetch<ApiResponse<{ models: OpenRouterModel[] }>>("/api/models"),
@@ -61,8 +90,66 @@ export const useChatModels = () => {
     retry: 1,
   });
 
+  // Fresh success overwrites the localStorage cache.
+  useEffect(() => {
+    const fresh = modelsData?.data?.models;
+    if (!fresh) return;
+    const meta = modelsData?.meta as ModelsMeta | undefined;
+    const fetchedAt =
+      typeof meta?.fetchedAt === "string" && meta.fetchedAt.length > 0
+        ? meta.fetchedAt
+        : new Date().toISOString();
+    const entry: CachedCatalog = { fetchedAt, models: fresh };
+    writeCatalogCache(entry);
+    setCachedCatalog(entry);
+    setRefreshFailed(false);
+  }, [modelsData]);
+
+  // Effective list: live data when present, otherwise the instant cache.
+  // This keeps the menu painted on mount (SWR) and swaps in the fresh list
+  // on background-refetch success. On failure the cache stays on screen.
+  const effectiveModels: OpenRouterModel[] = useMemo(() => {
+    const live = modelsData?.data?.models;
+    if (live) return live;
+    return cachedCatalog?.models ?? [];
+  }, [modelsData?.data?.models, cachedCatalog]);
+
+  const metaFetchedAt = (modelsData?.meta as ModelsMeta | undefined)?.fetchedAt;
+  const modelsUpdatedAt: string | null =
+    typeof metaFetchedAt === "string" && metaFetchedAt.length > 0
+      ? metaFetchedAt
+      : (cachedCatalog?.fetchedAt ?? null);
+  const modelsTotal = effectiveModels.length;
+
+  const offline = queryFailed || refreshFailed;
+  const modelsStale: ModelsStale = useMemo(
+    () => ({
+      offline,
+      updatedAgo: formatUpdatedAgo(modelsUpdatedAt),
+    }),
+    [offline, modelsUpdatedAt]
+  );
+
+  // Manual refresh: bypass the 5-min server cache (?refresh=1), then push
+  // the result into the ["models"] query so the success effect above swaps
+  // the list + overwrites localStorage. On failure keep the cache.
+  const refreshModels = useCallback(async (): Promise<void> => {
+    setRefreshInFlight(true);
+    try {
+      const fresh = await apiFetch<ApiResponse<{ models: OpenRouterModel[] }>>(
+        "/api/models?refresh=1"
+      );
+      queryClient.setQueryData(["models"], fresh);
+      setRefreshFailed(false);
+    } catch {
+      setRefreshFailed(true);
+    } finally {
+      setRefreshInFlight(false);
+    }
+  }, [queryClient]);
+
   const dynamicModelOptions = useMemo(() => {
-    const models = modelsData?.data?.models ?? [];
+    const models = effectiveModels;
     const sorted = [...models].sort((a, b) => {
       if (sortBy === "name") {
         const left = a.name || a.id;
@@ -100,6 +187,7 @@ export const useChatModels = () => {
     return sorted
       .filter((m) => {
         if (!m?.id) return false;
+        if (isDeprecatedModel(m)) return false;
         if (seen.has(m.id)) return false;
         seen.add(m.id);
         return true;
@@ -117,7 +205,7 @@ export const useChatModels = () => {
           supportsResearch: isDeepResearchModel(m.id, m.name),
         };
       });
-  }, [modelsData?.data?.models, sortBy]);
+  }, [effectiveModels, sortBy]);
 
   // Fully dynamic: no hardcoded models. List comes from GET /api/models (OpenRouter,
   // role-filtered server-side) on page load. Only sentinel is "default" (server resolves it).
@@ -136,9 +224,16 @@ export const useChatModels = () => {
     if (modelsLoading) return; // don't reset while list still loading
     const allowed = modelOptions.some((option) => option.value === model);
     if (!allowed) {
-      setModel("default");
+      // Selected model vanished from the fresh list: fall back to the
+      // "default" sentinel and surface a dismissable notice (cleared by
+      // the next explicit setModel call above).
+      const missing = model;
+      persistModel("default");
+      setModelResetNotice(
+        `"${missing}" is no longer available — reset to default.`
+      );
     }
-  }, [model, modelOptions, modelsLoading]);
+  }, [model, modelOptions, modelsLoading, persistModel]);
 
   return {
     model,
@@ -148,6 +243,17 @@ export const useChatModels = () => {
     modelOptions,
     modelsLoading,
     modelsData,
+    // Catalog freshness footer data:
+    modelsTotal,
+    modelsUpdatedAt,
+    refreshModels,
+    modelsStale,
+    modelResetNotice,
+    // Extra loading flag so the footer refresh button can spin on refetch
+    // (modelsLoading is only true on the first load):
+    modelsRefreshing: isFetching || refreshInFlight,
+    // Re-export for callers that want the raw refetch:
+    refetchModels: refetch,
   };
 };
 

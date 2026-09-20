@@ -2,7 +2,13 @@ import { useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { getCsrfToken } from "../../../lib/api";
 import type { ChatMessage } from "../MessageList";
-import type { QuizRound } from "../message/types";
+import {
+  applyFollowupsEvent,
+  applyImagesEvent,
+  applyQuizEvent,
+  applyVideosEvent,
+  type StreamEventCtx,
+} from "./streamEvents";
 
 export type MessagesSetter = Dispatch<SetStateAction<ChatMessage[]>>;
 
@@ -40,6 +46,8 @@ export const useChatStreaming = () => {
     abortControllerRef.current = controller;
 
     const isCancelled = () => controller.signal.aborted || cancelRef.current;
+
+    const ctx: StreamEventCtx = { setMessages, tempAssistantId, isCancelled };
 
     try {
       const response = await fetch(`${apiBase}/api/chat/stream`, {
@@ -169,123 +177,16 @@ export const useChatStreaming = () => {
               startFlush();
             }
             if (currentEvent === "followups") {
-              if (isCancelled()) return;
-              const items = (parsed as any).followups;
-              if (Array.isArray(items)) {
-                const cleaned = items
-                  .filter((v: unknown): v is string => typeof v === "string")
-                  .map((v: string) => v.trim())
-                  .filter((v: string) => v.length > 0 && v.length <= 140)
-                  .slice(0, 3);
-                if (cleaned.length > 0) {
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === tempAssistantId ? { ...m, followups: cleaned } : m
-                    )
-                  );
-                }
-              }
+              if (applyFollowupsEvent(ctx, parsed)) return;
             }
             if (currentEvent === "quiz") {
-              if (isCancelled()) return;
-              const raw = (parsed as any).quiz ?? parsed;
-              if (raw && typeof raw === "object") {
-                const questions = (raw as any).questions;
-                if (
-                  Array.isArray(questions) &&
-                  questions.length > 0 &&
-                  questions.length <= 10
-                ) {
-                  let valid = true;
-                  for (const q of questions) {
-                    if (
-                      !q ||
-                      typeof q.question !== "string" ||
-                      !Array.isArray(q.options) ||
-                      q.options.length !== 4 ||
-                      !q.options.every(
-                        (o: unknown) => typeof o === "string"
-                      ) ||
-                      typeof q.answerIndex !== "number" ||
-                      !Number.isInteger(q.answerIndex) ||
-                      q.answerIndex < 0 ||
-                      q.answerIndex > 3
-                    ) {
-                      valid = false;
-                      break;
-                    }
-                  }
-                  if (valid) {
-                    const round =
-                      typeof (raw as any).round === "number"
-                        ? (raw as any).round
-                        : 1;
-                    const topic =
-                      typeof (raw as any).topic === "string"
-                        ? (raw as any).topic
-                        : "";
-                    const cleanedQuestions = questions.map((q: any) => ({
-                      question: q.question as string,
-                      options: [
-                        q.options[0] as string,
-                        q.options[1] as string,
-                        q.options[2] as string,
-                        q.options[3] as string,
-                      ] as [string, string, string, string],
-                      answerIndex: q.answerIndex as number,
-                      ...(typeof q.explanation === "string"
-                        ? { explanation: q.explanation as string }
-                        : {}),
-                    }));
-                    const rawSel = (raw as any).selections;
-                    const selections: (number | null)[] =
-                      Array.isArray(rawSel) &&
-                      rawSel.length === cleanedQuestions.length
-                        ? rawSel.map((s: unknown) =>
-                            typeof s === "number" &&
-                            Number.isInteger(s) &&
-                            s >= 0 &&
-                            s <= 3
-                              ? s
-                              : null
-                          )
-                        : Array(cleanedQuestions.length).fill(null);
-                    const revealed =
-                      (raw as any).revealed === true ? true : false;
-                    const quiz: QuizRound = {
-                      round,
-                      topic,
-                      questions: cleanedQuestions,
-                      selections,
-                      revealed,
-                    };
-                    setMessages((prev) =>
-                      prev.map((m) =>
-                        m.id === tempAssistantId ? { ...m, quiz } : m
-                      )
-                    );
-                  }
-                }
-              }
+              if (applyQuizEvent(ctx, parsed)) return;
             }
             if (currentEvent === "images") {
-              if (isCancelled()) return;
-              const urls = (parsed as any).images;
-              if (Array.isArray(urls)) {
-                const cleaned = urls.filter(
-                  (v: unknown): v is string =>
-                    typeof v === "string" && v.startsWith("data:image/")
-                );
-                if (cleaned.length > 0) {
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === tempAssistantId
-                        ? { ...m, images: cleaned, status: "COMPLETE" }
-                        : m
-                    )
-                  );
-                }
-              }
+              if (applyImagesEvent(ctx, parsed)) return;
+            }
+            if (currentEvent === "videos") {
+              if (applyVideosEvent(ctx, parsed)) return;
             }
             if (currentEvent === "error") {
               if (isCancelled()) return;

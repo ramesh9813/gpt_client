@@ -1,5 +1,8 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { apiFetch, ApiResponse } from "./lib/api";
+import { type OpenRouterModel } from "./features/chat/hooks/modelCache";
 import { useMe, useSettings } from "./lib/hooks";
 import { applyTheme } from "./lib/theme";
 import { applyBrand, isBrandId } from "./lib/brandTheme";
@@ -37,6 +40,17 @@ const App = () => {
   const authEnabled = !["/login", "/signup"].includes(location.pathname);
   const { data: meData } = useMe(authEnabled);
   const { data } = useSettings(!!meData?.data?.user);
+  const queryClient = useQueryClient();
+
+  // Dynamically load all available OpenRouter models on app load
+  useEffect(() => {
+    void queryClient.prefetchQuery({
+      queryKey: ["models"],
+      queryFn: () =>
+        apiFetch<ApiResponse<{ models: OpenRouterModel[] }>>("/api/models"),
+      staleTime: 1000 * 60 * 5,
+    });
+  }, [queryClient]);
 
   useEffect(() => {
     const settings = data?.data?.settings;

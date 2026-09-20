@@ -1,8 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Input } from "../../../components/Input";
+import { ModelMenuFooter } from "./ModelMenuFooter";
+import { formatUpdatedAgo } from "../utils/formatUpdatedAgo";
+import "./ModelMenu.css";
 
 export type ModelOption = { label: string; value: string; supportsResearch?: boolean };
 export type SortOption = "name" | "cheapest" | "free";
+
+export type ModelsStaleInfo = { offline: boolean; updatedAgo: string };
 
 type ModelMenuProps = {
   model: string;
@@ -17,6 +22,13 @@ type ModelMenuProps = {
   onModelMenuOpenChange: (open: boolean) => void;
   onCloseMenu: () => void;
   onResearchSelect?: () => void;
+  // Catalog freshness footer (from useChatModels):
+  modelsTotal?: number;
+  modelsUpdatedAt?: string | null;
+  modelsStale?: ModelsStaleInfo | null;
+  modelResetNotice?: string | null;
+  onRefreshModels?: () => void;
+  modelsRefreshing?: boolean;
 };
 
 export const ModelMenu = ({
@@ -32,6 +44,12 @@ export const ModelMenu = ({
   onModelMenuOpenChange,
   onCloseMenu,
   onResearchSelect,
+  modelsTotal,
+  modelsUpdatedAt,
+  modelsStale,
+  modelResetNotice,
+  onRefreshModels,
+  modelsRefreshing = false,
 }: ModelMenuProps) => {
   const [modelQuery, setModelQuery] = useState("");
   const [sortOpen, setSortOpen] = useState(false);
@@ -69,6 +87,13 @@ export const ModelMenu = ({
         option.value.toLowerCase().includes(q)
     );
   }, [visibleOptions, modelQuery]);
+
+  const updatedAgo =
+    modelsStale?.updatedAgo ?? formatUpdatedAgo(modelsUpdatedAt ?? null);
+  const offline = modelsStale?.offline ?? false;
+  const total =
+    typeof modelsTotal === "number" ? modelsTotal : modelOptions.length;
+  const showFooter = modelMenuOpen;
 
   if (!menuOpen) return null;
 
@@ -248,6 +273,16 @@ export const ModelMenu = ({
               </div>
             )}
           </div>
+          {showFooter && (
+            <ModelMenuFooter
+              total={total}
+              updatedAgo={updatedAgo}
+              offline={offline}
+              modelResetNotice={modelResetNotice}
+              onRefreshModels={onRefreshModels}
+              modelsRefreshing={modelsRefreshing}
+            />
+          )}
         </div>
       )}
     </div>

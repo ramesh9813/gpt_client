@@ -1,10 +1,7 @@
 import "./ConversationSidebar.css";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { z } from "zod";
-import { Button } from "../../components/Button";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Input } from "../../components/Input";
-import { Modal } from "../../components/Modal";
 import { useMe } from "../../lib/hooks";
 import type { SidebarState } from "./sidebarState";
 import { cn } from "../../lib/utils";
@@ -17,6 +14,7 @@ import { HistorySection } from "./sidebar/HistorySection";
 import { SidebarRail } from "./sidebar/SidebarRail";
 import { AccountFooter } from "./sidebar/AccountFooter";
 import { SidebarHeader } from "./sidebar/SidebarHeader";
+import { RenameModal } from "./sidebar/RenameModal";
 
 export type { Conversation, Folder } from "./sidebar/types";
 
@@ -112,11 +110,6 @@ const ConversationSidebar = ({
       setNewFolderName("");
     },
   });
-
-  const renameSchema = useMemo(
-    () => z.string().min(1, "Title is required").max(80, "Max 80 characters"),
-    []
-  );
 
   const handleSelectConversation = (id: string) => {
     navigate(`/c/${id}`);
@@ -268,44 +261,24 @@ const ConversationSidebar = ({
             />
           </div>
         </div>
-        <Modal
-          open={!!renameId}
-          title="Rename conversation"
+        <RenameModal
+          renameId={renameId}
+          renameTitle={renameTitle}
+          renameError={renameError}
+          onTitleChange={setRenameTitle}
           onClose={() => {
             setRenameId(null);
             setRenameError(null);
           }}
-        >
-          <div className="conv-side-modal-body side-ui-modal-body">
-            <Input value={renameTitle} onChange={(e) => setRenameTitle(e.target.value)} />
-            {renameError ? (
-              <div className="conv-side-modal-error side-ui-modal-error">
-                {renameError}
-              </div>
-            ) : null}
-            <div className="conv-side-modal-actions side-ui-modal-actions">
-              <Button variant="ghost" onClick={() => setRenameId(null)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={() => {
-                  if (renameId) {
-                    const validation = renameSchema.safeParse(renameTitle.trim());
-                    if (!validation.success) {
-                      setRenameError(validation.error.errors[0]?.message || "Invalid title");
-                      return;
-                    }
-                    setRenameError(null);
-                    renameMutation.mutate({ id: renameId, title: renameTitle.trim() });
-                    setRenameId(null);
-                  }
-                }}
-              >
-                Save
-              </Button>
-            </div>
-          </div>
-        </Modal>
+          onInvalid={setRenameError}
+          onSave={(title) => {
+            if (renameId) {
+              setRenameError(null);
+              renameMutation.mutate({ id: renameId, title });
+              setRenameId(null);
+            }
+          }}
+        />
       </aside>
     </>
   );
