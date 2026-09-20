@@ -153,6 +153,11 @@
   height: 75vh;
   min-height: 20rem;
   overflow: auto;
+  padding: 1rem;
+  box-sizing: border-box;
+  background-color: transparent;
+  border: 0;
+  box-shadow: none;
 }
 .artifact-card--expanded .artifact-card-stage {
   height: 90vh;
@@ -163,7 +168,9 @@
   height: 100%;
   min-height: inherit;
   border: 0;
-  background-color: var(--bg);
+  border-radius: 0;
+  box-shadow: none;
+  background-color: transparent;
 }
 .artifact-card-code {
   margin: 0;
