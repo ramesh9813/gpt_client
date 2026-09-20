@@ -185,6 +185,25 @@ export const useChatStreaming = () => {
                 }
               }
             }
+            if (currentEvent === "images") {
+              if (isCancelled()) return;
+              const urls = (parsed as any).images;
+              if (Array.isArray(urls)) {
+                const cleaned = urls.filter(
+                  (v: unknown): v is string =>
+                    typeof v === "string" && v.startsWith("data:image/")
+                );
+                if (cleaned.length > 0) {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === tempAssistantId
+                        ? { ...m, images: cleaned, status: "COMPLETE" }
+                        : m
+                    )
+                  );
+                }
+              }
+            }
             if (currentEvent === "error") {
               if (isCancelled()) return;
               const errorMessage = (parsed as any).message || "Streaming failed";
