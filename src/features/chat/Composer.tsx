@@ -261,6 +261,28 @@ const Composer = ({
     }
   };
 
+  // Mobile speech engines re-deliver final chunks across result events, so the
+  // same words can arrive two or more times. Collapse consecutive repeated
+  // phrases (up to 6 words) so each segment appears exactly once.
+  const dedupeTranscript = (text: string): string => {
+    const words = text.split(/\s+/).filter(Boolean);
+    const out: string[] = [];
+    for (const w of words) {
+      out.push(w);
+      for (let n = 1; n <= 6; n++) {
+        if (out.length >= n * 2) {
+          const tail = out.slice(out.length - n).join(" ").toLowerCase();
+          const prev = out.slice(out.length - n * 2, out.length - n).join(" ").toLowerCase();
+          if (tail === prev) {
+            out.splice(out.length - n, n);
+            break;
+          }
+        }
+      }
+    }
+    return out.join(" ");
+  };
+
   const startListening = () => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR || disabled || streaming || compressing) return;
@@ -287,8 +309,8 @@ const Composer = ({
           interim += transcript;
         }
       }
-      finalTranscriptRef.current = final;
-      setValue((final + (interim ? " " + interim : "")).trim());
+      finalTranscriptRef.current = dedupeTranscript(final);
+      setValue(dedupeTranscript((final + (interim ? " " + interim : "")).trim()));
     };
     rec.onerror = () => undefined;
     rec.onend = () => {
