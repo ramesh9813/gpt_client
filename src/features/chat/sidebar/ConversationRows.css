@@ -1,0 +1,191 @@
+/* ---------------------------------------------------------------
+ * Conversation rows — 13px titles, 8px radius, hover wash,
+ * distinct active state (soft accent tint + accent edge).
+ * Selectors intentionally mirror SidebarFooter.css so this file
+ * (loaded with the sidebar) deterministically refreshes the look
+ * without touching that file.
+ * --------------------------------------------------------------- */
+.conv-side-history-list .conv-side-conv-item,
+.conv-side-folder-children .conv-side-conv-item,
+.conv-side-conv-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  min-height: 32px;
+  padding: 4px 4px 4px 8px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 20px;
+  border: 1px solid transparent;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+/* Decorative accent edge — visible on the active row only */
+.conv-side-conv-edge {
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 9999px;
+  background: transparent;
+  pointer-events: none;
+}
+
+.conv-side-conv-item--inactive {
+  color: var(--text);
+  background: transparent;
+}
+
+.conv-side-conv-item--inactive:hover {
+  background-color: var(--panel);
+}
+
+.conv-side-conv-item--active {
+  background-color: var(--panel);
+  color: var(--text);
+  font-weight: 500;
+  border-color: var(--border);
+  box-shadow: var(--shadow);
+}
+
+.conv-side-conv-item--active .conv-side-conv-edge {
+  background-color: var(--accent);
+}
+
+.conv-side-conv-item:focus-within {
+  border-color: var(--border);
+}
+
+/* Title button keeps full-row click target; text span owns ellipsis */
+.conv-side-conv-title-btn {
+  flex: 1 1 0%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  text-align: left;
+  overflow: hidden;
+  height: 24px;
+  line-height: 20px;
+  padding: 0;
+  font-size: 13px;
+  font-family: sans-serif;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.conv-side-conv-title-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.conv-side-conv-title-text {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Trailing menu — uncluttered: hidden until hover/focus/open on
+   fine pointers, always reachable on touch */
+.conv-side-conv-menu {
+  position: relative;
+  flex-shrink: 0;
+  height: 24px;
+  width: 24px;
+  transition-property: opacity;
+  transition-duration: 150ms;
+}
+
+.conv-side-conv-menu--open { opacity: 1; }
+.conv-side-conv-menu--closed { opacity: 1; }
+
+@media (min-width: 768px) {
+  .conv-side-conv-menu--closed { opacity: 0; }
+  .conv-side-conv-item:hover .conv-side-conv-menu--closed,
+  .conv-side-conv-item:focus-within .conv-side-conv-menu--closed { opacity: 1; }
+}
+
+@media (hover: none) {
+  .conv-side-conv-menu--closed { opacity: 1; }
+}
+
+.conv-side-conv-menu-btn {
+  border: 0 !important;
+  height: 24px !important;
+  width: 24px !important;
+  border-radius: 8px !important;
+  color: var(--muted) !important;
+}
+
+.conv-side-conv-menu-btn:hover {
+  background-color: var(--border) !important;
+  color: var(--text) !important;
+}
+
+.conv-side-conv-menu-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  opacity: 1;
+}
+
+.conv-side-menu-bridge {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  height: 8px;
+  background: transparent;
+  z-index: 30;
+}
+
+.conv-side-conv-dropdown {
+  margin-top: 0;
+}
+
+.conv-side-dropdown-item {
+  width: 100%;
+  border-radius: 8px;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 13px;
+  line-height: 20px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  color: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conv-side-dropdown-item:hover {
+  background-color: var(--sidebar);
+}
+
+.conv-side-dropdown-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Preserved semantic accent: red destructive */
+.conv-side-dropdown-item--danger {
+  color: #fca5a5;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .conv-side-folder-row,
+  .conv-side-folder-chevron,
+  .conv-side-conv-item,
+  .conv-side-conv-menu {
+    transition: none !important;
+  }
+}

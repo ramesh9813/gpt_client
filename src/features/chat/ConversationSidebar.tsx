@@ -15,6 +15,7 @@ import { ConversationRow } from "./sidebar/ConversationRow";
 import { FolderSection } from "./sidebar/FolderSection";
 import { HistorySection } from "./sidebar/HistorySection";
 import { SidebarRail } from "./sidebar/SidebarRail";
+import { AccountFooter } from "./sidebar/AccountFooter";
 import { SidebarHeader } from "./sidebar/SidebarHeader";
 
 export type { Conversation, Folder } from "./sidebar/types";
@@ -148,6 +149,7 @@ const ConversationSidebar = ({
 
   const asideClasses = cn(
     "conv-side",
+    "side-ui",
     drawerOpen ? "conv-side--drawer-open" : "conv-side--drawer-closed",
     !isMobile && sidebarState === "expanded" && "conv-side--expanded",
     !isMobile && sidebarState === "collapsed" && "conv-side--collapsed",
@@ -159,7 +161,7 @@ const ConversationSidebar = ({
     <>
       {showBackdrop && (
         <div
-          className="conv-side-backdrop"
+          className="conv-side-backdrop side-ui-backdrop"
           onClick={onCloseDrawer}
           aria-hidden="true"
         />
@@ -184,6 +186,7 @@ const ConversationSidebar = ({
           ref={panelRef}
           className={cn(
             "conv-side-panel",
+            "side-ui-panel",
             !isMobile && sidebarState === "collapsed" ? "conv-side-panel--hidden" : "conv-side-panel--visible"
           )}
           aria-hidden={!isMobile && sidebarState !== "expanded"}
@@ -199,56 +202,48 @@ const ConversationSidebar = ({
             closeBtnRef={closeBtnRef}
           />
 
-          <div className="conv-side-body">
-            <div className="conv-side-search-wrap">
-              <div className="conv-side-search-inner">
-                <i className="bi bi-search conv-side-search-icon"></i>
+          <div className="conv-side-body side-ui-body">
+            <div className="conv-side-search-wrap side-ui-search-wrap">
+              <div className="conv-side-search-inner side-ui-search-pill">
+                <i className="bi bi-search conv-side-search-icon side-ui-search-icon"></i>
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search"
-                  className="conv-side-search-input"
+                  className="conv-side-search-input side-ui-search-input"
                 />
               </div>
             </div>
-            <div className="conv-side-scroll scrollbar-thin">
-              <FolderSection
-                folders={folders}
-                groupedConversations={groupedConversations}
-                expandedFolders={expandedFolders}
-                onToggleFolder={toggleFolder}
-                isCreatingFolder={isCreatingFolder}
-                newFolderName={newFolderName}
-                onNewFolderNameChange={setNewFolderName}
-                onOpenCreateFolder={() => setIsCreatingFolder(true)}
-                onCancelCreateFolder={() => setIsCreatingFolder(false)}
-                onSubmitCreateFolder={() => createFolderMutation.mutate(newFolderName)}
-                onCreateInFolder={(folderId) => createMutation.mutate(folderId)}
-                renderConversation={renderConversation}
-              />
+            <div className="conv-side-scroll scrollbar-thin side-ui-scroll">
+              <div className="side-ui-sections">
+                <FolderSection
+                  folders={folders}
+                  groupedConversations={groupedConversations}
+                  expandedFolders={expandedFolders}
+                  onToggleFolder={toggleFolder}
+                  isCreatingFolder={isCreatingFolder}
+                  newFolderName={newFolderName}
+                  onNewFolderNameChange={setNewFolderName}
+                  onOpenCreateFolder={() => setIsCreatingFolder(true)}
+                  onCancelCreateFolder={() => setIsCreatingFolder(false)}
+                  onSubmitCreateFolder={() => createFolderMutation.mutate(newFolderName)}
+                  onCreateInFolder={(folderId) => createMutation.mutate(folderId)}
+                  renderConversation={renderConversation}
+                />
 
-              <HistorySection
-                conversations={uncategorized}
-                renderConversation={renderConversation}
-              />
+                <HistorySection
+                  conversations={uncategorized}
+                  renderConversation={renderConversation}
+                />
+              </div>
             </div>
-            <div className="conv-side-footer">
-              <Link
-                to="/account"
-                className="conv-side-account-link"
-                onClick={() => {
-                  if (isMobile) onCloseDrawer();
-                }}
-              >
-                <div className="conv-side-avatar">
-                  {initial}
-                </div>
-                <div className="conv-side-account-info">
-                  <span className="conv-side-account-name">{user?.name || "User"}</span>
-                  <span className="conv-side-account-email">{user?.email}</span>
-                </div>
-              </Link>
-            </div>
+            <AccountFooter
+              userName={user?.name}
+              userEmail={user?.email}
+              initial={initial}
+              isMobile={isMobile}
+              onCloseDrawer={onCloseDrawer}
+            />
           </div>
         </div>
         <Modal
@@ -259,14 +254,14 @@ const ConversationSidebar = ({
             setRenameError(null);
           }}
         >
-          <div className="conv-side-modal-body">
+          <div className="conv-side-modal-body side-ui-modal-body">
             <Input value={renameTitle} onChange={(e) => setRenameTitle(e.target.value)} />
             {renameError ? (
-              <div className="conv-side-modal-error">
+              <div className="conv-side-modal-error side-ui-modal-error">
                 {renameError}
               </div>
             ) : null}
-            <div className="conv-side-modal-actions">
+            <div className="conv-side-modal-actions side-ui-modal-actions">
               <Button variant="ghost" onClick={() => setRenameId(null)}>
                 Cancel
               </Button>

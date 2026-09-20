@@ -25,13 +25,15 @@ export function SidebarHeader({
   closeBtnRef,
 }: SidebarHeaderProps) {
   return (
-    <div className="conv-side-header">
+    <div className="sb-header">
       <Button
-        className="conv-side-newchat-btn"
+        className="sb-newchat"
         onClick={onNewChat}
       >
-        <i className="bi bi-plus-lg conv-side-newchat-icon"></i>
-        <span>New chat</span>
+        <span className="sb-newchat-icon-wrap" aria-hidden="true">
+          <i className="bi bi-plus-lg sb-newchat-icon"></i>
+        </span>
+        <span className="sb-newchat-label">New chat</span>
       </Button>
       {isMobile ? (
         <button
@@ -42,30 +44,30 @@ export function SidebarHeader({
           title="Close conversation history"
           aria-expanded={drawerOpen}
           aria-controls="conversation-history"
-          className="conv-side-close-btn"
+          className="sb-icon-btn sb-icon-btn--close"
         >
-          <i className="bi bi-x-lg conv-side-close-icon" aria-hidden="true" />
+          <i className="bi bi-x-lg sb-icon-btn-icon" aria-hidden="true" />
         </button>
       ) : (
-        <div className="conv-side-header-actions">
+        <div className="sb-header-actions">
           <IconButton
             onClick={onCollapse}
             aria-label="Collapse conversation history"
             title="Collapse conversation history"
             aria-expanded={sidebarState === "expanded"}
             aria-controls="conversation-history"
-            className="conv-side-header-icon-btn"
+            className="sb-icon-btn"
           >
-            <i className="bi bi-layout-sidebar-inset conv-side-header-icon"></i>
+            <i className="bi bi-layout-sidebar-inset sb-icon-btn-icon" aria-hidden="true"></i>
           </IconButton>
           <IconButton
             onClick={onHide}
             aria-label="Hide conversation history"
             title="Hide conversation history"
             aria-controls="conversation-history"
-            className="conv-side-header-icon-btn"
+            className="sb-icon-btn"
           >
-            <i className="bi bi-x-lg conv-side-header-icon-sm"></i>
+            <i className="bi bi-x-lg sb-icon-btn-icon-sm" aria-hidden="true"></i>
           </IconButton>
         </div>
       )}

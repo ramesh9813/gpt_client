@@ -1,19 +1,31 @@
+/* SidebarFooter.css — conversation rows, account footer card, rename modal.
+   Soft professional chrome built exclusively on
+   var(--bg) / var(--panel) / var(--sidebar) / var(--border) /
+   var(--text) / var(--muted) / var(--accent).
+   All DOM hooks (.conv-side-*) are preserved; only presentation changes. */
 
-/* conversation rows */
+/* ---- conversation rows (rendered by ConversationRow, hooks kept) ---- */
 .conv-side-conv-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-radius: 0.5rem;
-  padding: 0.375rem 0.5rem;
-  font-size: 0.875rem;
+  gap: 4px;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 13px;
+  line-height: 20px;
+  border: 1px solid transparent;
 }
 .conv-side-conv-item--active {
   background-color: var(--panel);
+  border-color: var(--border);
   color: var(--text);
 }
 .conv-side-conv-item--inactive { color: var(--text); }
-.conv-side-conv-item--inactive:hover { background-color: var(--panel); }
+.conv-side-conv-item--inactive:hover {
+  background-color: var(--panel);
+  border-color: var(--border);
+}
 .conv-side-conv-title-btn {
   flex: 1 1 0%;
   text-align: left;
@@ -57,36 +69,63 @@
 .conv-side-conv-dropdown { margin-top: 0; }
 .conv-side-dropdown-item {
   width: 100%;
-  border-radius: 0.375rem;
-  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  padding: 8px 12px;
   text-align: left;
-  font-size: 0.875rem;
+  font-size: 13px;
+  line-height: 20px;
   background: transparent;
   border: 0;
   cursor: pointer;
   color: inherit;
 }
-.conv-side-dropdown-item:hover { background-color: var(--sidebar); }
-.conv-side-dropdown-item--danger { color: #fca5a5; }
+.conv-side-dropdown-item:hover { background-color: var(--panel); }
+.conv-side-dropdown-item--danger {
+  color: var(--text);
+  font-weight: 500;
+}
+@media (prefers-reduced-motion: reduce) {
+  .conv-side-conv-menu { transition: none; }
+}
 
-/* footer */
+/* ---- footer / account card ---- */
 .conv-side-footer {
   border-top: 1px solid var(--border);
-  padding-left: 1rem;
-  padding-right: 1rem;
-  padding-top: 0.75rem;
+  background-color: var(--sidebar);
+  padding: 12px;
   padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
   flex-shrink: 0;
+}
+.side-ui-footer {
+  /* decorative hook only — spacing stays on .conv-side-footer */
 }
 .conv-side-account-link {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  transition-property: opacity;
+  gap: 12px;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background-color: var(--panel);
+  padding: 8px 12px 8px 8px;
+  color: var(--text);
+  text-decoration: none;
+  transition-property: background-color, border-color;
   transition-duration: 150ms;
 }
-.conv-side-account-link:hover { color: var(--text); }
-.conv-side-account-link:active { opacity: 0.8; }
+.conv-side-account-link:hover {
+  background-color: var(--sidebar);
+  border-color: var(--accent);
+  color: var(--text);
+}
+.conv-side-account-link:active { opacity: 0.85; }
+.conv-side-account-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.side-ui-account-card {
+  /* decorative hook for the card chrome above */
+}
 .conv-side-avatar {
   display: flex;
   height: 2rem;
@@ -94,49 +133,83 @@
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
-  background-color: #9333ea;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: #fff;
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  background-color: var(--accent);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--bg);
   flex-shrink: 0;
+}
+.side-ui-avatar {
+  /* decorative hook only */
 }
 .conv-side-account-info {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  flex: 1 1 0%;
+  gap: 2px;
 }
 .conv-side-account-name {
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--text);
 }
 .conv-side-account-email {
-  font-size: 10px;
+  font-size: 11px;
+  line-height: 14px;
   color: var(--muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.side-ui-account-chev {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.conv-side-account-link:hover .side-ui-account-chev {
+  color: var(--text);
+}
 
-/* modal */
+/* ---- rename modal ---- */
 .conv-side-modal-body {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 12px;
+}
+.side-ui-modal-body {
+  padding-top: 4px;
 }
 .conv-side-modal-error {
-  border-radius: 0.5rem;
-  border: 1px solid rgb(239 68 68 / 0.4);
-  background-color: rgb(239 68 68 / 0.1);
-  padding: 0.5rem;
-  font-size: 0.75rem;
-  color: #fecaca;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  background-color: var(--panel);
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text);
 }
 .conv-side-modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+}
+.side-ui-modal-actions {
+  /* decorative hook — layout stays on .conv-side-modal-actions */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .conv-side-account-link { transition: none; }
 }

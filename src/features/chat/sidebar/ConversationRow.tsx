@@ -27,13 +27,15 @@ export function ConversationRow({
     <div
       key={conversation.id}
       className={`conv-side-conv-item ${active ? "conv-side-conv-item--active" : "conv-side-conv-item--inactive"}`}
+      data-active={active ? "true" : "false"}
     >
+      <span className="conv-side-conv-edge" aria-hidden="true" />
       <button
         className="conv-side-conv-title-btn"
         onClick={() => onSelect(conversation.id)}
         title={conversation.title}
       >
-        {conversation.title}
+        <span className="conv-side-conv-title-text">{conversation.title}</span>
       </button>
       <div
         className={`conv-side-conv-menu ${menuOpen === conversation.id ? "conv-side-conv-menu--open" : "conv-side-conv-menu--closed"}`}

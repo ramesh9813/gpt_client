@@ -1,0 +1,168 @@
+/* SidebarRail.css — refined 56px collapsed icon column.
+   NEW file: rail styling previously lived in SidebarShell.css (owned by
+   another agent), so it is re-homed here without touching the shell.
+   NOTE for shell owner: add `@import "./sidebar/SidebarRail.css";` to
+   ConversationSidebar.css and drop the legacy .conv-side-rail-* rules from
+   SidebarShell.css once this lands.
+   Palette uses theme vars exclusively:
+   var(--bg) / var(--panel) / var(--sidebar) / var(--border) /
+   var(--text) / var(--muted) / var(--accent). */
+
+/* Refined 56px column, balanced vertical rhythm. */
+.sb-rail {
+  display: none;
+  height: 100%;
+  width: 3.5rem;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  background-color: var(--sidebar);
+}
+
+@media (min-width: 1024px) {
+  .sb-rail {
+    display: flex;
+  }
+}
+
+/* Top action group: expand + new chat. */
+.sb-rail-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Hairline divider between primary actions and the dismiss action. */
+.sb-rail-divider {
+  display: block;
+  width: 1.5rem;
+  height: 1px;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+  background-color: var(--border);
+  flex-shrink: 0;
+}
+
+/* Pinned-to-bottom dismiss group. */
+.sb-rail-bottom {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Base rail button: 40px+ ghost circle, keyboard-focus ring preserved. */
+.sb-rail-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.5rem;
+  width: 2.5rem;
+  min-height: 40px;
+  min-width: 40px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition-property: background-color, border-color, color, transform, box-shadow;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+
+.sb-rail-btn:hover {
+  background-color: var(--panel);
+  border-color: var(--border);
+}
+
+.sb-rail-btn:active {
+  transform: scale(0.92);
+}
+
+.sb-rail-btn:focus-visible {
+  outline: none;
+  background-color: var(--panel);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--sidebar), 0 0 0 4px var(--accent);
+}
+
+/* Expand affordance: subtle accent notch marks it as the entry point back
+   to history (purely visual; tooltips via native title attrs preserved). */
+.sb-rail-btn--expand::before {
+  content: "";
+  position: absolute;
+  left: -0.625rem;
+  top: 50%;
+  translate: 0 -50%;
+  width: 3px;
+  height: 1.25rem;
+  border-radius: 999px;
+  background-color: var(--accent);
+  opacity: 0;
+  transition-property: opacity, height;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+
+.sb-rail-btn--expand:hover::before,
+.sb-rail-btn--expand:focus-visible::before {
+  opacity: 1;
+}
+
+/* New-chat: soft accent-tinted elevated action, mirrors header primary. */
+.sb-rail-btn--new {
+  background-color: var(--panel);
+  background-color: color-mix(in srgb, var(--accent) 14%, var(--panel));
+  border-color: var(--border);
+}
+
+.sb-rail-btn--new:hover {
+  border-color: var(--accent);
+  background-color: var(--panel);
+  background-color: color-mix(in srgb, var(--accent) 22%, var(--panel));
+}
+
+/* Dismiss: quiet muted ghost. */
+.sb-rail-btn--hide {
+  height: 2.5rem;
+  width: 2.5rem;
+  min-height: 40px;
+  min-width: 40px;
+  color: var(--muted);
+}
+
+.sb-rail-btn--hide:hover {
+  color: var(--text);
+}
+
+.sb-rail-icon {
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.sb-rail-icon-sm {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.sb-rail-hide-icon {
+  font-size: 0.875rem;
+  line-height: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-rail-btn,
+  .sb-rail-btn--expand::before {
+    transition: none;
+    transform: none;
+  }
+  .sb-rail-btn:active {
+    transform: none;
+  }
+}

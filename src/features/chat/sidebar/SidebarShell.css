@@ -1,7 +1,12 @@
-/* ConversationSidebar.css — 1:1 translation of Tailwind utilities.
-   Keeps var(--sidebar/panel/border/text/muted/accent) and hardcoded hex values as-is.
-   Structural hooks aside#conversation-history, .scrollbar-thin kept in markup. */
+/* SidebarShell.css — history-sidebar shell chrome.
+   Soft professional chrome built exclusively on
+   var(--bg) / var(--panel) / var(--sidebar) / var(--border) /
+   var(--text) / var(--muted) / var(--accent).
+   Structural hooks aside#conversation-history + .scrollbar-thin are
+   preserved in markup. Mobile drawer + lg static layout + width/transform
+   transitions + prefers-reduced-motion are preserved. */
 
+/* ---- shell frame ---- */
 .conv-side {
   display: flex;
   height: 100%;
@@ -16,10 +21,14 @@
   left: 0;
   z-index: 50;
   width: 18rem;
-  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
   transition-property: width, transform;
   transition-duration: 200ms;
   transition-timing-function: ease-out;
+}
+.side-ui {
+  /* decorative hook only — layout stays on .conv-side */
+  background-color: var(--sidebar);
+  color: var(--text);
 }
 @media (min-width: 640px) {
   .conv-side { width: 20rem; }
@@ -28,7 +37,6 @@
   .conv-side {
     position: static;
     z-index: auto;
-    box-shadow: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -51,19 +59,116 @@
 }
 .conv-side--mobile-closed { pointer-events: none; }
 
+/* ---- backdrop (mobile drawer only) ---- */
 .conv-side-backdrop {
   position: fixed;
   inset: 0;
   z-index: 40;
-  background-color: rgb(0 0 0 / 0.6);
+  background-color: var(--panel);
+  background-color: color-mix(in srgb, var(--text) 22%, transparent);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
+}
+.side-ui-backdrop {
+  /* softer, theme-derived veil */
+  opacity: 1;
 }
 @media (min-width: 1024px) {
   .conv-side-backdrop { display: none; }
 }
 
-/* collapsed rail (desktop) */
+/* ---- expanded panel / body rhythm ---- */
+.side-ui-panel {
+  background-color: var(--sidebar);
+  color: var(--text);
+}
+.side-ui-body {
+  gap: 4px;
+}
+.side-ui-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+/* ---- refined search pill ----
+   Scoped to #conversation-history so this shell refinement wins over
+   the base search rules that live outside this file, without touching them. */
+#conversation-history .conv-side-search-wrap {
+  padding: 12px 12px 8px;
+}
+#conversation-history .conv-side-search-inner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background-color: var(--panel);
+  transition: border-color 150ms ease-out;
+}
+#conversation-history .conv-side-search-inner:focus-within {
+  border-color: var(--accent);
+}
+#conversation-history .conv-side-search-icon {
+  left: 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+#conversation-history .conv-side-search-input {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: 0;
+  padding-left: 36px;
+  padding-right: 12px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--text);
+}
+#conversation-history .conv-side-search-input::placeholder {
+  color: var(--muted);
+}
+#conversation-history .conv-side-search-input:focus {
+  box-shadow: none;
+  outline: none;
+}
+
+/* ---- scroll + section rhythm ----
+   Scoped overrides only; section components themselves are untouched. */
+#conversation-history .conv-side-scroll {
+  padding-left: 12px;
+  padding-right: 12px;
+  padding-bottom: 16px;
+}
+#conversation-history .conv-side-section {
+  margin-bottom: 0;
+}
+#conversation-history .conv-side-section-title,
+#conversation-history .conv-side-history-head {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  opacity: 1;
+  margin-bottom: 8px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+#conversation-history .conv-side-section-head {
+  margin-bottom: 8px;
+  padding-left: 0;
+  padding-right: 0;
+}
+#conversation-history .conv-side-history-list {
+  gap: 4px;
+}
+
+/* ---- collapsed rail (desktop) ---- */
 .conv-side-collapsed-rail {
   display: none;
   height: 100%;
@@ -75,61 +180,59 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
-    padding-top: 0.75rem;
-    padding-bottom: 0.75rem;
+    gap: 8px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    background-color: var(--sidebar);
+    border-right: 1px solid var(--border);
   }
 }
-.conv-side-rail-btn {
-  display: inline-flex;
-  height: 2.5rem;
-  width: 2.5rem;
-  min-height: 40px;
-  min-width: 40px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.5rem;
-  color: var(--text);
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  transition-property: background-color, border-color, color, fill, stroke;
-  transition-duration: 150ms;
-}
-.conv-side-rail-btn:hover { background-color: var(--panel); }
-.conv-side-rail-btn:active { transform: scale(0.95); }
-.conv-side-rail-btn:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--accent);
-}
-.conv-side-rail-bottom {
-  margin-top: auto;
+
+/* Shell-owned scroll + search (moved from SidebarFolders) */
+.conv-side-body {
   display: flex;
+  flex: 1 1 0%;
   flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
+  overflow: hidden;
+  min-height: 0;
 }
-.conv-side-rail-hide-btn {
-  display: inline-flex;
-  height: 2.25rem;
-  width: 2.25rem;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.5rem;
+
+.conv-side-search-wrap {
+  padding: 8px 12px;
+  flex-shrink: 0;
+}
+
+.conv-side-search-inner {
+  position: relative;
+}
+
+.conv-side-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
   color: var(--muted);
+  pointer-events: none;
+}
+
+.conv-side-search-input {
   background: transparent;
   border: 0;
-  cursor: pointer;
-  transition-property: background-color, border-color, color, fill, stroke;
-  transition-duration: 150ms;
+  padding-left: 36px;
+  font-size: 13px;
 }
-.conv-side-rail-hide-btn:hover { background-color: var(--panel); color: var(--text); }
-.conv-side-rail-hide-btn:active { transform: scale(0.95); }
-.conv-side-rail-hide-btn:focus-visible {
+
+.conv-side-search-input:focus {
+  box-shadow: none;
   outline: none;
-  box-shadow: 0 0 0 2px var(--accent);
 }
-.conv-side-rail-icon { font-size: 1.125rem; }
-.conv-side-rail-icon-sm { font-size: 1rem; }
-.conv-side-rail-hide-icon { font-size: 0.875rem; }
+
+.conv-side-scroll {
+  flex: 1 1 0%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 12px 16px;
+  min-height: 0;
+}
 

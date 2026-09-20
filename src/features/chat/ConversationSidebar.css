@@ -1,4 +1,6 @@
 @import "./sidebar/SidebarShell.css";
 @import "./sidebar/SidebarHeader.css";
+@import "./sidebar/SidebarRail.css";
 @import "./sidebar/SidebarFolders.css";
+@import "./sidebar/ConversationRows.css";
 @import "./sidebar/SidebarFooter.css";

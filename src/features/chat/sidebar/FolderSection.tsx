@@ -36,7 +36,7 @@ export function FolderSection({
     <div className="conv-side-section">
       <div className="conv-side-section-head">
         <div className="conv-side-section-title">
-          Categories
+          <span className="conv-side-section-label">Categories</span>
         </div>
         <IconButton
           className="conv-side-add-folder-btn"
@@ -69,8 +69,8 @@ export function FolderSection({
       <div className="conv-side-folder-list">
         {folders.map((folder) => (
           <div key={folder.id} className="conv-side-folder-group">
-            <div className="conv-side-folder-row">
-              <div className="conv-side-folder-main" onClick={() => onToggleFolder(folder.id)}>
+            <div className="conv-side-folder-row" data-expanded={expandedFolders.has(folder.id) ? "true" : "false"}>
+              <div className="conv-side-folder-main" onClick={() => onToggleFolder(folder.id)} title={folder.name}>
                 <i className={`bi bi-chevron-${expandedFolders.has(folder.id) ? "down" : "right"} conv-side-folder-chevron`}></i>
                 <i className={`bi bi-folder${expandedFolders.has(folder.id) ? "-fill" : ""} conv-side-folder-icon`}></i>
                 <span className="conv-side-folder-name">{folder.name}</span>

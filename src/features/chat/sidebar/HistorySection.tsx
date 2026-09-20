@@ -10,7 +10,7 @@ export function HistorySection({ conversations, renderConversation }: HistorySec
   return (
     <div className="conv-side-section">
       <div className="conv-side-history-head">
-        History
+        <span className="conv-side-section-label">History</span>
       </div>
       <div className="conv-side-history-list">
         {conversations.map(renderConversation)}

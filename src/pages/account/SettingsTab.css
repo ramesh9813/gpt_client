@@ -186,6 +186,42 @@
   background-color: var(--accent);
 }
 
+/* Check row: flex cursor-pointer items-start gap-3 */
+.account-check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+}
+
+/* Check input: mt-1 h-4 w-4 shrink-0 accent-[var(--accent)] */
+.account-check-input {
+  margin-top: 0.25rem;
+  height: 1rem;
+  width: 1rem;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+}
+
+/* Check body: min-w-0 flex-1 */
+.account-check-body {
+  min-width: 0;
+  flex: 1 1 0%;
+}
+
+.account-check-label {
+  margin-bottom: 0;
+}
+
+/* Check hint: block text-xs text-[var(--muted)] */
+.account-check-hint {
+  display: block;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--muted);
+  margin-top: 0.25rem;
+}
+
 /* Form actions: flex items-center gap-3 pt-2 */
 .account-form-actions {
   display: flex;
