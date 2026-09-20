@@ -112,14 +112,17 @@ export const useChatStreaming = () => {
           if (streamDone) resolveOnce();
           return;
         }
+        // Frame-paced typewriter (~20fps): big enough chunks to stay lively,
+        // slow enough that React + layout + paint breathe between frames on
+        // low-end devices instead of re-rendering every few milliseconds.
         const chunkSize = Math.max(
-          40,
-          Math.min(160, Math.ceil(pendingText.length / 18))
+          120,
+          Math.min(480, Math.ceil(pendingText.length / 6))
         );
         const chunk = pendingText.slice(0, chunkSize);
         pendingText = pendingText.slice(chunkSize);
         appendChunk(chunk);
-        flushTimer = setTimeout(flushPending, 4);
+        flushTimer = setTimeout(flushPending, 50);
       };
 
       const startFlush = () => {
