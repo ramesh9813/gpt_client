@@ -138,8 +138,10 @@ const Composer = ({
 
   const canSend = value.trim().length > 0 || images.length > 0;
 
-  const handleSend = () => {
-    const trimmed = value.trim();
+  const handleSend = () => sendText(value);
+
+  const sendText = (text: string) => {
+    const trimmed = text.trim();
     if (!trimmed && images.length === 0) return;
     if (compressing) return;
     onSend(trimmed, images.length > 0 ? [...images] : undefined, researchArmed ? { research: true } : undefined);
@@ -153,6 +155,94 @@ const Composer = ({
     });
     clearImages();
   };
+
+  // Voice input: click mic to listen, click again to stop → transcript auto-sends.
+  const recognitionRef = useRef<any>(null);
+  const listeningRef = useRef(false);
+  const stopRequestedRef = useRef(false);
+  const finalTranscriptRef = useRef("");
+  const [listening, setListening] = useState(false);
+  const speechSupported =
+    typeof window !== "undefined" &&
+    !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+
+  const startListening = () => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR || disabled || streaming || compressing) return;
+    const rec = new SR();
+    rec.lang = navigator.language || "en-US";
+    rec.continuous = true;
+    rec.interimResults = true;
+    finalTranscriptRef.current = "";
+    stopRequestedRef.current = false;
+    listeningRef.current = true;
+    rec.onresult = (e: any) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const transcript = e.results[i][0]?.transcript || "";
+        if (e.results[i].isFinal) {
+          finalTranscriptRef.current += transcript;
+        } else {
+          interim += transcript;
+        }
+      }
+      setValue((finalTranscriptRef.current + " " + interim).trim());
+    };
+    rec.onerror = () => undefined;
+    rec.onend = () => {
+      if (stopRequestedRef.current) {
+        const text = finalTranscriptRef.current.trim();
+        finalTranscriptRef.current = "";
+        listeningRef.current = false;
+        setListening(false);
+        if (text) {
+          sendText(text);
+        } else {
+          setValue("");
+        }
+      } else if (listeningRef.current) {
+        // Unexpected end (e.g. mobile pause): resume while still listening.
+        try {
+          rec.start();
+        } catch {
+          listeningRef.current = false;
+          setListening(false);
+        }
+      }
+    };
+    recognitionRef.current = rec;
+    setListening(true);
+    try {
+      rec.start();
+    } catch {
+      listeningRef.current = false;
+      setListening(false);
+    }
+  };
+
+  const stopListening = () => {
+    stopRequestedRef.current = true;
+    listeningRef.current = false;
+    try {
+      recognitionRef.current?.stop();
+    } catch {
+      const text = finalTranscriptRef.current.trim();
+      finalTranscriptRef.current = "";
+      setListening(false);
+      if (text) sendText(text);
+    }
+  };
+
+  useEffect(
+    () => () => {
+      try {
+        recognitionRef.current?.abort();
+      } catch {
+        // ignore cleanup errors
+      }
+    },
+    []
+  );
 
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey) {
@@ -346,6 +436,21 @@ const Composer = ({
           </button>
 
             <div className="composer-spacer" />
+          {speechSupported && (
+            <Button
+              onClick={() => (listening ? stopListening() : startListening())}
+              disabled={disabled || streaming || compressing}
+              variant="ghost"
+              className={`composer-mic-btn ${
+                listening ? "composer-mic-btn-listening" : ""
+              }`}
+              aria-label={listening ? "Stop listening and send" : "Voice input"}
+              title={listening ? "Stop listening and send" : "Voice input"}
+              type="button"
+            >
+              <i className={`bi ${listening ? "bi-mic-fill" : "bi-mic"} composer-mic-icon`} aria-hidden="true" />
+            </Button>
+          )}
           {streaming ? (
             <Button
               onClick={onStop}
