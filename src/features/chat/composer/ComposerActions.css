@@ -36,7 +36,7 @@
   align-self: center;
   flex-shrink: 1;
   min-width: 0;
-  max-width: 7rem;
+  max-width: 10rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
