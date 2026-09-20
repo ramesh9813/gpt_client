@@ -84,6 +84,10 @@
   --assistantRow: #444654;
 }
 
+[data-font-scale="XSMALL"] {
+  font-size: 13px;
+}
+
 [data-font-scale="SMALL"] {
   font-size: 14px;
 }
@@ -94,6 +98,10 @@
 
 [data-font-scale="LARGE"] {
   font-size: 18px;
+}
+
+[data-font-scale="XLARGE"] {
+  font-size: 20px;
 }
 
 html {
