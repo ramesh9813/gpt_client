@@ -1,5 +1,5 @@
 import "./ArtifactViewer.css";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 export type ArtifactPreview = {
   id: string;
@@ -14,23 +14,14 @@ type ArtifactViewerProps = {
 
 const ArtifactViewer = ({ artifact, onClose }: ArtifactViewerProps) => {
   const [mode, setMode] = useState<"preview" | "code">("preview");
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const containerRef = useRef<HTMLElement | null>(null);
+  // Panel opens at 75% viewport height; expand takes it to 100%.
+  const [expanded, setExpanded] = useState(false);
 
-  // Reset to rendered preview whenever a different artifact opens.
+  // Reset to rendered preview at 75% height whenever a different artifact opens.
   useEffect(() => {
     setMode("preview");
+    setExpanded(false);
   }, [artifact?.id]);
-
-  useEffect(() => {
-    const onFsChange = () => {
-      setIsFullscreen(document.fullscreenElement != null);
-    };
-    document.addEventListener("fullscreenchange", onFsChange);
-    return () => {
-      document.removeEventListener("fullscreenchange", onFsChange);
-    };
-  }, []);
 
   useEffect(() => {
     if (!artifact) return;
@@ -45,25 +36,6 @@ const ArtifactViewer = ({ artifact, onClose }: ArtifactViewerProps) => {
     };
   }, [artifact, onClose]);
 
-  const handleFullscreen = useCallback(async () => {
-    try {
-      if (!document.fullscreenElement) {
-        const el = containerRef.current as (HTMLElement & {
-          requestFullscreen?: () => Promise<void>;
-        }) | null;
-        if (el?.requestFullscreen) {
-          await el.requestFullscreen();
-          return;
-        }
-      } else {
-        await document.exitFullscreen();
-        return;
-      }
-    } catch {
-      // Fullscreen unavailable (embedded iframe / denied) — stay in place.
-    }
-  }, []);
-
   if (!artifact) {
     return null;
   }
@@ -72,8 +44,7 @@ const ArtifactViewer = ({ artifact, onClose }: ArtifactViewerProps) => {
 
   return (
     <aside
-      ref={containerRef}
-      className={`artifact-root${isFullscreen ? " artifact-root--fullscreen" : ""}`}
+      className={`artifact-root${expanded ? " artifact-root--expanded" : ""}`}
       aria-label={`Artifact viewer: ${title}`}
     >
       <div className="artifact-header">
@@ -101,13 +72,13 @@ const ArtifactViewer = ({ artifact, onClose }: ArtifactViewerProps) => {
           <button
             type="button"
             className="artifact-btn"
-            onClick={() => void handleFullscreen()}
-            title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
-            aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
-            aria-pressed={isFullscreen}
+            onClick={() => setExpanded((prev) => !prev)}
+            title={expanded ? "Shrink to 75% height" : "Expand to full height"}
+            aria-label={expanded ? "Shrink to 75% height" : "Expand to full height"}
+            aria-pressed={expanded}
           >
             <i
-              className={`bi ${isFullscreen ? "bi-fullscreen-exit" : "bi-arrows-fullscreen"} artifact-btn-icon`}
+              className={`bi ${expanded ? "bi-arrows-collapse" : "bi-arrows-expand"} artifact-btn-icon`}
               aria-hidden="true"
             />
           </button>

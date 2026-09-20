@@ -10,20 +10,24 @@
   flex-direction: column;
   background-color: var(--panel);
   color: var(--text);
-  animation: artifact-slide-in 220ms ease-out;
-  transition: transform 250ms ease-in, opacity 250ms ease-in;
+  animation: artifact-open 260ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  transition:
+    transform 250ms ease-in,
+    opacity 250ms ease-in,
+    max-height 260ms ease-out,
+    height 260ms ease-out;
 }
 
 /* Slide-over cap: bottom-anchored sheet so the viewer never exceeds
    header (~57px) + 75vh body. Body itself scrolls internally. */
-.artifact-root:not(.artifact-root--fullscreen) {
+.artifact-root:not(.artifact-root--expanded) {
   top: auto;
   height: auto;
   max-height: calc(75vh + 57px);
   border-top: 1px solid var(--border);
 }
 
-.artifact-root--fullscreen {
+.artifact-root--expanded {
   position: fixed;
   inset: 0;
   top: 0;
@@ -37,9 +41,9 @@
   border-left: none;
 }
 
-@keyframes artifact-slide-in {
-  from { transform: translateX(48px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+@keyframes artifact-open {
+  from { transform: translateY(28px) scale(0.98); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -54,7 +58,7 @@
     border-left: 1px solid var(--border);
   }
   /* Desktop panel mode: shrink to content, cap at header + 75vh body. */
-  .artifact-root:not(.artifact-root--fullscreen) {
+  .artifact-root:not(.artifact-root--expanded) {
     top: auto;
     bottom: auto;
     height: auto;
@@ -62,7 +66,7 @@
     align-self: start;
     border-top: none;
   }
-  .artifact-root--fullscreen {
+  .artifact-root--expanded {
     position: fixed;
     inset: 0;
     z-index: 60;
@@ -193,20 +197,20 @@
 }
 
 /* Fullscreen: remove 75vh/40vh caps, use full height. */
-.artifact-root--fullscreen .artifact-content {
+.artifact-root--expanded .artifact-content {
   flex: 1 1 0%;
   min-height: 0;
   max-height: none;
   height: 100%;
 }
 
-.artifact-root--fullscreen .artifact-preview-frame {
+.artifact-root--expanded .artifact-preview-frame {
   flex: 1 1 0%;
   min-height: 0;
   height: 100%;
 }
 
-.artifact-root--fullscreen .artifact-code-pre {
+.artifact-root--expanded .artifact-code-pre {
   flex: 1 1 0%;
   min-height: 0;
 }
