@@ -15,108 +15,96 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  position: relative;
 }
 
+/* Transparent overlay container — takes no layout space, never blocks content. */
 .chat-header {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 0.5rem);
+  left: 0.5rem;
+  right: auto;
+  width: auto;
+  height: auto;
   display: flex;
-  height: 3rem;
-  align-items: center;
-  justify-content: space-between;
-  padding-left: 0.75rem;
-  padding-right: 0.75rem;
+  align-items: flex-start;
+  justify-content: flex-start;
+  background: transparent;
   background-color: transparent;
+  border: 0;
+  border-bottom: 0;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
   z-index: 30;
-  padding-top: env(safe-area-inset-top, 0px);
+  pointer-events: none;
   flex-shrink: 0;
 }
 
-@media (min-width: 640px) {
-  .chat-header {
-    height: 3.5rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
+/* Compact floating pill that wraps only the action icons. */
+.chat-header-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background-color: var(--panel);
+  box-shadow:
+    0 4px 16px rgb(0 0 0 / 0.08),
+    0 1px 2px rgb(0 0 0 / 0.06);
+  backdrop-filter: blur(12px) saturate(1.2);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+  pointer-events: auto;
+  max-width: calc(100vw - 1rem);
+}
+
+@supports (background: color-mix(in srgb, red 50%, transparent)) {
+  .chat-header-pill {
+    background-color: color-mix(in srgb, var(--panel) 82%, transparent);
   }
 }
 
-.chat-header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  overflow: hidden;
+.chat-header-divider {
+  width: 1px;
+  height: 1.25rem;
+  background-color: var(--border);
+  margin-left: 0.125rem;
+  margin-right: 0.125rem;
+  flex-shrink: 0;
+}
+
+/* Icon buttons inside the pill — compact, circular, borderless. */
+.chat-header-pill .chat-sidebar-toggle,
+.chat-header-pill .chat-newchat-btn,
+.chat-header-pill .chat-canvas-toggle {
+  height: 2rem;
+  width: 2rem;
+  min-height: 32px;
+  min-width: 32px;
+  border-radius: 9999px;
+  border-color: transparent;
+  background-color: transparent;
+  box-shadow: none;
 }
 
 .chat-sidebar-toggle {
-  height: 2.5rem;
-  width: 2.5rem;
-  min-height: 40px;
-  min-width: 40px;
-}
-
-.chat-title {
-  font-weight: 600;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  overflow: hidden;
-}
-
-@media (min-width: 640px) {
-  .chat-title {
-    font-size: 1rem;
-    line-height: 1.5rem;
-  }
-}
-
-.chat-title-brand {
-  color: var(--text);
-  flex-shrink: 0;
-}
-
-/* Android/mobile view: hide header title text and canvas toggle to save top space. */
-@media (max-width: 639px) {
-  .chat-title,
-  .chat-canvas-toggle {
-    display: none;
-  }
-}
-
-.chat-title-sub {
-  display: none;
-  font-size: 0.75rem;
-  line-height: 1rem;
-  color: var(--muted);
-  max-width: 240px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 400;
-}
-
-@media (min-width: 640px) {
-  .chat-title-sub {
-    display: inline-block;
-  }
+  height: 2rem;
+  width: 2rem;
+  min-height: 32px;
+  min-width: 32px;
 }
 
 .chat-newchat-btn {
   display: inline-flex;
-  height: 2.5rem;
-  width: 2.5rem;
-  min-height: 40px;
-  min-width: 40px;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border-radius: 0.5rem;
-  border-width: 1px;
-  border-style: solid;
-  border-color: var(--border);
-  background-color: var(--panel);
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  background-color: transparent;
   color: var(--text);
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  transition-property: all;
+  transition-property: background-color, transform, opacity;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
@@ -145,31 +133,18 @@
   line-height: 1.25rem;
 }
 
-.chat-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-shrink: 0;
-}
-
 .chat-canvas-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 2.5rem;
-  width: 2.5rem;
-  min-height: 40px;
-  min-width: 40px;
   flex-shrink: 0;
-  border-radius: 0.5rem;
-  border-width: 1px;
-  border-style: solid;
-  border-color: transparent;
+  border-radius: 9999px;
+  border: 1px solid transparent;
   background-color: transparent;
   font-size: 1rem;
   line-height: 1.5rem;
   color: var(--text);
-  transition-property: all;
+  transition-property: background-color, transform;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
@@ -182,12 +157,13 @@
   transform: scale(0.95);
 }
 
-
-
 .chat-content {
   display: flex;
   flex: 1 1 0%;
   min-height: 0;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
   overflow: hidden;
   position: relative;
 }
@@ -196,7 +172,41 @@
   display: flex;
   min-width: 0;
   flex: 1 1 0%;
+  width: 100%;
+  max-width: 100%;
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+}
+
+/* Content scrolls beneath the floating pill — minimal top clearance only. */
+.chat-thread .msg-list {
+  flex: 1 1 0%;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+.chat-thread .msg-list-inner {
+  padding-top: 3.25rem;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .chat-header {
+    top: calc(env(safe-area-inset-top, 0px) + 0.75rem);
+    left: 0.75rem;
+  }
+
+  .chat-thread .msg-list-inner {
+    padding-top: 3.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-header-pill,
+  .chat-newchat-btn,
+  .chat-canvas-toggle {
+    transition: none;
+  }
 }
