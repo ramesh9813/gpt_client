@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import {
+  oneLight,
+  vscDarkPlus,
+} from "react-syntax-highlighter/dist/esm/styles/prism";
+import { useIsDark } from "../../../lib/useIsDark";
 import { apiFetch, ApiResponse } from "../../../lib/api";
 import { CopyButton } from "./MessageButtons";
 
@@ -23,6 +27,7 @@ export const CodeBlockWithRun = ({
 }) => {
   const normalized = normalizeRunLanguage(language);
   const runnable = RUN_LANGS.has(language.toLowerCase());
+  const isDark = useIsDark();
   const [runState, setRunState] = useState<{
     status: "idle" | "running" | "done" | "error";
     output?: string;
@@ -100,7 +105,7 @@ export const CodeBlockWithRun = ({
       <SyntaxHighlighter
         PreTag="div"
         language={language}
-        style={vscDarkPlus}
+        style={isDark ? vscDarkPlus : oneLight}
         codeTagProps={{
           style: {
             backgroundColor: "transparent",
@@ -109,9 +114,12 @@ export const CodeBlockWithRun = ({
         }}
         customStyle={{
           margin: 0,
-          background: "#000",
+          background: isDark ? "#000" : "#ffffff",
           padding: "1rem",
-          fontSize: "14px"
+          fontSize: "14px",
+          lineHeight: 1.6,
+          borderRadius: "12px",
+          border: isDark ? "none" : "1px solid var(--border)"
         }}
       >
         {code.replace(/\n$/, "")}

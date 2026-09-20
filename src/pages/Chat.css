@@ -168,8 +168,8 @@
   border-radius: 0.5rem;
   border-width: 1px;
   border-style: solid;
-  border-color: var(--border);
-  background-color: var(--panel);
+  border-color: transparent;
+  background-color: transparent;
   padding-top: 0.25rem;
   padding-bottom: 0.25rem;
   padding-left: 0.625rem;
