@@ -18,6 +18,7 @@ export type UserSettings = {
   fontScale: "XSMALL" | "SMALL" | "DEFAULT" | "LARGE" | "XLARGE";
   brand: BrandId;
   pinHeader: boolean;
+  model: string;
 };
 
 export const useMe = (enabled = true) =>

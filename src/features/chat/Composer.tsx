@@ -250,13 +250,20 @@ const Composer = ({
             onChange={(e) => handleFiles(e.target.files)}
           />
 
-          <span
+          <button
+            type="button"
             className="composer-model-tag"
             title={currentModelLabel}
-            aria-label={`Selected model: ${currentModelLabel}`}
+            aria-label={`Selected model: ${currentModelLabel}. Change model`}
+            aria-haspopup="dialog"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={() => {
+              setMenuOpen(true);
+              setModelMenuOpen(true);
+            }}
           >
             {currentModelLabel}
-          </span>
+          </button>
 
             <div className="composer-spacer" />
           {streaming ? (

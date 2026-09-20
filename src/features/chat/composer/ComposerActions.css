@@ -34,6 +34,13 @@
 /* Selected-model tag beside the image button: muted, single-line, ellipsis. */
 .composer-model-tag {
   align-self: center;
+  background: transparent;
+  border: 0;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
   flex-shrink: 1;
   min-width: 0;
   max-width: 10rem;
@@ -45,6 +52,9 @@
   color: var(--muted);
   padding-left: 0.125rem;
   padding-right: 0.125rem;
+}
+.composer-model-tag:hover {
+  color: var(--text);
 }
 
 .composer-stop-btn {
