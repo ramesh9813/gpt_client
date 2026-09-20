@@ -7,7 +7,12 @@ export type OpenRouterModel = {
   is_deprecated?: boolean;
   status?: string;
   speed_rank?: number;
-  pricing?: { prompt: string; completion: string };
+  architecture?: {
+    modality?: string;
+    input_modalities?: string[];
+    output_modalities?: string[];
+  };
+  pricing?: { prompt: string; completion: string; image?: string };
 };
 
 export type CachedCatalog = {

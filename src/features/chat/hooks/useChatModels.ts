@@ -14,7 +14,13 @@ import { formatUpdatedAgo } from "../utils/formatUpdatedAgo";
 
 export type SortOption = "name" | "cheapest" | "free" | "speed";
 
-export type ModelOption = { label: string; value: string; supportsResearch?: boolean };
+export type ModelOption = {
+  label: string;
+  value: string;
+  supportsResearch?: boolean;
+  supportsImage?: boolean;
+  supportsVideo?: boolean;
+};
 
 export type ModelsStale = { offline: boolean; updatedAgo: string };
 
@@ -209,10 +215,23 @@ export const useChatModels = () => {
         } else if (name.includes(":")) {
           name = name.split(":").slice(1).join(":");
         }
+        const out = m.architecture?.output_modalities;
+        const supportsImage =
+          (Array.isArray(out) && out.includes("image")) ||
+          m.id.toLowerCase().includes("image") ||
+          (m.name || "").toLowerCase().includes("image") ||
+          m.id.toLowerCase().includes("flux");
+        const supportsVideo =
+          (Array.isArray(out) && out.includes("video")) ||
+          m.id.toLowerCase().includes("video") ||
+          (m.name || "").toLowerCase().includes("video");
+
         return {
           label: name.trim(),
           value: m.id,
           supportsResearch: isDeepResearchModel(m.id, m.name),
+          supportsImage,
+          supportsVideo,
         };
       });
   }, [effectiveModels, sortBy]);

@@ -5,7 +5,13 @@ import { ModelSortMenu } from "./ModelSortMenu";
 import { formatUpdatedAgo } from "../utils/formatUpdatedAgo";
 import "./ModelMenu.css";
 
-export type ModelOption = { label: string; value: string; supportsResearch?: boolean };
+export type ModelOption = {
+  label: string;
+  value: string;
+  supportsResearch?: boolean;
+  supportsImage?: boolean;
+  supportsVideo?: boolean;
+};
 export type SortOption = "name" | "cheapest" | "free" | "speed";
 
 export type ModelsStaleInfo = { offline: boolean; updatedAgo: string };
@@ -56,12 +62,14 @@ export const ModelMenu = ({
   const [sortOpen, setSortOpen] = useState(false);
   // Research mode: list only deep-research-capable models.
   const [researchOnly, setResearchOnly] = useState(false);
+  const [imageOnly, setImageOnly] = useState(false);
 
   useEffect(() => {
     if (!menuOpen) {
       setModelQuery("");
       setSortOpen(false);
       setResearchOnly(false);
+      setImageOnly(false);
     }
   }, [menuOpen]);
 
@@ -69,6 +77,8 @@ export const ModelMenu = ({
     if (!modelMenuOpen) {
       setModelQuery("");
       setSortOpen(false);
+      setResearchOnly(false);
+      setImageOnly(false);
     }
   }, [modelMenuOpen]);
 
@@ -77,7 +87,16 @@ export const ModelMenu = ({
     [modelOptions]
   );
 
-  const visibleOptions = researchOnly ? researchOptions : modelOptions;
+  const imageOptions = useMemo(
+    () => modelOptions.filter((option) => option.supportsImage),
+    [modelOptions]
+  );
+
+  const visibleOptions = researchOnly
+    ? researchOptions
+    : imageOnly
+    ? imageOptions
+    : modelOptions;
 
   const filtered = useMemo(() => {
     const q = modelQuery.trim().toLowerCase();
@@ -101,18 +120,28 @@ export const ModelMenu = ({
   const openModelList = () => {
     setModelQuery("");
     setResearchOnly(false);
+    setImageOnly(false);
     onModelMenuOpenChange(true);
   };
 
   const openResearchList = () => {
     setModelQuery("");
     setResearchOnly(true);
+    setImageOnly(false);
+    onModelMenuOpenChange(true);
+  };
+
+  const openImageList = () => {
+    setModelQuery("");
+    setResearchOnly(false);
+    setImageOnly(true);
     onModelMenuOpenChange(true);
   };
 
   const closeModelList = () => {
     setModelQuery("");
     setResearchOnly(false);
+    setImageOnly(false);
     onModelMenuOpenChange(false);
   };
 
@@ -121,6 +150,7 @@ export const ModelMenu = ({
     if (researchOnly) onResearchSelect?.();
     setModelQuery("");
     setResearchOnly(false);
+    setImageOnly(false);
     onModelMenuOpenChange(false);
     onCloseMenu();
   };
@@ -165,7 +195,7 @@ export const ModelMenu = ({
           <button
             type="button"
             className="composer-option-btn"
-            onClick={onCloseMenu}
+            onClick={openImageList}
           >
             <i className="bi bi-image composer-icon-purple"></i>
             <span>Image Generation</span>
@@ -200,8 +230,20 @@ export const ModelMenu = ({
                 value={modelQuery}
                 onChange={(e) => setModelQuery(e.target.value)}
                 onKeyDown={(e) => e.stopPropagation()}
-                placeholder={researchOnly ? "Search research models..." : "Search models..."}
-                aria-label={researchOnly ? "Search research models" : "Search models"}
+                placeholder={
+                  researchOnly
+                    ? "Search research models..."
+                    : imageOnly
+                      ? "Search image generation models..."
+                      : "Search models..."
+                }
+                aria-label={
+                  researchOnly
+                    ? "Search research models"
+                    : imageOnly
+                      ? "Search image generation models"
+                      : "Search models"
+                }
                 className="composer-query-input"
               />
               {modelQuery && (
@@ -242,9 +284,11 @@ export const ModelMenu = ({
                   ? "Loading models…"
                   : researchOnly
                     ? "No deep-research models available on your plan"
-                    : modelQuery.trim()
-                      ? "No models found"
-                      : "No models available"}
+                    : imageOnly
+                      ? "No image generation models found"
+                      : modelQuery.trim()
+                        ? "No models found"
+                        : "No models available"}
               </div>
             )}
           </div>
