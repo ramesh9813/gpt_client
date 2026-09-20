@@ -48,11 +48,77 @@ const Composer = ({
   // Armed when the user picks a model from the Deep Research list.
   const [researchArmed, setResearchArmed] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const menuRef = useRef<HTMLDivElement>(null);
   const [showRecents, setShowRecents] = useState(false);
   const { images, compressing, fileInputRef, handleFiles, removeImage, clearImages, recents, attachRecent } =
     useComposerImages();
+
+  useEffect(() => {
+    if (!cameraOpen) return;
+    let cancelled = false;
+    const stopStream = () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    };
+    (async () => {
+      setCameraError(null);
+      try {
+        stopStream();
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("unsupported");
+        }
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode },
+          audio: false,
+        });
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play().catch(() => undefined);
+        }
+      } catch {
+        if (!cancelled) {
+          setCameraError("Could not access the camera. Allow permission and retry.");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      stopStream();
+      if (videoRef.current) videoRef.current.srcObject = null;
+    };
+  }, [cameraOpen, facingMode]);
+
+  const handleCapturePhoto = () => {
+    const video = videoRef.current;
+    if (!video || video.videoWidth === 0) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d")?.drawImage(video, 0, 0);
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return;
+        const file = new File([blob], `photo-${Date.now()}.jpg`, {
+          type: "image/jpeg",
+        });
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        void handleFiles(dt.files);
+      },
+      "image/jpeg",
+      0.92
+    );
+  };
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -251,28 +317,18 @@ const Composer = ({
             onChange={(e) => handleFiles(e.target.files)}
           />
 
-          {/* Take photo button — opens the camera directly on mobile */}
+          {/* Take photo button — opens the in-app camera below */}
           <Button
             variant="ghost"
             className="composer-upload-btn"
             disabled={disabled || compressing}
-            aria-label="Take photo"
-            title="Take photo"
-            onClick={() => cameraInputRef.current?.click()}
+            aria-label={cameraOpen ? "Close camera" : "Take photo"}
+            title={cameraOpen ? "Close camera" : "Take photo"}
+            onClick={() => setCameraOpen((prev) => !prev)}
             type="button"
           >
-            <i className="bi bi-camera composer-upload-icon" aria-hidden="true" />
+            <i className={`bi ${cameraOpen ? "bi-camera-fill" : "bi-camera"} composer-upload-icon`} aria-hidden="true" />
           </Button>
-          <input
-            ref={cameraInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            hidden
-            aria-hidden="true"
-            tabIndex={-1}
-            onChange={(e) => handleFiles(e.target.files)}
-          />
 
           <button
             type="button"
@@ -328,6 +384,54 @@ const Composer = ({
       {error ? (
         <div className="composer-error">{error}</div>
       ) : null}
+      {/* In-app camera viewfinder: half-height panel just below the input card */}
+      {cameraOpen && (
+        <div className="composer-camera-view">
+          {cameraError ? (
+            <div className="composer-camera-error">{cameraError}</div>
+          ) : (
+            <video
+              ref={videoRef}
+              className="composer-camera-video"
+              autoPlay
+              playsInline
+              muted
+            />
+          )}
+          <div className="composer-camera-bar">
+            <button
+              type="button"
+              className="composer-camera-btn"
+              onClick={() => setCameraOpen(false)}
+              aria-label="Close camera"
+              title="Close camera"
+            >
+              <i className="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+            <button
+              type="button"
+              className="composer-camera-shutter"
+              onClick={handleCapturePhoto}
+              disabled={!!cameraError}
+              aria-label="Capture photo"
+              title="Capture photo"
+            >
+              <i className="bi bi-circle" aria-hidden="true"></i>
+            </button>
+            <button
+              type="button"
+              className="composer-camera-btn"
+              onClick={() =>
+                setFacingMode((prev) => (prev === "environment" ? "user" : "environment"))
+              }
+              aria-label="Switch camera"
+              title="Switch camera"
+            >
+              <i className="bi bi-arrow-repeat" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
