@@ -19,7 +19,7 @@
   top: 0;
   bottom: 0;
   left: 0;
-  z-index: 50;
+  z-index: 9999;
   width: 18rem;
   transition-property: width, transform;
   transition-duration: 200ms;
@@ -63,7 +63,7 @@
 .conv-side-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  z-index: 9998;
   background-color: var(--panel);
   background-color: color-mix(in srgb, var(--text) 22%, transparent);
   backdrop-filter: blur(4px);
