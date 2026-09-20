@@ -44,8 +44,14 @@ export const useSwipeSidebar = ({
           touchStartX = 0;
           return;
         }
-        // Don't trigger if swiping inside a horizontally scrollable code block or pre element
-        const scrollable = target.closest("pre, code, .overflow-x-auto");
+        // Never trigger from inside a code card: horizontal swipes there mean
+        // reading/scrolling long code lines, not opening side panels.
+        if (target.closest("pre, code")) {
+          touchStartX = 0;
+          return;
+        }
+        // Don't trigger if swiping inside other horizontally scrollable content
+        const scrollable = target.closest(".overflow-x-auto");
         if (scrollable && scrollable.scrollWidth > scrollable.clientWidth) {
           touchStartX = 0;
           return;
