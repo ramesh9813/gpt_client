@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch, ApiResponse } from "./api";
+import type { BrandId } from "./brandTheme";
 
 export type UserRole = "admin" | "owner" | "user";
 
@@ -16,6 +17,7 @@ export type UserSettings = {
   theme: "SYSTEM" | "DARK" | "LIGHT";
   accentColor: string;
   fontScale: "SMALL" | "DEFAULT" | "LARGE";
+  brand: BrandId;
 };
 
 export const useMe = (enabled = true) =>

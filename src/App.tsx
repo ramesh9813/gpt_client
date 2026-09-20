@@ -2,6 +2,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { useMe, useSettings } from "./lib/hooks";
 import { applyTheme } from "./lib/theme";
+import { applyBrand, isBrandId } from "./lib/brandTheme";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Chat from "./pages/Chat";
@@ -31,8 +32,10 @@ const App = () => {
 
   useEffect(() => {
     const settings = data?.data?.settings;
-    if (settings) {
-      applyTheme(settings.theme, settings.accentColor, settings.fontScale);
+    if (!settings) return;
+    applyTheme(settings.theme, settings.accentColor, settings.fontScale);
+    if (isBrandId((settings as { brand?: unknown }).brand)) {
+      applyBrand(settings.brand);
     }
   }, [data]);
 

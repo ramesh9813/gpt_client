@@ -9,6 +9,7 @@ import { Input } from "../components/Input";
 import { apiFetch, ApiResponse, clearAuthStorage } from "../lib/api";
 import { useMe, useSettings } from "../lib/hooks";
 import { applyTheme } from "../lib/theme";
+import { BRANDS, applyBrand, isBrandId, type BrandId } from "../lib/brandTheme";
 import { UsageChart, UsageLog } from "../features/settings/UsageChart";
 
 // --- Types ---
@@ -19,6 +20,7 @@ const settingsSchema = z.object({
   theme: z.enum(["SYSTEM", "DARK", "LIGHT"]),
   accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   fontScale: z.enum(["SMALL", "DEFAULT", "LARGE"]),
+  brand: z.enum(["default", "chatgpt", "claude", "gemini", "grok", "deepseek"]),
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
@@ -38,13 +40,22 @@ const SettingsTab = () => {
       theme: "SYSTEM",
       accentColor: "#74aa9c",
       fontScale: "DEFAULT",
+      brand: "default" as BrandId,
     },
   });
 
   useEffect(() => {
-    const settings = data?.data?.settings;
+    const settings = data?.data?.settings as
+      | Partial<SettingsFormValues>
+      | undefined;
     if (settings) {
-      reset(settings);
+      reset({
+        theme: "SYSTEM",
+        accentColor: "#74aa9c",
+        fontScale: "DEFAULT",
+        ...settings,
+        brand: isBrandId(settings.brand) ? settings.brand : "default",
+      });
     }
   }, [data, reset]);
 
@@ -53,9 +64,23 @@ const SettingsTab = () => {
       if (values.theme && values.accentColor && values.fontScale) {
         applyTheme(values.theme, values.accentColor, values.fontScale);
       }
+      if (isBrandId(values.brand)) {
+        applyBrand(values.brand);
+      }
     });
     return () => subscription.unsubscribe();
   }, [watch]);
+
+  const watchedTheme = watch("theme");
+  const previewMode =
+    watchedTheme === "DARK"
+      ? "dark"
+      : watchedTheme === "LIGHT"
+        ? "light"
+        : typeof window !== "undefined" &&
+            window.matchMedia?.("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
 
   const onSubmit = async (values: SettingsFormValues) => {
     setStatus(null);
@@ -107,6 +132,47 @@ const SettingsTab = () => {
             <option value="LARGE">Large</option>
           </select>
         </div>
+        <fieldset>
+          <legend className="mb-1 block text-sm font-medium text-[var(--text)]">
+            Assistant theme
+          </legend>
+          <div className="space-y-2">
+            {BRANDS.map((b) => (
+              <label
+                key={b.id}
+                className="flex cursor-pointer gap-3 rounded-lg border border-[var(--border)] bg-[var(--panel)] p-3 transition-colors has-[:checked]:border-[var(--accent)]"
+              >
+                <input
+                  type="radio"
+                  value={b.id}
+                  {...register("brand")}
+                  className="mt-1 h-4 w-4 shrink-0 accent-[var(--accent)]"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium text-[var(--text)]">
+                    {b.name}
+                  </span>
+                  <span className="block text-xs text-[var(--muted)]">
+                    {b.tagline}
+                  </span>
+                  <span
+                    data-brand={b.id}
+                    data-theme={previewMode}
+                    className="mt-2 block rounded-md border border-[var(--border)] bg-[var(--bg)] p-2"
+                  >
+                    <span className="block rounded bg-[var(--panel)] px-2 py-1 text-xs text-[var(--text)]">
+                      Aa — assistant reply in {b.name} style
+                    </span>
+                    <span className="user-message-card mt-1 block rounded px-2 py-1 text-xs">
+                      User bubble
+                    </span>
+                    <span className="mt-1.5 block h-2 w-16 rounded-full bg-[var(--accent)]" />
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
         <div className="flex items-center gap-3 pt-2">
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Saving..." : "Save settings"}
