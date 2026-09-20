@@ -1,12 +1,14 @@
-import { RefObject, memo } from "react";
+import { RefObject, memo, useMemo } from "react";
 import { DownloadMenu } from "../../../components/DownloadMenu";
 import type { ChatMessage, ModelOption, QuizRound } from "./types";
+import type { ArtifactBlock } from "../artifact";
 import { MessageImages } from "./MessageImages";
 import { VideoBlock } from "./VideoBlock";
 import { MarkdownContent } from "./MarkdownContent";
 import { CopyButton, ShareButton } from "./MessageButtons";
 import { RegenerateMenu } from "./RegenerateMenu";
 import { QuizCard } from "./QuizCard";
+import { ArtifactCard } from "./ArtifactCard";
 
 type AssistantMessageProps = {
   message: ChatMessage;
@@ -21,6 +23,8 @@ type AssistantMessageProps = {
   onNextRound?: (topic: string) => void;
   activeStreamId?: string | null;
   listRef: RefObject<HTMLDivElement>;
+  artifacts?: ArtifactBlock[];
+  onOpenArtifact?: (artifact: ArtifactBlock) => void;
 };
 
 export const AssistantMessage = memo(
@@ -36,9 +40,19 @@ export const AssistantMessage = memo(
     onQuizSelect,
     onNextRound,
     activeStreamId,
-    listRef
+    listRef,
+    artifacts,
+    onOpenArtifact
   }: AssistantMessageProps) => {
-  if (!message.content && !(message.images && message.images.length > 0) && !(message.videos && message.videos.length > 0) && !message.quiz && message.status !== "STREAMING") {
+  const messageArtifacts = useMemo(
+    () =>
+      artifacts && artifacts.length > 0
+        ? artifacts.filter((a) => a.messageId === message.id)
+        : [],
+    [artifacts, message.id]
+  );
+
+  if (!message.content && !(message.images && message.images.length > 0) && !(message.videos && message.videos.length > 0) && !message.quiz && message.status !== "STREAMING" && messageArtifacts.length === 0) {
     return null;
   }
 
@@ -86,7 +100,20 @@ export const AssistantMessage = memo(
             Code sent to Canvas
           </div>
         ) : (
-          <MarkdownContent content={displayContent} />
+          <>
+            {messageArtifacts.length > 0 ? (
+              <div className="msg-artifacts">
+                {messageArtifacts.map((artifact) => (
+                  <ArtifactCard
+                    key={artifact.id}
+                    artifact={artifact}
+                    onOpenArtifact={onOpenArtifact}
+                  />
+                ))}
+              </div>
+            ) : null}
+            {displayContent ? <MarkdownContent content={displayContent} /> : null}
+          </>
         )}
         {message.quiz && message.quiz.questions.length > 0 ? (
           <QuizCard
@@ -168,8 +195,9 @@ export const AssistantMessage = memo(
 },
 // Settled answers skip re-renders while another message streams: only a new
 // message identity, new content, canvas/stream flags, or a longer thread
-// (new/removed messages) re-render a row. Volatile callbacks and the thread
-// array identity are intentionally ignored.
+// (new/removed messages) re-render a row. Volatile callbacks, the thread
+// array identity, and the shared artifacts array identity are intentionally
+// ignored — per-message content identity already covers artifact changes.
 (prev, next) =>
   prev.message === next.message &&
   prev.displayContent === next.displayContent &&

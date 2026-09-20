@@ -1,6 +1,7 @@
 import "./MessageList.css";
 import { useEffect, useRef, useState } from "react";
 import type { ChatMessage, ModelOption, QuizRound } from "./message/types";
+import type { ArtifactBlock } from "./artifact";
 import { useMessageEdit } from "./message/useMessageEdit";
 import { UserMessage } from "./message/UserMessage";
 import { AssistantMessage } from "./message/AssistantMessage";
@@ -20,6 +21,8 @@ type MessageListProps = {
   activeStreamId?: string | null;
   contentOverrides?: Record<string, string>;
   hasCanvasCode?: Record<string, boolean>;
+  artifacts?: ArtifactBlock[];
+  onOpenArtifact?: (artifact: ArtifactBlock) => void;
   onScrollDirection?: (direction: "up" | "down") => void;
 };
 
@@ -36,6 +39,8 @@ const MessageList = ({
   activeStreamId,
   contentOverrides,
   hasCanvasCode,
+  artifacts,
+  onOpenArtifact,
   onScrollDirection
 }: MessageListProps) => {
   const listRef = useRef<HTMLDivElement>(null);
@@ -193,6 +198,8 @@ const MessageList = ({
               onNextRound={onNextRound}
               activeStreamId={activeStreamId}
               listRef={listRef}
+              artifacts={artifacts}
+              onOpenArtifact={onOpenArtifact}
             />
           );
         })}

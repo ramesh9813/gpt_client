@@ -24,6 +24,9 @@ export interface ComposerToolbarProps {
   onModelChange: (value: string) => void;
   currentModelLabel: string;
   onResearchSelect: () => void;
+  onArtifactSelect: () => void;
+  researchArmed?: boolean;
+  artifactArmed?: boolean;
   disabled?: boolean;
   compressing?: boolean;
   hasRecents: boolean;
@@ -69,6 +72,9 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
     onModelChange,
     currentModelLabel,
     onResearchSelect,
+    onArtifactSelect,
+    researchArmed,
+    artifactArmed,
     disabled,
     compressing,
     hasRecents,
@@ -123,6 +129,9 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
           onModelMenuOpenChange={onModelMenuOpenChange}
           onCloseMenu={onCloseMenu}
           onResearchSelect={onResearchSelect}
+          onArtifactSelect={onArtifactSelect}
+          researchArmed={researchArmed}
+          artifactArmed={artifactArmed}
         />
       )}
     </div>

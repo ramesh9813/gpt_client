@@ -2,19 +2,24 @@ export interface ComposerStatusProps {
   researchArmed: boolean;
   currentModelLabel: string;
   onClearResearch: () => void;
+  artifactArmed?: boolean;
+  onClearArtifact?: () => void;
   listening: boolean;
   error?: string | null;
   listenError?: string | null;
 }
 
 /**
- * Status rows above the input: armed-research chip, mic visualizer,
- * and error lines. Split from Composer.tsx. No logic changes.
+ * Status rows above the input: armed-research chip, armed-artifact chip,
+ * mic visualizer, and error lines. Split from Composer.tsx. No logic changes
+ * beyond the additive artifact chip (mirrors research chip exactly).
  */
 export const ComposerStatus = ({
   researchArmed,
   currentModelLabel,
   onClearResearch,
+  artifactArmed,
+  onClearArtifact,
   listening,
   error,
   listenError,
@@ -33,6 +38,24 @@ export const ComposerStatus = ({
             onClick={onClearResearch}
             aria-label="Cancel deep research"
             title="Cancel deep research"
+          >
+            <i className="bi bi-x" aria-hidden="true"></i>
+          </button>
+        </div>
+      )}
+
+      {artifactArmed && (
+        <div className="composer-artifact-chip">
+          <i className="bi bi-window-stack composer-artifact-icon" aria-hidden="true"></i>
+          <span className="composer-artifact-label" title="Artifact preview on send">
+            Artifact • Interactive preview
+          </span>
+          <button
+            type="button"
+            className="composer-artifact-clear"
+            onClick={onClearArtifact}
+            aria-label="Cancel artifact mode"
+            title="Cancel artifact mode"
           >
             <i className="bi bi-x" aria-hidden="true"></i>
           </button>

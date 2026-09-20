@@ -29,6 +29,9 @@ type ModelMenuProps = {
   onModelMenuOpenChange: (open: boolean) => void;
   onCloseMenu: () => void;
   onResearchSelect?: () => void;
+  onArtifactSelect?: () => void;
+  researchArmed?: boolean;
+  artifactArmed?: boolean;
   // Catalog freshness footer (from useChatModels):
   modelsTotal?: number;
   modelsUpdatedAt?: string | null;
@@ -51,6 +54,9 @@ export const ModelMenu = ({
   onModelMenuOpenChange,
   onCloseMenu,
   onResearchSelect,
+  onArtifactSelect,
+  researchArmed,
+  artifactArmed,
   modelsTotal,
   modelsUpdatedAt,
   modelsStale,
@@ -155,6 +161,13 @@ export const ModelMenu = ({
     onCloseMenu();
   };
 
+  const selectArtifact = () => {
+    // Arm artifact mode only — never auto-send. The user reviews/edits the
+    // prompt, then hits Send (mirrors researchArmed one-shot pattern).
+    onArtifactSelect?.();
+    onCloseMenu();
+  };
+
   return (
     <div className="composer-popover">
       {!modelMenuOpen ? (
@@ -180,9 +193,26 @@ export const ModelMenu = ({
             type="button"
             className="composer-option-btn"
             onClick={openResearchList}
+            aria-pressed={researchArmed}
           >
             <i className="bi bi-compass composer-icon-blue"></i>
             <span>Deep Research</span>
+            {researchArmed ? (
+              <span className="composer-option-badge">Armed</span>
+            ) : null}
+          </button>
+          <button
+            type="button"
+            className="composer-option-btn"
+            onClick={selectArtifact}
+            aria-pressed={artifactArmed}
+            title="Generate an interactive artifact preview"
+          >
+            <i className="bi bi-window-stack composer-icon-orange"></i>
+            <span>Artifact / Simulation</span>
+            {artifactArmed ? (
+              <span className="composer-option-badge">Armed</span>
+            ) : null}
           </button>
           <button
             type="button"

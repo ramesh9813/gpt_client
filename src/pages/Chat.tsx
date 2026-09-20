@@ -1,5 +1,5 @@
 import "./Chat.css";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ConversationSidebar from "../features/chat/ConversationSidebar";
@@ -10,6 +10,9 @@ import type { QuizRound } from "../features/chat/MessageList";
 import Composer from "../features/chat/Composer";
 import { apiFetch, ApiResponse } from "../lib/api";
 import CanvasPanel from "../features/chat/CanvasPanel";
+import ArtifactViewer from "../features/chat/ArtifactViewer";
+import { buildArtifactData } from "../features/chat/artifact";
+import type { ArtifactBlock } from "../features/chat/artifact";
 import { useChatStreaming } from "../features/chat/hooks/useChatStreaming";
 import { useChatModels } from "../features/chat/hooks/useChatModels";
 import { useChatMessages } from "../features/chat/hooks/useChatMessages";
@@ -89,6 +92,34 @@ const Chat = () => {
     openCanvas,
     closeCanvas,
   } = useChatCanvas(messages);
+
+  // Artifact viewer: Chat-owned state, mirrors canvasData derivation.
+  // buildArtifactData scans ASSISTANT messages for ```html:artifact fences
+  // (canvas.ts explicitly excludes those, so the two panels never compete).
+  // lastUserMessage feeds the title fallback (first 40 chars) when the HTML
+  // has no <title> tag.
+  const artifactData = useMemo(
+    () => buildArtifactData(messages, lastUserMessage || undefined),
+    [messages, lastUserMessage]
+  );
+  const [openArtifact, setOpenArtifact] = useState<ArtifactBlock | null>(null);
+  const handleOpenArtifact = useCallback((artifact: ArtifactBlock) => {
+    setOpenArtifact(artifact);
+  }, []);
+  const handleCloseArtifact = useCallback(() => {
+    setOpenArtifact(null);
+  }, []);
+
+  // Artifact fences are always stripped from the thread (ArtifactCard replaces
+  // the raw HTML); canvas stripping applies only while the canvas is open.
+  const combinedOverrides = useMemo(
+    () => ({
+      ...(showCanvas ? canvasData.displayMap : {}),
+      ...artifactData.displayMap,
+    }),
+    [showCanvas, canvasData.displayMap, artifactData.displayMap]
+  );
+  const hasOverrides = Object.keys(combinedOverrides).length > 0;
 
   useSwipeSidebar({
     isMobile,
@@ -228,6 +259,27 @@ const Chat = () => {
                 </button>
               </>
             ) : null}
+            {artifactData.blocks.length > 0 ? (
+              <>
+                <span className="chat-header-divider" aria-hidden="true" />
+                <button
+                  onClick={() => {
+                    if (openArtifact) {
+                      handleCloseArtifact();
+                    } else if (artifactData.blocks[0]) {
+                      handleOpenArtifact(artifactData.blocks[0]);
+                    }
+                  }}
+                  className="chat-canvas-toggle"
+                  type="button"
+                  title={openArtifact ? "Hide Artifact" : "Show Artifact"}
+                  aria-label={openArtifact ? "Hide Artifact" : "Show Artifact"}
+                  aria-pressed={openArtifact != null}
+                >
+                  <i className={`bi ${openArtifact ? "bi-window-stack" : "bi-window"}`} aria-hidden="true"></i>
+                </button>
+              </>
+            ) : null}
           </div>
         </header>
 
@@ -244,8 +296,10 @@ const Chat = () => {
               onQuizSelect={handleQuizSelect}
               onNextRound={handleNextRound}
               activeStreamId={activeStreamId}
-              contentOverrides={showCanvas ? canvasData.displayMap : undefined}
+              contentOverrides={hasOverrides ? combinedOverrides : showCanvas ? canvasData.displayMap : undefined}
               hasCanvasCode={showCanvas ? canvasData.hasCodeMap : undefined}
+              artifacts={artifactData.blocks}
+              onOpenArtifact={handleOpenArtifact}
               onScrollDirection={handleScrollDirection}
             />
             <Composer
@@ -275,6 +329,12 @@ const Chat = () => {
               blocks={canvasData.blocks}
               closing={canvasClosing}
               onClose={closeCanvas}
+            />
+          ) : null}
+          {openArtifact ? (
+            <ArtifactViewer
+              artifact={openArtifact}
+              onClose={handleCloseArtifact}
             />
           ) : null}
         </div>

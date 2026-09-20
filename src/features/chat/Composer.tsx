@@ -15,7 +15,7 @@ export type { ModelOption, SortOption };
 
 export type ComposerProps = {
   // images?:string[] is optional → backward compat with (value: string) => void
-  onSend: (value: string, images?: string[], opts?: { research?: boolean }) => void;
+  onSend: (value: string, images?: string[], opts?: { research?: boolean; artifact?: boolean }) => void;
   onStop?: () => void;
   disabled?: boolean;
   streaming?: boolean;
@@ -62,6 +62,9 @@ const Composer = ({
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   // Armed when the user picks a model from the Deep Research list.
   const [researchArmed, setResearchArmed] = useState(false);
+  // Armed when the user picks Artifact / Simulation from the '+' menu.
+  // Mirrors researchArmed exactly: chip indicator, send opts, one-shot disarm.
+  const [artifactArmed, setArtifactArmed] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [showRecents, setShowRecents] = useState(false);
@@ -106,11 +109,19 @@ const Composer = ({
     const trimmed = text.trim();
     if (!trimmed && images.length === 0) return;
     if (compressing) return;
-    onSend(trimmed, images.length > 0 ? [...images] : undefined, researchArmed ? { research: true } : undefined);
+    const opts =
+      researchArmed || artifactArmed
+        ? {
+            ...(researchArmed ? { research: true as const } : {}),
+            ...(artifactArmed ? { artifact: true as const } : {}),
+          }
+        : undefined;
+    onSend(trimmed, images.length > 0 ? [...images] : undefined, opts);
     setValue("");
     setShowRecents(false);
-    // One-shot: disarm research mode after sending.
+    // One-shot: disarm research + artifact modes after sending.
     setResearchArmed(false);
+    setArtifactArmed(false);
     requestAnimationFrame(() => {
       const el = textareaRef.current;
       if (el) adjustTextareaHeight(el);
@@ -200,6 +211,8 @@ const Composer = ({
           researchArmed={researchArmed}
           currentModelLabel={currentModelLabel}
           onClearResearch={() => setResearchArmed(false)}
+          artifactArmed={artifactArmed}
+          onClearArtifact={() => setArtifactArmed(false)}
           listening={listening}
           error={error}
           listenError={listenError}
@@ -255,6 +268,9 @@ const Composer = ({
             onModelChange={onModelChange}
             currentModelLabel={currentModelLabel}
             onResearchSelect={() => setResearchArmed(true)}
+            onArtifactSelect={() => setArtifactArmed(true)}
+            researchArmed={researchArmed}
+            artifactArmed={artifactArmed}
             disabled={disabled}
             compressing={compressing}
             hasRecents={recents.length > 0}

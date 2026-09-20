@@ -204,6 +204,31 @@
   color: #c084fc;
 }
 
+.composer-icon-orange {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: #f59e0b;
+}
+
+[data-theme="dark"] .composer-icon-orange {
+  color: #fbbf24;
+}
+
+/* Active-state badge for armed modes (Deep Research / Artifact). */
+.composer-option-badge {
+  margin-left: auto;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 11px;
+  line-height: 1rem;
+  font-weight: 600;
+  padding: 0.125rem 0.5rem;
+}
+
 .composer-subheader {
   display: flex;
   align-items: center;
@@ -234,4 +259,3 @@
 .composer-back-btn:hover {
   color: var(--text);
 }
-
