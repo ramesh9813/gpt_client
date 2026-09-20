@@ -8,19 +8,17 @@ type ArtifactCardProps = {
 
 /**
  * Inline expanding artifact card: collapsed compact row in the thread;
- * Open expands the SAME card in place to a 75vh simulation, Expand takes
- * it to 90vh. Input area is never hidden.
+ * Open expands the SAME card in place to a full-height (90vh) simulation.
+ * Input area is never hidden.
  */
 export const ArtifactCard = ({ artifact }: ArtifactCardProps) => {
   const title = artifact.title?.trim() || "Interactive Simulation";
   const [open, setOpen] = useState(false);
-  const [expanded, setExpanded] = useState(false);
   const [mode, setMode] = useState<"preview" | "code">("preview");
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     setOpen(false);
-    setExpanded(false);
     setMode("preview");
     setCopied(false);
   }, [artifact.id, artifact.code]);
@@ -99,7 +97,7 @@ export const ArtifactCard = ({ artifact }: ArtifactCardProps) => {
 
   return (
     <div
-      className={`artifact-card artifact-card--open${expanded ? " artifact-card--expanded" : ""}`}
+      className="artifact-card artifact-card--open"
       role="group"
       aria-label={`Interactive simulation: ${title}`}
     >
@@ -145,23 +143,7 @@ export const ArtifactCard = ({ artifact }: ArtifactCardProps) => {
           <button
             type="button"
             className="artifact-card-tool"
-            onClick={() => setExpanded((prev) => !prev)}
-            title={expanded ? "Shrink to 75% height" : "Expand to 90% height"}
-            aria-label={expanded ? "Shrink to 75% height" : "Expand to 90% height"}
-            aria-pressed={expanded}
-          >
-            <i
-              className={`bi ${expanded ? "bi-arrows-collapse" : "bi-arrows-expand"}`}
-              aria-hidden="true"
-            />
-          </button>
-          <button
-            type="button"
-            className="artifact-card-tool"
-            onClick={() => {
-              setOpen(false);
-              setExpanded(false);
-            }}
+            onClick={() => setOpen(false)}
             title="Collapse simulation"
             aria-label="Collapse simulation"
             aria-expanded={true}

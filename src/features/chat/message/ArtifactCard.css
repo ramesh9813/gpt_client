@@ -94,7 +94,7 @@
   }
 }
 
-/* Open state: the same card expands in place to a 75vh simulation stage. */
+/* Open state: the same card expands in place to a full-height simulation stage. */
 .artifact-card--open {
   display: block;
   padding: 0;
@@ -150,7 +150,7 @@
   outline-offset: 2px;
 }
 .artifact-card-stage {
-  height: 75vh;
+  height: 90vh;
   min-height: 20rem;
   overflow: auto;
   padding: 1rem;
@@ -158,9 +158,6 @@
   background-color: transparent;
   border: 0;
   box-shadow: none;
-}
-.artifact-card--expanded .artifact-card-stage {
-  height: 90vh;
 }
 .artifact-card-frame {
   display: block;
@@ -189,16 +186,14 @@
   from { transform: translateY(16px) scale(0.99); opacity: 0; }
   to { transform: translateY(0) scale(1); opacity: 1; }
 }
-.artifact-card-stage,
-.artifact-card--expanded .artifact-card-stage {
+.artifact-card-stage {
   transition: height 240ms ease-out;
 }
 @media (prefers-reduced-motion: reduce) {
   .artifact-card--open {
     animation: none;
   }
-  .artifact-card-stage,
-  .artifact-card--expanded .artifact-card-stage {
+  .artifact-card-stage {
     transition: none;
   }
 }
