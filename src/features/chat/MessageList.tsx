@@ -18,6 +18,7 @@ type MessageListProps = {
   activeStreamId?: string | null;
   contentOverrides?: Record<string, string>;
   hasCanvasCode?: Record<string, boolean>;
+  onScrollDirection?: (direction: "up" | "down") => void;
 };
 
 const MessageList = ({
@@ -30,12 +31,16 @@ const MessageList = ({
   onFollowup,
   activeStreamId,
   contentOverrides,
-  hasCanvasCode
+  hasCanvasCode,
+  onScrollDirection
 }: MessageListProps) => {
   const listRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
   const [atTop, setAtTop] = useState(true);
   const [canScroll, setCanScroll] = useState(false);
+  const lastScrollTop = useRef(0);
+  const onScrollDirectionRef = useRef(onScrollDirection);
+  onScrollDirectionRef.current = onScrollDirection;
   const edit = useMessageEdit(onEditSubmit);
 
   const scrollToBottom = () => {
@@ -64,6 +69,21 @@ const MessageList = ({
       setAtBottom(distance < 120);
       setAtTop(el.scrollTop < 100);
       setCanScroll(el.scrollHeight > el.clientHeight + 10);
+      // Smart header: report scroll direction with a small dead-zone to
+      // ignore jitter; always report "up" near the top so the pill returns.
+      const prev = lastScrollTop.current;
+      const curr = el.scrollTop;
+      lastScrollTop.current = curr;
+      const cb = onScrollDirectionRef.current;
+      if (cb) {
+        if (curr < 64) {
+          cb("up");
+        } else if (curr - prev > 4) {
+          cb("down");
+        } else if (prev - curr > 4) {
+          cb("up");
+        }
+      }
     };
     update();
     el.addEventListener("scroll", update);
