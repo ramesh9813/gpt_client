@@ -191,7 +191,7 @@ const MessageList = ({
           {!atBottom && (
             <button
               className="msg-jump-btn"
-              onClick={scrollToBottom}
+              onClick={() => scrollToBottom()}
               title="Jump to bottom"
               aria-label="Scroll to bottom"
               type="button"
