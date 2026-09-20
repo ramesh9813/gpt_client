@@ -1,5 +1,6 @@
 import "./ArtifactCard.css";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { ArtifactBlock } from "../artifact";
 
 type ArtifactCardProps = {
@@ -108,7 +109,7 @@ export const ArtifactCard = ({ artifact }: ArtifactCardProps) => {
 
   return (
     <div
-      className={`artifact-card artifact-card--open${expanded ? " artifact-card--fullpage" : ""}`}
+      className="artifact-card artifact-card--open"
       role="group"
       aria-label={`Interactive simulation: ${title}`}
     >
@@ -173,17 +174,34 @@ export const ArtifactCard = ({ artifact }: ArtifactCardProps) => {
           </button>
         </div>
       </div>
-      {expanded && (
-        <button
-          type="button"
-          className="artifact-card-float-close"
-          onClick={() => setExpanded(false)}
-          title="Exit full page"
-          aria-label="Exit full page simulation"
-        >
-          <i className="bi bi-x-lg" aria-hidden="true"></i>
-        </button>
-      )}
+      {expanded && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="artifact-fullpage"
+              role="dialog"
+              aria-modal="true"
+              aria-label={`Interactive simulation fullscreen: ${title}`}
+            >
+              <iframe
+                title={title}
+                sandbox="allow-scripts"
+                referrerPolicy="no-referrer"
+                className="artifact-fullpage-frame"
+                srcDoc={artifact.code}
+              />
+              <button
+                type="button"
+                className="artifact-fullpage-cancel"
+                onClick={() => setExpanded(false)}
+                title="Minimize simulation"
+                aria-label="Minimize simulation"
+              >
+                <i className="bi bi-x-lg" aria-hidden="true"></i>
+              </button>
+            </div>,
+            document.body
+          )
+        : null}
       <div className="artifact-card-stage">
         {mode === "preview" ? (
           <iframe
