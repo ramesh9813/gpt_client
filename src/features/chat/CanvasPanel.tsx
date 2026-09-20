@@ -1,7 +1,11 @@
 import "./CanvasPanel.css";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import {
+  oneLight,
+  vscDarkPlus,
+} from "react-syntax-highlighter/dist/esm/styles/prism";
+import { useIsDark } from "../../lib/useIsDark";
 import { CanvasBlock } from "./canvas";
 import { buildPreviewDoc, isPreviewableBlock, isRunnableBlock } from "./canvas/canvasUtils";
 import { CanvasHeader } from "./canvas/CanvasHeader";
@@ -25,6 +29,7 @@ const CanvasPanel = ({
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const { runState, runBlock } = useCodeRunner();
+  const isDark = useIsDark();
 
   useEffect(() => {
     if (!blocks.length) {
@@ -136,7 +141,7 @@ const CanvasPanel = ({
           <SyntaxHighlighter
             PreTag="div"
             language={activeBlock.language}
-            style={vscDarkPlus}
+            style={isDark ? vscDarkPlus : oneLight}
             codeTagProps={{
               style: {
                 backgroundColor: "transparent",
@@ -145,9 +150,12 @@ const CanvasPanel = ({
             }}
             customStyle={{
               margin: 0,
-              background: "transparent",
-              padding: "0.75rem",
-              fontSize: "12px"
+              background: isDark ? "transparent" : "#ffffff",
+              padding: "0.875rem",
+              fontSize: "13px",
+              lineHeight: 1.6,
+              borderRadius: "12px",
+              border: isDark ? "none" : "1px solid var(--border)"
             }}
           >
             {activeBlock.code}
