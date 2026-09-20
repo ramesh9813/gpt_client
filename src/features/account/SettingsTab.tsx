@@ -3,7 +3,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "../../components/Button";
-import { Input } from "../../components/Input";
 import { apiFetch } from "../../lib/api";
 import { useSettings } from "../../lib/hooks";
 import { applyTheme } from "../../lib/theme";
@@ -11,7 +10,6 @@ import { BRANDS, applyBrand, isBrandId, type BrandId } from "../../lib/brandThem
 
 const settingsSchema = z.object({
   theme: z.enum(["SYSTEM", "DARK", "LIGHT"]),
-  accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   fontScale: z.enum(["SMALL", "DEFAULT", "LARGE"]),
   brand: z.enum(["default", "chatgpt", "claude", "gemini", "grok", "deepseek"]),
 });
@@ -31,7 +29,6 @@ export const SettingsTab = () => {
     resolver: zodResolver(settingsSchema),
     defaultValues: {
       theme: "SYSTEM",
-      accentColor: "#74aa9c",
       fontScale: "DEFAULT",
       brand: "default" as BrandId,
     },
@@ -44,7 +41,6 @@ export const SettingsTab = () => {
     if (settings) {
       reset({
         theme: "SYSTEM",
-        accentColor: "#74aa9c",
         fontScale: "DEFAULT",
         ...settings,
         brand: isBrandId(settings.brand) ? settings.brand : "default",
@@ -54,8 +50,8 @@ export const SettingsTab = () => {
 
   useEffect(() => {
     const subscription = watch((values) => {
-      if (values.theme && values.accentColor && values.fontScale) {
-        applyTheme(values.theme, values.accentColor, values.fontScale);
+      if (values.theme && values.fontScale) {
+        applyTheme(values.theme, values.fontScale);
       }
       if (isBrandId(values.brand)) {
         applyBrand(values.brand);
@@ -100,19 +96,6 @@ export const SettingsTab = () => {
             <option value="DARK">Dark</option>
             <option value="LIGHT">Light</option>
           </select>
-        </div>
-        <div>
-          <label className="account-field-label">Accent color</label>
-          <div className="account-accent-row">
-            <Input type="text" {...register("accentColor")} />
-            <div className="account-color-swatch">
-              <input
-                type="color"
-                className="account-color-input"
-                {...register("accentColor")}
-              />
-            </div>
-          </div>
         </div>
         <div>
           <label className="account-field-label">Font size</label>

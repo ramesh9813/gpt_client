@@ -15,7 +15,6 @@ export type User = {
 
 export type UserSettings = {
   theme: "SYSTEM" | "DARK" | "LIGHT";
-  accentColor: string;
   fontScale: "SMALL" | "DEFAULT" | "LARGE";
   brand: BrandId;
 };

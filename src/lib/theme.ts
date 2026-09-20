@@ -3,7 +3,6 @@ export type FontScale = "SMALL" | "DEFAULT" | "LARGE";
 
 export const applyTheme = (
   theme: ThemeMode = "SYSTEM",
-  accentColor: string = "#74aa9c",
   fontScale: FontScale = "DEFAULT"
 ) => {
   if (typeof document === "undefined") return;
@@ -24,9 +23,8 @@ export const applyTheme = (
   }
 
   root.setAttribute("data-font-scale", fontScale);
-  if (accentColor) {
-    root.style.setProperty("--accent", accentColor);
-  }
+  // Accent is owned by the Assistant theme (brand tokens); clear any legacy override.
+  root.style.removeProperty("--accent");
 
   // Update theme-color meta tag for Android status bar and browser header
   const metaThemeColor = document.querySelector('meta[name="theme-color"]');
@@ -36,7 +34,7 @@ export const applyTheme = (
 
   // Cache in localStorage for immediate sync before network API loads
   try {
-    localStorage.setItem("theme_pref", JSON.stringify({ theme, accentColor, fontScale }));
+    localStorage.setItem("theme_pref", JSON.stringify({ theme, fontScale }));
   } catch {}
 };
 
@@ -45,12 +43,12 @@ export const initTheme = () => {
   try {
     const cached = localStorage.getItem("theme_pref");
     if (cached) {
-      const { theme, accentColor, fontScale } = JSON.parse(cached);
-      applyTheme(theme, accentColor, fontScale);
+      const { theme, fontScale } = JSON.parse(cached);
+      applyTheme(theme, fontScale);
       return;
     }
   } catch {}
-  applyTheme("SYSTEM", "#74aa9c", "DEFAULT");
+  applyTheme("SYSTEM", "DEFAULT");
 };
 
 // System theme listener for real-time OS mode sync
@@ -59,12 +57,12 @@ if (typeof window !== "undefined" && window.matchMedia) {
     try {
       const cached = localStorage.getItem("theme_pref");
       if (cached) {
-        const { theme, accentColor, fontScale } = JSON.parse(cached);
+        const { theme, fontScale } = JSON.parse(cached);
         if (theme === "SYSTEM") {
-          applyTheme("SYSTEM", accentColor, fontScale);
+          applyTheme("SYSTEM", fontScale);
         }
       } else {
-        applyTheme("SYSTEM", "#74aa9c", "DEFAULT");
+        applyTheme("SYSTEM", "DEFAULT");
       }
     } catch {}
   });

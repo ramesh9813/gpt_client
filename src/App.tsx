@@ -41,7 +41,7 @@ const App = () => {
   useEffect(() => {
     const settings = data?.data?.settings;
     if (!settings) return;
-    applyTheme(settings.theme, settings.accentColor, settings.fontScale);
+    applyTheme(settings.theme, settings.fontScale);
     if (isBrandId((settings as { brand?: unknown }).brand)) {
       applyBrand(settings.brand);
     }
