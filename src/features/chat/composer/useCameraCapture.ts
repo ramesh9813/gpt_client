@@ -16,6 +16,10 @@ export const useCameraCapture = ({ onFiles }: CameraCaptureOptions) => {
     const [cameraOpen, setCameraOpen] = useState(false);
     const [cameraError, setCameraError] = useState<string | null>(null);
     const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
+    const [zoomRange, setZoomRange] = useState<{ min: number; max: number; step: number } | null>(null);
+    const [zoom, setZoomState] = useState(1);
+    const [torchSupported, setTorchSupported] = useState(false);
+    const [torchOn, setTorchOn] = useState(false);
 
     useEffect(() => {
       if (!cameraOpen) return;
@@ -40,6 +44,23 @@ export const useCameraCapture = ({ onFiles }: CameraCaptureOptions) => {
             return;
           }
           streamRef.current = stream;
+          const track = stream.getVideoTracks()[0];
+          const caps = (track?.getCapabilities?.() ?? {}) as {
+            zoom?: { min?: number; max?: number; step?: number };
+            torch?: boolean;
+          };
+          if (caps.zoom && typeof caps.zoom.max === "number" && caps.zoom.max > 1) {
+            setZoomRange({
+              min: caps.zoom.min ?? 1,
+              max: caps.zoom.max,
+              step: caps.zoom.step ?? 0.1,
+            });
+          } else {
+            setZoomRange(null);
+          }
+          setZoomState(1);
+          setTorchSupported(caps.torch === true);
+          setTorchOn(false);
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
             await videoRef.current.play().catch(() => undefined);
@@ -56,6 +77,30 @@ export const useCameraCapture = ({ onFiles }: CameraCaptureOptions) => {
         if (videoRef.current) videoRef.current.srcObject = null;
       };
     }, [cameraOpen, facingMode]);
+
+    const setZoomLevel = (next: number) => {
+      const track = streamRef.current?.getVideoTracks()[0];
+      if (!track || !zoomRange) return;
+      const clamped = Math.min(zoomRange.max, Math.max(zoomRange.min, next));
+      track
+        .applyConstraints({ advanced: [{ zoom: clamped } as any] })
+        .then(() => setZoomState(clamped))
+        .catch(() => {
+          // ignore: device rejected the zoom level
+        });
+    };
+
+    const toggleTorch = () => {
+      const track = streamRef.current?.getVideoTracks()[0];
+      if (!track || !torchSupported) return;
+      const next = !torchOn;
+      track
+        .applyConstraints({ advanced: [{ torch: next } as any] })
+        .then(() => setTorchOn(next))
+        .catch(() => {
+          // ignore: device rejected torch toggle
+        });
+    };
 
     const handleCapturePhoto = () => {
       const video = videoRef.current;
@@ -87,6 +132,12 @@ export const useCameraCapture = ({ onFiles }: CameraCaptureOptions) => {
     facingMode,
     setFacingMode,
     handleCapturePhoto,
+    zoomRange,
+    zoom,
+    setZoomLevel,
+    torchSupported,
+    torchOn,
+    toggleTorch,
   };
 };
 

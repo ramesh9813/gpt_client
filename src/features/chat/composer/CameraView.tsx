@@ -9,6 +9,12 @@ export interface CameraViewProps {
   onCapture: () => void;
   captureDisabled: boolean;
   onFlip: () => void;
+  zoomRange: { min: number; max: number; step: number } | null;
+  zoom: number;
+  onZoomChange: (value: number) => void;
+  torchSupported: boolean;
+  torchOn: boolean;
+  onToggleTorch: () => void;
 }
 
 /**
@@ -23,6 +29,12 @@ export const CameraView = ({
   onCapture,
   captureDisabled,
   onFlip,
+  zoomRange,
+  zoom,
+  onZoomChange,
+  torchSupported,
+  torchOn,
+  onToggleTorch,
 }: CameraViewProps) => {
   if (!open) return null;
   return (
@@ -38,7 +50,56 @@ export const CameraView = ({
           muted
         />
       )}
+      {zoomRange && (
+        <div className="composer-camera-zoom" role="group" aria-label="Camera zoom">
+          <button
+            type="button"
+            className="composer-camera-btn"
+            onClick={() => onZoomChange(zoom - zoomRange.step * 5)}
+            disabled={zoom <= zoomRange.min}
+            aria-label="Zoom out"
+            title="Zoom out"
+          >
+            <i className="bi bi-dash-lg" aria-hidden="true"></i>
+          </button>
+          <input
+            type="range"
+            className="composer-camera-zoom-slider"
+            min={zoomRange.min}
+            max={zoomRange.max}
+            step={zoomRange.step}
+            value={zoom}
+            onChange={(e) => onZoomChange(Number(e.target.value))}
+            aria-label={`Zoom ${zoom.toFixed(1)}x`}
+          />
+          <button
+            type="button"
+            className="composer-camera-btn"
+            onClick={() => onZoomChange(zoom + zoomRange.step * 5)}
+            disabled={zoom >= zoomRange.max}
+            aria-label="Zoom in"
+            title="Zoom in"
+          >
+            <i className="bi bi-plus-lg" aria-hidden="true"></i>
+          </button>
+          <span className="composer-camera-zoom-label" aria-hidden="true">
+            {zoom.toFixed(1)}x
+          </span>
+        </div>
+      )}
       <div className="composer-camera-bar">
+        {torchSupported && (
+          <button
+            type="button"
+            className="composer-camera-btn"
+            onClick={onToggleTorch}
+            aria-label={torchOn ? "Turn flashlight off" : "Turn flashlight on"}
+            aria-pressed={torchOn}
+            title={torchOn ? "Flashlight off" : "Flashlight on"}
+          >
+            <i className={`bi ${torchOn ? "bi-lightbulb-fill" : "bi-lightbulb"}`} aria-hidden="true"></i>
+          </button>
+        )}
         <button
           type="button"
           className="composer-camera-btn"

@@ -84,6 +84,12 @@ const Composer = ({
     cameraError,
     setFacingMode,
     handleCapturePhoto,
+    zoomRange,
+    zoom,
+    setZoomLevel,
+    torchSupported,
+    torchOn,
+    toggleTorch,
   } = useCameraCapture({
     onFiles: (files) => {
       void handleFiles(files);
@@ -292,6 +298,12 @@ const Composer = ({
         onFlip={() =>
           setFacingMode((prev) => (prev === "environment" ? "user" : "environment"))
         }
+        zoomRange={zoomRange}
+        zoom={zoom}
+        onZoomChange={setZoomLevel}
+        torchSupported={torchSupported}
+        torchOn={torchOn}
+        onToggleTorch={toggleTorch}
       />
     </div>
   );
