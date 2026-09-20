@@ -114,12 +114,15 @@ export const CodeBlockWithRun = ({
         }}
         customStyle={{
           margin: 0,
-          background: isDark ? "#000" : "#ffffff",
-          padding: "1rem",
+          background: "transparent",
+          backgroundColor: "transparent",
+          padding: "0.25rem 1rem 1rem",
           fontSize: "14px",
           lineHeight: 1.6,
-          borderRadius: "12px",
-          border: isDark ? "none" : "1px solid var(--border)"
+          borderRadius: 0,
+          border: "none",
+          boxShadow: "none",
+          overflowX: "auto"
         }}
       >
         {code.replace(/\n$/, "")}
