@@ -83,6 +83,14 @@
   flex-shrink: 0;
 }
 
+/* Android/mobile view: hide header title text and canvas toggle to save top space. */
+@media (max-width: 639px) {
+  .chat-title,
+  .chat-canvas-toggle {
+    display: none;
+  }
+}
+
 .chat-title-sub {
   display: none;
   font-size: 0.75rem;
