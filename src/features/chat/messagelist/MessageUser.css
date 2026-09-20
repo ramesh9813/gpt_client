@@ -3,6 +3,8 @@
   position: relative;
   flex: 1 1 0%;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
 }
 .msg-list-inner {
   margin-left: auto;
