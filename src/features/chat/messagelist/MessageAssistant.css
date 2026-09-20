@@ -117,3 +117,31 @@
 .msg-jump-btn:hover { background-color: var(--sidebar); }
 .msg-jump-btn:active { transform: scale(0.95); }
 .msg-jump-icon { font-size: 0.75rem; }
+
+.msg-followups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.625rem;
+}
+.msg-followup-chip {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background-color: var(--panel);
+  color: var(--text);
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  padding: 0.375rem 0.875rem;
+  cursor: pointer;
+  transition: background-color 150ms, transform 150ms;
+}
+.msg-followup-chip:hover {
+  background-color: var(--sidebar);
+}
+.msg-followup-chip:active {
+  transform: scale(0.97);
+}

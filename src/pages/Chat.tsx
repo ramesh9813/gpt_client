@@ -205,6 +205,7 @@ const Chat = () => {
               modelOptions={modelOptions}
               onRegenerate={handleRegenerate}
               onStopStreaming={handleStopStreaming}
+              onFollowup={(q) => void sendMessage(q)}
               activeStreamId={activeStreamId}
               contentOverrides={showCanvas ? canvasData.displayMap : undefined}
               hasCanvasCode={showCanvas ? canvasData.hasCodeMap : undefined}

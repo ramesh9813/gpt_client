@@ -14,6 +14,7 @@ type MessageListProps = {
   modelOptions?: ModelOption[];
   onRegenerate?: (messageId: string, model: string) => void;
   onStopStreaming?: () => void;
+  onFollowup?: (text: string) => void;
   activeStreamId?: string | null;
   contentOverrides?: Record<string, string>;
   hasCanvasCode?: Record<string, boolean>;
@@ -26,6 +27,7 @@ const MessageList = ({
   modelOptions = [],
   onRegenerate,
   onStopStreaming,
+  onFollowup,
   activeStreamId,
   contentOverrides,
   hasCanvasCode
@@ -127,6 +129,7 @@ const MessageList = ({
               modelOptions={modelOptions}
               onRegenerate={onRegenerate}
               onStopStreaming={onStopStreaming}
+              onFollowup={onFollowup}
               activeStreamId={activeStreamId}
               listRef={listRef}
             />

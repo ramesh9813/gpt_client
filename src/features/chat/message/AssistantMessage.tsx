@@ -14,6 +14,7 @@ type AssistantMessageProps = {
   modelOptions?: ModelOption[];
   onRegenerate?: (messageId: string, model: string) => void;
   onStopStreaming?: () => void;
+  onFollowup?: (text: string) => void;
   activeStreamId?: string | null;
   listRef: RefObject<HTMLDivElement>;
 };
@@ -26,6 +27,7 @@ export const AssistantMessage = ({
   modelOptions = [],
   onRegenerate,
   onStopStreaming,
+  onFollowup,
   activeStreamId,
   listRef
 }: AssistantMessageProps) => {
@@ -52,6 +54,21 @@ export const AssistantMessage = ({
         ) : (
           <MarkdownContent content={displayContent} />
         )}
+        {message.followups && message.followups.length > 0 && message.status !== "ERROR" ? (
+          <div className="msg-followups">
+            {message.followups.map((q, i) => (
+              <button
+                key={i}
+                type="button"
+                className="msg-followup-chip"
+                onClick={() => onFollowup?.(q)}
+                title={q}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        ) : null}
         <div className="msg-assistant-footer">
           {message.model && (
             <div className="msg-model-label">

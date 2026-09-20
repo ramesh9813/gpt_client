@@ -161,6 +161,24 @@ export const useChatStreaming = () => {
               pendingText += delta;
               startFlush();
             }
+            if (currentEvent === "followups") {
+              if (isCancelled()) return;
+              const items = (parsed as any).followups;
+              if (Array.isArray(items)) {
+                const cleaned = items
+                  .filter((v: unknown): v is string => typeof v === "string")
+                  .map((v: string) => v.trim())
+                  .filter((v: string) => v.length > 0 && v.length <= 140)
+                  .slice(0, 3);
+                if (cleaned.length > 0) {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === tempAssistantId ? { ...m, followups: cleaned } : m
+                    )
+                  );
+                }
+              }
+            }
             if (currentEvent === "error") {
               if (isCancelled()) return;
               const errorMessage = (parsed as any).message || "Streaming failed";
