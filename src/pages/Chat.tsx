@@ -1,5 +1,5 @@
 import "./Chat.css";
-import { useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ConversationSidebar from "../features/chat/ConversationSidebar";
@@ -15,6 +15,7 @@ import { useChatMessages } from "../features/chat/hooks/useChatMessages";
 import { useSwipeSidebar } from "../features/chat/hooks/useSwipeSidebar";
 import { useChatCanvas } from "../features/chat/hooks/useChatCanvas";
 import { useChatViewport } from "../features/chat/hooks/useChatViewport";
+import { useSettings } from "../lib/hooks";
 
 const Chat = () => {
   const { conversationId } = useParams();
@@ -121,6 +122,15 @@ const Chat = () => {
 
   const handleStopStreaming = () => stopStreaming(setMessages);
 
+  // Smart scroll: hide the floating pill on scroll down, reveal on scroll up.
+  // Disabled when the user pins the header in Settings > Appearance.
+  const [headerHidden, setHeaderHidden] = useState(false);
+  const { data: settingsData } = useSettings();
+  const pinHeader = settingsData?.data?.settings?.pinHeader ?? false;
+  const handleScrollDirection = useCallback((direction: "up" | "down") => {
+    setHeaderHidden(direction === "down");
+  }, []);
+
   return (
     <div className="chat-root">
       <ConversationSidebar
@@ -135,7 +145,13 @@ const Chat = () => {
       />
       <main className="chat-main">
         {/* Floating action pill — compact, overlays content, wraps icons only */}
-        <header className="chat-header">
+        <header
+          className={
+            headerHidden && !pinHeader
+              ? "chat-header chat-header--hidden"
+              : "chat-header"
+          }
+        >
           <div className="chat-header-pill" role="toolbar" aria-label="Chat actions">
             <SidebarToggle
               sidebarState={sidebarState}
@@ -190,6 +206,7 @@ const Chat = () => {
               activeStreamId={activeStreamId}
               contentOverrides={showCanvas ? canvasData.displayMap : undefined}
               hasCanvasCode={showCanvas ? canvasData.hasCodeMap : undefined}
+              onScrollDirection={handleScrollDirection}
             />
             <Composer
               modelsLoading={modelsLoading}
