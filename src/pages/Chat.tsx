@@ -1,7 +1,7 @@
 import "./Chat.css";
 import { useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ConversationSidebar from "../features/chat/ConversationSidebar";
 import SidebarToggle from "../components/SidebarToggle";
 import { useSidebar } from "../features/chat/useSidebar";
@@ -92,17 +92,6 @@ const Chat = () => {
 
   useChatViewport(composerInputRef);
 
-  const { data: convsData } = useQuery({
-    queryKey: ["conversations"],
-    queryFn: () =>
-      apiFetch<ApiResponse<{ items: Array<{ id: string; title: string }> }>>(
-        "/api/conversations"
-      ),
-  });
-
-  const currentConv = convsData?.data?.items?.find((c) => c.id === conversationId);
-  const currentConversationTitle = currentConv?.title;
-
   const newChatMutation = useMutation({
     mutationFn: () =>
       apiFetch<ApiResponse<{ conversation: { id: string } }>>(
@@ -145,9 +134,9 @@ const Chat = () => {
         onOpenDrawer={openDrawer}
       />
       <main className="chat-main">
-        {/* Top Header Bar with history toggle (always accessible, even when hidden) */}
+        {/* Floating action pill — compact, overlays content, wraps icons only */}
         <header className="chat-header">
-          <div className="chat-header-left">
+          <div className="chat-header-pill" role="toolbar" aria-label="Chat actions">
             <SidebarToggle
               sidebarState={sidebarState}
               isMobile={isMobile}
@@ -155,14 +144,6 @@ const Chat = () => {
               onClick={handleHeaderToggle}
               className="chat-sidebar-toggle"
             />
-            <div className="chat-title">
-              <span className="chat-title-brand">ChatGPT</span>
-              {currentConversationTitle && (
-                <span className="chat-title-sub">
-                  / {currentConversationTitle}
-                </span>
-              )}
-            </div>
             <button
               onClick={() => newChatMutation.mutate()}
               disabled={newChatMutation.isPending}
@@ -173,25 +154,25 @@ const Chat = () => {
             >
               <i className="bi bi-pencil-square chat-newchat-icon" aria-hidden="true"></i>
             </button>
-          </div>
-
-          <div className="chat-header-actions">
             {canvasData.blocks.length > 0 ? (
-              <button
-                onClick={() => {
-                  if (showCanvas) {
-                    closeCanvas();
-                  } else {
-                    openCanvas();
-                  }
-                }}
-                className="chat-canvas-toggle"
-                type="button"
-                title={showCanvas ? "Hide Canvas" : "Show Canvas"}
-                aria-label={showCanvas ? "Hide Canvas" : "Show Canvas"}
-              >
-                <i className={`bi ${showCanvas ? "bi-layout-sidebar-inset" : "bi-layout-sidebar-inset-reverse"}`} aria-hidden="true"></i>
-              </button>
+              <>
+                <span className="chat-header-divider" aria-hidden="true" />
+                <button
+                  onClick={() => {
+                    if (showCanvas) {
+                      closeCanvas();
+                    } else {
+                      openCanvas();
+                    }
+                  }}
+                  className="chat-canvas-toggle"
+                  type="button"
+                  title={showCanvas ? "Hide Canvas" : "Show Canvas"}
+                  aria-label={showCanvas ? "Hide Canvas" : "Show Canvas"}
+                >
+                  <i className={`bi ${showCanvas ? "bi-layout-sidebar-inset" : "bi-layout-sidebar-inset-reverse"}`} aria-hidden="true"></i>
+                </button>
+              </>
             ) : null}
           </div>
         </header>
