@@ -57,7 +57,7 @@
 }
 [data-theme="dark"] .msg-image { border-color: rgb(255 255 255 / 0.1); }
 
-/* code block: follows app mode (light card / dark tile) */
+/* code block: single unified container — header and body share one seamless background */
 .msg-codeblock {
   margin-top: 0;
   margin-bottom: 0;
@@ -67,29 +67,24 @@
   position: relative;
   min-width: 0;
   overflow: hidden;
+  padding: 0.25rem 0 0;
 }
 .msg-codeblock-head {
-  position: sticky;
-  top: 0;
-  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0.5rem 1rem;
-  background-color: var(--panel);
-  border-bottom: 1px solid var(--border);
+  background-color: transparent;
+  border-bottom: 0;
   font-size: 0.75rem;
   color: var(--muted);
-  border-top-left-radius: 0.75rem;
-  border-top-right-radius: 0.75rem;
 }
 [data-theme="dark"] .msg-codeblock {
   background-color: #000;
   border-color: transparent;
 }
 [data-theme="dark"] .msg-codeblock-head {
-  background-color: #000;
-  border-bottom-color: transparent;
+  background-color: transparent;
   color: #a1a1aa;
 }
 .msg-codeblock-lang { font-family: monospace; }
