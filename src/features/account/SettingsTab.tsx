@@ -66,7 +66,6 @@ export const SettingsTab = () => {
     if (settings) {
       reset({
         theme: "SYSTEM",
-        fontScale: "DEFAULT",
         pinHeader: false,
         ...settings,
         fontScale: toFontStep(settings.fontScale),
