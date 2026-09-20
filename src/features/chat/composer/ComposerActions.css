@@ -175,14 +175,34 @@
   }
 }
 
-/* Live mic frequency strip shown in the input area while listening. */
+/* Listening indicator: animated equalizer bars (no mic stream needed). */
 .composer-viz-wrap {
   padding: 0.375rem 0.75rem 0;
 }
-.composer-viz {
-  width: 100%;
+.composer-eq {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
   height: 44px;
-  display: block;
+}
+.composer-eq-bar {
+  width: 3px;
+  height: 30%;
+  border-radius: 9999px;
+  background-color: var(--accent);
+  transform-origin: center;
+  animation: composer-eq-bounce 0.9s ease-in-out infinite;
+}
+@keyframes composer-eq-bounce {
+  0%, 100% { transform: scaleY(0.35); }
+  50% { transform: scaleY(1.6); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .composer-eq-bar {
+    animation: none;
+    transform: none;
+  }
 }
 
 /* Armed deep-research indicator above the input row. */
