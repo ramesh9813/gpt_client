@@ -1,8 +1,8 @@
 /* ============================ 4. GEMINI (light, airy blue) =============== */
 [data-brand="gemini"] {
-  --theme-font-ui: "Google Sans", "Google Sans Text", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --theme-font-ui: "Google Sans Text", "Google Sans", Roboto, Arial, sans-serif;
   --theme-font-response: "Google Sans Text", "Google Sans", Roboto, Arial, sans-serif;
-  --theme-font-mono: "Roboto Mono", Consolas, "Courier New", ui-monospace, monospace;
+  --theme-font-mono: "Google Sans Code", "Roboto Mono", Consolas, "Courier New", monospace;
   --theme-font-size-xs: 12px; --theme-font-size-sm: 14px; --theme-font-size-base: 16px; --theme-font-size-lg: 18px; --theme-font-size-xl: 22px;
   --theme-font-weight-normal: 400; --theme-font-weight-medium: 500; --theme-font-weight-semibold: 600; --theme-font-weight-bold: 700;
   --theme-text-primary: #1f1f1f; --theme-text-secondary: #444746; --theme-text-muted: #5f6368;
@@ -42,7 +42,7 @@
 
 /* gemini: airy 1.7 + generous spacing, roundness via radius tokens */
 [data-brand="gemini"] .markdown { font-family: var(--theme-font-response); font-size: var(--theme-font-size-base); line-height: 1.7; color: var(--theme-assistant-text); }
-[data-brand="gemini"] .markdown h1 { font-size: 1.7em; line-height: 1.3; color: var(--theme-text-primary); }
+[data-brand="gemini"] .markdown h1, [data-brand="gemini"] .markdown h2, [data-brand="gemini"] .markdown h3 { font-family: "Google Sans", sans-serif; }
 [data-brand="gemini"] .markdown h2 { font-size: 1.42em; line-height: 1.35; color: var(--theme-text-primary); }
 [data-brand="gemini"] .markdown h3 { font-size: 1.2em; line-height: 1.4; color: var(--theme-text-primary); }
 [data-brand="gemini"] .markdown p { margin: 0.7rem 0; }
