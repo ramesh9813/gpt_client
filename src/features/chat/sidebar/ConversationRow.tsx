@@ -43,9 +43,6 @@ export function ConversationRow({
       data-active={active ? "true" : "false"}
     >
       <span className="conv-side-conv-edge" aria-hidden="true" />
-      {conversation.pinned ? (
-        <i className="bi bi-pin-fill conv-side-pin-icon" aria-label="Pinned" title="Pinned"></i>
-      ) : null}
       <button
         className="conv-side-conv-title-btn"
         onClick={() => onSelect(conversation.id)}
@@ -53,6 +50,9 @@ export function ConversationRow({
       >
         <span className="conv-side-conv-title-text">{conversation.title}</span>
       </button>
+      {conversation.pinned ? (
+        <i className="bi bi-pin-fill conv-side-pin-icon" aria-label="Pinned" title="Pinned"></i>
+      ) : null}
       <div
         className={`conv-side-conv-menu ${menuOpen === conversation.id ? "conv-side-conv-menu--open" : "conv-side-conv-menu--closed"}`}
         onMouseLeave={onCloseMenu}
