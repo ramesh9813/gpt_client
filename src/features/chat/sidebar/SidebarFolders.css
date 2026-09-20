@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------
  * Sidebar conversation list — modern, scannable redesign.
  * Styling only: theme vars exclusively, except the preserved semantic
- * accents (yellow folder, red destructive). All spacing on a 4px base.
+ * accents follow the Assistant theme (folder/count use --accent). All spacing on a 4px base.
  * ------------------------------------------------------------------ */
 
 /* Body + scroll container */

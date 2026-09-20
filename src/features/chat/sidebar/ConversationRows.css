@@ -175,8 +175,11 @@
   outline-offset: -2px;
 }
 
-/* Preserved semantic accent: red destructive */
+/* Destructive action: mode-aware red that stays readable on each theme */
 .conv-side-dropdown-item--danger {
+  color: #dc2626;
+}
+[data-theme="dark"] .conv-side-dropdown-item--danger {
   color: #fca5a5;
 }
 
