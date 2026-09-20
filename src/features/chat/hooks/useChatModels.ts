@@ -11,7 +11,14 @@ type OpenRouterModel = {
   pricing?: { prompt: string; completion: string };
 };
 
-export type ModelOption = { label: string; value: string };
+export type ModelOption = { label: string; value: string; supportsResearch?: boolean };
+
+// Dedicated deep-research models (e.g. perplexity/sonar-deep-research,
+// openai/o3-deep-research) autonomously search and synthesize reports.
+export const isDeepResearchModel = (id?: string, name?: string) => {
+  const haystack = `${id || ""} ${name || ""}`.toLowerCase();
+  return /deep[-_ ]?research/.test(haystack);
+};
 
 export const useChatModels = () => {
   const [model, setModelState] = useState("default");
@@ -107,6 +114,7 @@ export const useChatModels = () => {
         return {
           label: name.trim(),
           value: m.id,
+          supportsResearch: isDeepResearchModel(m.id, m.name),
         };
       });
   }, [modelsData?.data?.models, sortBy]);
