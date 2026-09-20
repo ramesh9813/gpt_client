@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Input } from "../../../components/Input";
 import { ModelMenuFooter } from "./ModelMenuFooter";
+import { ModelSortMenu } from "./ModelSortMenu";
 import { formatUpdatedAgo } from "../utils/formatUpdatedAgo";
 import "./ModelMenu.css";
 
@@ -182,51 +183,13 @@ export const ModelMenu = ({
               <span>Back</span>
             </button>
             {onSortChange && (
-              <div className="composer-sort-root">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSortOpen(!sortOpen);
-                  }}
-                  className="composer-sort-btn"
-                >
-                  <span>
-                    {sort === "name"
-                      ? "Name"
-                      : sort === "cheapest"
-                      ? "Price"
-                      : sort === "free"
-                      ? "Free"
-                      : "Speed"}
-                  </span>
-                  <i className="bi bi-chevron-down composer-sort-chevron"></i>
-                </button>
-                {sortOpen && (
-                  <div className="composer-sort-menu">
-                    {(["name", "cheapest", "free", "speed"] as SortOption[]).map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        className={`composer-sort-option ${
-                          sort === s ? "composer-sort-option-active" : ""
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSortChange(s);
-                          setSortOpen(false);
-                        }}
-                      >
-                        {s === "cheapest"
-                          ? "Price"
-                          : s === "speed"
-                          ? "Speed"
-                          : s.charAt(0).toUpperCase() + s.slice(1)}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <ModelSortMenu
+                sort={sort}
+                sortOpen={sortOpen}
+                onToggleSort={() => setSortOpen(!sortOpen)}
+                onSortChange={onSortChange}
+                onCloseSort={() => setSortOpen(false)}
+              />
             )}
           </div>
           <div className="composer-query-wrap">
