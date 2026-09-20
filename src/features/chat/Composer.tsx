@@ -48,6 +48,7 @@ const Composer = ({
   // Armed when the user picks a model from the Deep Research list.
   const [researchArmed, setResearchArmed] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [showRecents, setShowRecents] = useState(false);
   const { images, compressing, fileInputRef, handleFiles, removeImage, clearImages, recents, attachRecent } =
@@ -244,6 +245,29 @@ const Composer = ({
             type="file"
             accept="image/*"
             multiple
+            hidden
+            aria-hidden="true"
+            tabIndex={-1}
+            onChange={(e) => handleFiles(e.target.files)}
+          />
+
+          {/* Take photo button — opens the camera directly on mobile */}
+          <Button
+            variant="ghost"
+            className="composer-upload-btn"
+            disabled={disabled || compressing}
+            aria-label="Take photo"
+            title="Take photo"
+            onClick={() => cameraInputRef.current?.click()}
+            type="button"
+          >
+            <i className="bi bi-camera composer-upload-icon" aria-hidden="true" />
+          </Button>
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
             hidden
             aria-hidden="true"
             tabIndex={-1}
