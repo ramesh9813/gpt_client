@@ -24,7 +24,7 @@
   justify-content: space-between;
   padding-left: 0.75rem;
   padding-right: 0.75rem;
-  background-color: var(--bg);
+  background-color: transparent;
   z-index: 30;
   padding-top: env(safe-area-inset-top, 0px);
   flex-shrink: 0;
