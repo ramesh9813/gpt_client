@@ -154,15 +154,6 @@
   outline-offset: 1px;
 }
 
-.conv-side-folder-chevron {
-  flex-shrink: 0;
-  width: 16px;
-  text-align: center;
-  font-size: 10px;
-  line-height: 1;
-  color: var(--muted);
-  transition: transform 150ms ease;
-}
 
 /* Preserved semantic accent: yellow folder */
 .conv-side-folder-icon {

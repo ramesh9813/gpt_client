@@ -80,7 +80,6 @@ export function FolderSection({
           <div key={folder.id} className="conv-side-folder-group">
             <div className="conv-side-folder-row" data-expanded={expandedFolders.has(folder.id) ? "true" : "false"}>
               <div className="conv-side-folder-main" onClick={() => onToggleFolder(folder.id)} title={folder.name}>
-                <i className={`bi bi-chevron-${expandedFolders.has(folder.id) ? "down" : "right"} conv-side-folder-chevron`}></i>
                 <i className={`bi bi-folder${expandedFolders.has(folder.id) ? "-fill" : ""} conv-side-folder-icon`}></i>
                 <span className="conv-side-folder-name">{folder.name}</span>
                 {(folder._count?.conversations || 0) > 0 && (
