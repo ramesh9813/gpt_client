@@ -43,7 +43,7 @@ export const applyQuizEvent = (
     if (
       Array.isArray(questions) &&
       questions.length > 0 &&
-      questions.length <= 10
+      questions.length <= 50
     ) {
       let valid = true;
       for (const q of questions) {
