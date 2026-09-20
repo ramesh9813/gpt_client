@@ -6,6 +6,7 @@ export type OpenRouterModel = {
   expiration_date?: string | null;
   is_deprecated?: boolean;
   status?: string;
+  speed_rank?: number;
   pricing?: { prompt: string; completion: string };
 };
 

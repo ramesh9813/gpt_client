@@ -5,7 +5,7 @@ import { formatUpdatedAgo } from "../utils/formatUpdatedAgo";
 import "./ModelMenu.css";
 
 export type ModelOption = { label: string; value: string; supportsResearch?: boolean };
-export type SortOption = "name" | "cheapest" | "free";
+export type SortOption = "name" | "cheapest" | "free" | "speed";
 
 export type ModelsStaleInfo = { offline: boolean; updatedAgo: string };
 
@@ -191,12 +191,20 @@ export const ModelMenu = ({
                   }}
                   className="composer-sort-btn"
                 >
-                  <span>{sort === "name" ? "Name" : sort === "cheapest" ? "Price" : "Free"}</span>
+                  <span>
+                    {sort === "name"
+                      ? "Name"
+                      : sort === "cheapest"
+                      ? "Price"
+                      : sort === "free"
+                      ? "Free"
+                      : "Speed"}
+                  </span>
                   <i className="bi bi-chevron-down composer-sort-chevron"></i>
                 </button>
                 {sortOpen && (
                   <div className="composer-sort-menu">
-                    {(["name", "cheapest", "free"] as SortOption[]).map((s) => (
+                    {(["name", "cheapest", "free", "speed"] as SortOption[]).map((s) => (
                       <button
                         key={s}
                         type="button"
@@ -209,7 +217,11 @@ export const ModelMenu = ({
                           setSortOpen(false);
                         }}
                       >
-                        {s.charAt(0).toUpperCase() + s.slice(1)}
+                        {s === "cheapest"
+                          ? "Price"
+                          : s === "speed"
+                          ? "Speed"
+                          : s.charAt(0).toUpperCase() + s.slice(1)}
                       </button>
                     ))}
                   </div>

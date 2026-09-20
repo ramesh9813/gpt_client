@@ -12,7 +12,7 @@ import { apiFetch, ApiResponse } from "../../../lib/api";
 import { useMe, useSettings } from "../../../lib/hooks";
 import { formatUpdatedAgo } from "../utils/formatUpdatedAgo";
 
-export type SortOption = "name" | "cheapest" | "free";
+export type SortOption = "name" | "cheapest" | "free" | "speed";
 
 export type ModelOption = { label: string; value: string; supportsResearch?: boolean };
 
@@ -176,6 +176,16 @@ export const useChatModels = () => {
           0;
         if (isFreeA && !isFreeB) return -1;
         if (!isFreeA && isFreeB) return 1;
+        const left = a.name || a.id;
+        const right = b.name || b.id;
+        return left.localeCompare(right);
+      }
+      if (sortBy === "speed") {
+        const rankA = typeof a.speed_rank === "number" ? a.speed_rank : 99999;
+        const rankB = typeof b.speed_rank === "number" ? b.speed_rank : 99999;
+        if (rankA !== rankB) {
+          return rankA - rankB;
+        }
         const left = a.name || a.id;
         const right = b.name || b.id;
         return left.localeCompare(right);
