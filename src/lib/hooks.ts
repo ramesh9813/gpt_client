@@ -15,10 +15,9 @@ export type User = {
 
 export type UserSettings = {
   theme: "SYSTEM" | "DARK" | "LIGHT";
-  fontScale: "SMALL" | "DEFAULT" | "LARGE";
+  fontScale: "XSMALL" | "SMALL" | "DEFAULT" | "LARGE" | "XLARGE";
   brand: BrandId;
   pinHeader: boolean;
-  model: string;
 };
 
 export const useMe = (enabled = true) =>

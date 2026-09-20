@@ -1,5 +1,5 @@
 export type ThemeMode = "SYSTEM" | "DARK" | "LIGHT";
-export type FontScale = "SMALL" | "DEFAULT" | "LARGE";
+export type FontScale = "XSMALL" | "SMALL" | "DEFAULT" | "LARGE" | "XLARGE";
 
 export const applyTheme = (
   theme: ThemeMode = "SYSTEM",
