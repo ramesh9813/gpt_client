@@ -123,6 +123,12 @@ const Composer = ({
   const currentModelLabel =
     modelOptions.find((o) => o.value === model)?.label || "Model";
 
+  // Beside the image icon show the model name; long names collapse to first word.
+  const shortModelLabel = (() => {
+    const trimmed = currentModelLabel.trim();
+    return trimmed.length > 12 ? trimmed.split(/\s+/)[0] : trimmed;
+  })();
+
   // Keep hidden to satisfy TS noUnusedLocals if edit-last shortcut is wired elsewhere.
   void handleEditLast;
 
@@ -215,6 +221,14 @@ const Composer = ({
             tabIndex={-1}
             onChange={(e) => handleFiles(e.target.files)}
           />
+
+          <span
+            className="composer-model-tag"
+            title={currentModelLabel}
+            aria-label={`Selected model: ${currentModelLabel}`}
+          >
+            {shortModelLabel}
+          </span>
 
             <div className="composer-spacer" />
           {streaming ? (
