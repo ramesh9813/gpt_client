@@ -163,6 +163,7 @@ const Composer = ({
   const stopRequestedRef = useRef(false);
   const finalTranscriptRef = useRef("");
   const [listening, setListening] = useState(false);
+  const [listenError, setListenError] = useState<string | null>(null);
   const speechSupported =
     typeof window !== "undefined" &&
     !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
@@ -174,6 +175,18 @@ const Composer = ({
   const micStreamRef = useRef<MediaStream | null>(null);
   const vizRafRef = useRef(0);
   const levelsRef = useRef<number[]>([]);
+  // The visualizer needs its own mic stream, which can starve speech
+  // recognition on some phones. Only start it once results are flowing
+  // (proves coexistence) or shortly after start if speech is detected.
+  const resultsSeenRef = useRef(false);
+  const vizStartedRef = useRef(false);
+  const vizTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const maybeStartViz = () => {
+    if (vizStartedRef.current || !listeningRef.current) return;
+    vizStartedRef.current = true;
+    void startViz();
+  };
 
   const stopViz = () => {
     cancelAnimationFrame(vizRafRef.current);
@@ -294,6 +307,9 @@ const Composer = ({
     stopRequestedRef.current = false;
     listeningRef.current = true;
     rec.onresult = (e: any) => {
+      // First results flowing → recognition is fed, safe to start the viz.
+      resultsSeenRef.current = true;
+      maybeStartViz();
       // Rebuild from the cumulative results array every event: the engine
       // re-delivers final chunks across events, so incremental appending
       // would repeat words ("can you" → "cancan you"). Recomputing keeps
@@ -312,15 +328,34 @@ const Composer = ({
       finalTranscriptRef.current = dedupeTranscript(final);
       setValue(dedupeTranscript((final + (interim ? " " + interim : "")).trim()));
     };
-    rec.onerror = () => undefined;
+    rec.onerror = (e: any) => {
+      const kind = e?.error || "";
+      if (kind === "not-allowed" || kind === "service-not-allowed") {
+        setListenError("Microphone blocked. Allow mic permission and try again.");
+        stopRequestedRef.current = true;
+        listeningRef.current = false;
+        setListening(false);
+        stopViz();
+      } else if (kind === "audio-capture") {
+        setListenError("No microphone found or mic is busy in another app.");
+        stopRequestedRef.current = true;
+        listeningRef.current = false;
+        setListening(false);
+        stopViz();
+      }
+    };
     rec.onend = () => {
       if (stopRequestedRef.current) {
-        // User tapped stop: keep the transcript in the input, never auto-send.
+        // User tapped stop: send the transcript to the AI.
         const text = finalTranscriptRef.current.trim();
         finalTranscriptRef.current = "";
         listeningRef.current = false;
         setListening(false);
-        if (text) setValue(text);
+        if (text) {
+          sendText(text);
+        } else {
+          setValue("");
+        }
       } else if (listeningRef.current) {
         // Unexpected end (e.g. mobile pause): resume while still listening.
         try {
@@ -333,12 +368,21 @@ const Composer = ({
     };
     recognitionRef.current = rec;
     setListening(true);
-    void startViz();
+    setListenError(null);
+    resultsSeenRef.current = false;
+    vizStartedRef.current = false;
+    // Give the recognizer a head start on the mic; start the visualizer
+    // stream only once results prove both can coexist.
+    if (vizTimerRef.current) clearTimeout(vizTimerRef.current);
+    vizTimerRef.current = setTimeout(() => {
+      if (resultsSeenRef.current) maybeStartViz();
+    }, 800);
     try {
       rec.start();
     } catch {
       listeningRef.current = false;
       setListening(false);
+      if (vizTimerRef.current) clearTimeout(vizTimerRef.current);
       stopViz();
     }
   };
@@ -346,6 +390,7 @@ const Composer = ({
   const stopListening = () => {
     stopRequestedRef.current = true;
     listeningRef.current = false;
+    if (vizTimerRef.current) clearTimeout(vizTimerRef.current);
     stopViz();
     try {
       recognitionRef.current?.stop();
@@ -353,12 +398,14 @@ const Composer = ({
       const text = finalTranscriptRef.current.trim();
       finalTranscriptRef.current = "";
       setListening(false);
-      if (text) setValue(text);
+      if (text) sendText(text);
+      else setValue("");
     }
   };
 
   useEffect(
     () => () => {
+      if (vizTimerRef.current) clearTimeout(vizTimerRef.current);
       try {
         recognitionRef.current?.abort();
       } catch {
@@ -620,6 +667,9 @@ const Composer = ({
       />
       {error ? (
         <div className="composer-error">{error}</div>
+      ) : null}
+      {listenError && !listening ? (
+        <div className="composer-error">{listenError}</div>
       ) : null}
       {/* In-app camera viewfinder: half-height panel just below the input card */}
       {cameraOpen && (
