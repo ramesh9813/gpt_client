@@ -1,4 +1,4 @@
-import { KeyboardEvent, RefObject } from "react";
+import { KeyboardEvent, RefObject, memo } from "react";
 import { Textarea } from "../../../components/Textarea";
 import type { ChatMessage } from "./types";
 import { MessageImages } from "./MessageImages";
@@ -21,21 +21,22 @@ type UserMessageProps = {
   editDisabled?: boolean;
 };
 
-export const UserMessage = ({
-  message,
-  isEditing,
-  editingValue,
-  setEditingValue,
-  editingError,
-  savingId,
-  editRef,
-  onEditKeyDown,
-  submitEdit,
-  cancelEdit,
-  startEdit,
-  onEditSubmit,
-  editDisabled
-}: UserMessageProps) => {
+export const UserMessage = memo(
+  ({
+    message,
+    isEditing,
+    editingValue,
+    setEditingValue,
+    editingError,
+    savingId,
+    editRef,
+    onEditKeyDown,
+    submitEdit,
+    cancelEdit,
+    startEdit,
+    onEditSubmit,
+    editDisabled
+  }: UserMessageProps) => {
   return (
     <div
       className={`msg-user-row ${isEditing ? "msg-user-row--editing" : ""}`}
@@ -110,4 +111,14 @@ export const UserMessage = ({
       </div>
     </div>
   );
-};
+},
+// Only the edited row (new message identity) or edit-state changes re-render.
+// Streaming replaces just the streaming message object, so settled rows skip.
+(prev, next) =>
+  prev.message === next.message &&
+  prev.isEditing === next.isEditing &&
+  prev.editingValue === next.editingValue &&
+  prev.editingError === next.editingError &&
+  prev.savingId === next.savingId &&
+  prev.editDisabled === next.editDisabled
+);

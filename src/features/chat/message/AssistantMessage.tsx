@@ -1,4 +1,4 @@
-import { RefObject } from "react";
+import { RefObject, memo } from "react";
 import { DownloadMenu } from "../../../components/DownloadMenu";
 import type { ChatMessage, ModelOption } from "./types";
 import { MessageImages } from "./MessageImages";
@@ -19,18 +19,19 @@ type AssistantMessageProps = {
   listRef: RefObject<HTMLDivElement>;
 };
 
-export const AssistantMessage = ({
-  message,
-  displayContent,
-  isCanvasOnly,
-  messages,
-  modelOptions = [],
-  onRegenerate,
-  onStopStreaming,
-  onFollowup,
-  activeStreamId,
-  listRef
-}: AssistantMessageProps) => {
+export const AssistantMessage = memo(
+  ({
+    message,
+    displayContent,
+    isCanvasOnly,
+    messages,
+    modelOptions = [],
+    onRegenerate,
+    onStopStreaming,
+    onFollowup,
+    activeStreamId,
+    listRef
+  }: AssistantMessageProps) => {
   if (!message.content && !(message.images && message.images.length > 0) && message.status !== "STREAMING") {
     return null;
   }
@@ -123,4 +124,16 @@ export const AssistantMessage = ({
       </div>
     </div>
   );
-};
+},
+// Settled answers skip re-renders while another message streams: only a new
+// message identity, new content, canvas/stream flags, or a longer thread
+// (new/removed messages) re-render a row. Volatile callbacks and the thread
+// array identity are intentionally ignored.
+(prev, next) =>
+  prev.message === next.message &&
+  prev.displayContent === next.displayContent &&
+  prev.isCanvasOnly === next.isCanvasOnly &&
+  prev.activeStreamId === next.activeStreamId &&
+  prev.modelOptions === next.modelOptions &&
+  prev.messages.length === next.messages.length
+);
