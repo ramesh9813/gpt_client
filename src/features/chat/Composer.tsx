@@ -271,16 +271,23 @@ const Composer = ({
     stopRequestedRef.current = false;
     listeningRef.current = true;
     rec.onresult = (e: any) => {
+      // Rebuild from the cumulative results array every event: the engine
+      // re-delivers final chunks across events, so incremental appending
+      // would repeat words ("can you" → "cancan you"). Recomputing keeps
+      // each final segment exactly once; only unfinished tails are interim.
+      let final = "";
       let interim = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const transcript = e.results[i][0]?.transcript || "";
-        if (e.results[i].isFinal) {
-          finalTranscriptRef.current += transcript;
-        } else {
+      const results = e.results || [];
+      for (let i = 0; i < results.length; i++) {
+        const transcript = results[i][0]?.transcript || "";
+        if (results[i].isFinal) {
+          final += transcript;
+        } else if (i >= (e.resultIndex || 0)) {
           interim += transcript;
         }
       }
-      setValue((finalTranscriptRef.current + " " + interim).trim());
+      finalTranscriptRef.current = final;
+      setValue((final + (interim ? " " + interim : "")).trim());
     };
     rec.onerror = () => undefined;
     rec.onend = () => {
