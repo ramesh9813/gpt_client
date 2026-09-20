@@ -156,7 +156,8 @@ const Composer = ({
     clearImages();
   };
 
-  // Voice input: click mic to listen, click again to stop → transcript auto-sends.
+  // Voice input: click mic to listen, click again to only stop listening.
+  // The transcript stays in the input; the send button sends it.
   const recognitionRef = useRef<any>(null);
   const listeningRef = useRef(false);
   const stopRequestedRef = useRef(false);
@@ -292,15 +293,12 @@ const Composer = ({
     rec.onerror = () => undefined;
     rec.onend = () => {
       if (stopRequestedRef.current) {
+        // User tapped stop: keep the transcript in the input, never auto-send.
         const text = finalTranscriptRef.current.trim();
         finalTranscriptRef.current = "";
         listeningRef.current = false;
         setListening(false);
-        if (text) {
-          sendText(text);
-        } else {
-          setValue("");
-        }
+        if (text) setValue(text);
       } else if (listeningRef.current) {
         // Unexpected end (e.g. mobile pause): resume while still listening.
         try {
@@ -333,7 +331,7 @@ const Composer = ({
       const text = finalTranscriptRef.current.trim();
       finalTranscriptRef.current = "";
       setListening(false);
-      if (text) sendText(text);
+      if (text) setValue(text);
     }
   };
 
