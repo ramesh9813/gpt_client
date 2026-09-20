@@ -37,7 +37,15 @@ const HomeRedirect = () => {
     }
   }, [data, isLoading, navigate, createMutation]);
 
-  return <div className="homeredirect-loading">Loading...</div>;
+  return (
+      <div className="homeredirect-loading" role="status" aria-label="Loading">
+        <span className="loading-dots" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
+      </div>
+    );
 };
 
 export default HomeRedirect;

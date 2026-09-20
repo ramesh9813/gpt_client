@@ -14,7 +14,15 @@ const RequireAuth = ({ children }: { children: JSX.Element }) => {
   const location = useLocation();
 
   if (isLoading) {
-    return <div className="app-loading">Loading...</div>;
+    return (
+      <div className="app-loading" role="status" aria-label="Loading">
+        <span className="loading-dots" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
+      </div>
+    );
   }
 
   if (!data?.data?.user) {
