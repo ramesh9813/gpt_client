@@ -1,5 +1,6 @@
 .login-page {
-  min-height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
   background-color: var(--bg);
   color: var(--text);
 }

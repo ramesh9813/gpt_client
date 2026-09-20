@@ -11,7 +11,7 @@
   --theme-accent: #0e7c61; --theme-accent-hover: #0b5f4b; --theme-accent-soft: #d1fae5;
   --theme-user-message-bg: #f4f4f4; --theme-user-message-text: #0d0d0d;
   --theme-assistant-text: #0d0d0d;
-  --theme-code-bg: #f9fafb; --theme-code-text: #0d0d0d;
+  --theme-code-bg: #eef1f4; --theme-code-text: #0d0d0d;
   --theme-sidebar-width: 300px; --theme-content-max-width: 768px;
   --theme-radius-sm: 6px; --theme-radius-md: 10px; --theme-radius-lg: 16px;
   --theme-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06); --theme-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);

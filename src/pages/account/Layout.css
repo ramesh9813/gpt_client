@@ -1,6 +1,7 @@
 /* Account page root: min-h-screen bg-[var(--bg)] text-[var(--text)] pt-[env...] pb-[env...] */
 .account-page {
-  min-height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
   background-color: var(--bg);
   color: var(--text);
   padding-top: env(safe-area-inset-top, 0px);
