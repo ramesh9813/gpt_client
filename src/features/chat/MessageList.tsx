@@ -43,9 +43,14 @@ const MessageList = ({
   onScrollDirectionRef.current = onScrollDirection;
   const edit = useMessageEdit(onEditSubmit);
 
-  const scrollToBottom = () => {
-    if (listRef.current) {
-      listRef.current.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' });
+  const scrollToBottom = (instant = false) => {
+    const el = listRef.current;
+    if (!el) return;
+    if (instant) {
+      // Direct assignment: no animation to queue, stays glued to new tokens.
+      el.scrollTop = el.scrollHeight;
+    } else {
+      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
     }
   };
 
@@ -57,13 +62,17 @@ const MessageList = ({
 
   useEffect(() => {
     if (atBottom) {
-      scrollToBottom();
+      // While the AI streams, tokens land in bursts — pin instantly so no
+      // smooth-scroll animations pile up and judder. Animate only discrete
+      // jumps (new turn when idle, jump buttons).
+      scrollToBottom(activeStreamId != null);
     }
-  }, [messages, atBottom]);
+  }, [messages, atBottom, activeStreamId]);
 
   useEffect(() => {
     const el = listRef.current;
     if (!el) return;
+    let raf = 0;
     const update = () => {
       const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
       setAtBottom(distance < 120);
@@ -86,10 +95,20 @@ const MessageList = ({
       }
     };
     update();
-    el.addEventListener("scroll", update);
+    // rAF-throttle: coalesce burst scroll events into one state update per
+    // frame so rapid token-driven growth never floods React re-renders.
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        update();
+      });
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", update);
     return () => {
-      el.removeEventListener("scroll", update);
+      if (raf) cancelAnimationFrame(raf);
+      el.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", update);
     };
   }, []);
