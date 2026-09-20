@@ -166,6 +166,100 @@ const Composer = ({
     typeof window !== "undefined" &&
     !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
 
+  // Live frequency visualizer: mic amplitude drives canvas bars in the input area.
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const vizRafRef = useRef(0);
+  const levelsRef = useRef<number[]>([]);
+
+  const stopViz = () => {
+    cancelAnimationFrame(vizRafRef.current);
+    vizRafRef.current = 0;
+    micStreamRef.current?.getTracks().forEach((t) => t.stop());
+    micStreamRef.current = null;
+    if (audioCtxRef.current) {
+      void audioCtxRef.current.close().catch(() => undefined);
+      audioCtxRef.current = null;
+    }
+    analyserRef.current = null;
+  };
+
+  const startViz = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const Ctx =
+        (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!Ctx) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+      const ctx: AudioContext = new Ctx();
+      const src = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.75;
+      src.connect(analyser);
+      micStreamRef.current = stream;
+      audioCtxRef.current = ctx;
+      analyserRef.current = analyser;
+      const accent =
+        getComputedStyle(document.documentElement)
+          .getPropertyValue("--accent")
+          .trim() || "#74aa9c";
+      const BARS = 48;
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      levelsRef.current = new Array(BARS).fill(0.06);
+      const draw = () => {
+        vizRafRef.current = requestAnimationFrame(draw);
+        const canvas = canvasRef.current;
+        const az = analyserRef.current;
+        if (!canvas || !az) return;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        if (w === 0 || h === 0) return;
+        if (
+          canvas.width !== Math.round(w * dpr) ||
+          canvas.height !== Math.round(h * dpr)
+        ) {
+          canvas.width = Math.round(w * dpr);
+          canvas.height = Math.round(h * dpr);
+        }
+        az.getByteFrequencyData(data);
+        const g = canvas.getContext("2d");
+        if (!g) return;
+        g.clearRect(0, 0, canvas.width, canvas.height);
+        // Voice energy lives in the lower bins; louder sound → taller bars.
+        const usable = 72;
+        const prev = levelsRef.current;
+        const gap = canvas.width / BARS;
+        const bw = Math.max(2 * dpr, gap * 0.45);
+        g.fillStyle = accent;
+        for (let i = 0; i < BARS; i++) {
+          const idx = Math.floor((i / BARS) * usable);
+          const target = Math.max(0.06, data[idx] / 255);
+          const v = prev[i] + (target - prev[i]) * 0.45;
+          prev[i] = v;
+          const bh = Math.max(2 * dpr, v * canvas.height);
+          const x = i * gap + (gap - bw) / 2;
+          const y = (canvas.height - bh) / 2;
+          if (typeof (g as any).roundRect === "function") {
+            (g as any).beginPath();
+            (g as any).roundRect(x, y, bw, bh, bw / 2);
+            g.fill();
+          } else {
+            g.fillRect(x, y, bw, bh);
+          }
+        }
+      };
+      draw();
+    } catch {
+      // Visualizer unavailable (e.g. mic blocked) — recognition still works.
+    }
+  };
+
   const startListening = () => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR || disabled || streaming || compressing) return;
@@ -212,17 +306,20 @@ const Composer = ({
     };
     recognitionRef.current = rec;
     setListening(true);
+    void startViz();
     try {
       rec.start();
     } catch {
       listeningRef.current = false;
       setListening(false);
+      stopViz();
     }
   };
 
   const stopListening = () => {
     stopRequestedRef.current = true;
     listeningRef.current = false;
+    stopViz();
     try {
       recognitionRef.current?.stop();
     } catch {
@@ -240,6 +337,7 @@ const Composer = ({
       } catch {
         // ignore cleanup errors
       }
+      stopViz();
     },
     []
   );
@@ -313,6 +411,13 @@ const Composer = ({
             >
               <i className="bi bi-x" aria-hidden="true"></i>
             </button>
+          </div>
+        )}
+
+        {/* Live mic levels while listening */}
+        {listening && (
+          <div className="composer-viz-wrap" aria-hidden="true">
+            <canvas ref={canvasRef} className="composer-viz" />
           </div>
         )}
 
