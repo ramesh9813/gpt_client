@@ -11,10 +11,30 @@ import { BRANDS, applyBrand, isBrandId, type BrandId } from "../../lib/brandThem
 
 const settingsSchema = z.object({
   theme: z.enum(["SYSTEM", "DARK", "LIGHT"]),
-  fontScale: z.enum(["SMALL", "DEFAULT", "LARGE"]),
+  fontScale: z.enum(["XSMALL", "SMALL", "DEFAULT", "LARGE", "XLARGE"]),
   brand: z.enum(["default", "chatgpt", "claude", "gemini", "grok", "deepseek"]),
   pinHeader: z.boolean(),
 });
+
+const FONT_STEPS = ["XSMALL", "SMALL", "DEFAULT", "LARGE", "XLARGE"] as const;
+type FontStep = (typeof FONT_STEPS)[number];
+const FONT_STEP_LABELS: Record<FontStep, string> = {
+  XSMALL: "Extra small",
+  SMALL: "Small",
+  DEFAULT: "Default",
+  LARGE: "Large",
+  XLARGE: "Extra large",
+};
+const FONT_STEP_SIZES: Record<FontStep, number> = {
+  XSMALL: 13,
+  SMALL: 14,
+  DEFAULT: 16,
+  LARGE: 18,
+  XLARGE: 20,
+};
+const DEFAULT_FONT_STEP: FontStep = "DEFAULT";
+const toFontStep = (value: unknown): FontStep =>
+  FONT_STEPS.includes(value as FontStep) ? (value as FontStep) : DEFAULT_FONT_STEP;
 
 export type SettingsFormValues = z.infer<typeof settingsSchema>;
 
@@ -27,6 +47,7 @@ export const SettingsTab = () => {
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { isSubmitting },
   } = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
@@ -48,6 +69,7 @@ export const SettingsTab = () => {
         fontScale: "DEFAULT",
         pinHeader: false,
         ...settings,
+        fontScale: toFontStep(settings.fontScale),
         brand: isBrandId(settings.brand) ? settings.brand : "default",
       });
     }
@@ -104,15 +126,33 @@ export const SettingsTab = () => {
           </select>
         </div>
         <div>
-          <label className="account-field-label">Font size</label>
-          <select
-            className="account-select"
-            {...register("fontScale")}
-          >
-            <option value="SMALL">Small</option>
-            <option value="DEFAULT">Default</option>
-            <option value="LARGE">Large</option>
-          </select>
+          <label className="account-field-label" htmlFor="chat-font-size">
+            Chat font size{" "}
+            <span className="account-font-size-value">
+              {FONT_STEP_SIZES[toFontStep(watch("fontScale"))]}px ·{" "}
+              {FONT_STEP_LABELS[toFontStep(watch("fontScale"))]}
+            </span>
+          </label>
+          <input
+            id="chat-font-size"
+            type="range"
+            min={0}
+            max={FONT_STEPS.length - 1}
+            step={1}
+            value={FONT_STEPS.indexOf(toFontStep(watch("fontScale")))}
+            onChange={(e) =>
+              setValue("fontScale", FONT_STEPS[Number(e.target.value)], {
+                shouldDirty: true,
+                shouldValidate: true,
+              })
+            }
+            className="account-range"
+            aria-valuetext={`${FONT_STEP_LABELS[toFontStep(watch("fontScale"))]} ${FONT_STEP_SIZES[toFontStep(watch("fontScale"))]} pixels`}
+          />
+          <div className="account-range-ends" aria-hidden="true">
+            <span className="account-range-end-small">A</span>
+            <span className="account-range-end-large">A</span>
+          </div>
         </div>
         <div>
           <label className="account-check-row">
