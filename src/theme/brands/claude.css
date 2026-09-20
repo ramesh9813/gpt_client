@@ -1,8 +1,8 @@
 /* ============================ 3. CLAUDE (light, warm paper) ============== */
 [data-brand="claude"] {
-  --theme-font-ui: "Anthropic Sans", Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  --theme-font-response: "Anthropic Serif", Georgia, "Source Serif Pro", Charter, serif;
-  --theme-font-mono: "Anthropic Mono", "JetBrains Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --theme-font-ui: "Styrene B", "Anthropic Sans", system-ui, -apple-system, sans-serif;
+  --theme-font-response: "Tiempos Text", "Copernicus", "Anthropic Serif", ui-serif, Georgia, serif;
+  --theme-font-mono: "Anthropic Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace;
   --theme-font-size-xs: 12px; --theme-font-size-sm: 14px; --theme-font-size-base: 16px; --theme-font-size-lg: 18px; --theme-font-size-xl: 20px;
   --theme-font-weight-normal: 400; --theme-font-weight-medium: 500; --theme-font-weight-semibold: 600; --theme-font-weight-bold: 700;
   --theme-text-primary: #1f1e1d; --theme-text-secondary: #4a4640; --theme-text-muted: #6b6560;
