@@ -6,6 +6,7 @@ import ConversationSidebar from "../features/chat/ConversationSidebar";
 import SidebarToggle from "../components/SidebarToggle";
 import { useSidebar } from "../features/chat/useSidebar";
 import MessageList from "../features/chat/MessageList";
+import type { QuizRound } from "../features/chat/MessageList";
 import Composer from "../features/chat/Composer";
 import { apiFetch, ApiResponse } from "../lib/api";
 import CanvasPanel from "../features/chat/CanvasPanel";
@@ -122,6 +123,31 @@ const Chat = () => {
 
   const handleStopStreaming = () => stopStreaming(setMessages);
 
+  // MCQ quiz: optimistic local update + best-effort persist (no refetch loop).
+  const handleQuizSelect = useCallback(
+    (messageId: string, quiz: QuizRound) => {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === messageId ? { ...m, quiz } : m))
+      );
+      if (!conversationId) return;
+      const cid = conversationId;
+      void apiFetch(`/api/conversations/${cid}/messages/${messageId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quiz }),
+      }).catch(() => undefined);
+    },
+    [conversationId, setMessages]
+  );
+
+  const handleNextRound = useCallback(
+    (topic: string) => {
+      const t = topic?.trim() ?? "";
+      void sendMessage(t ? `mcq ${t}` : "mcq");
+    },
+    [sendMessage]
+  );
+
   // Smart scroll: hide the floating pill on scroll down, reveal on scroll up.
   // Disabled when the user pins the header in Settings > Appearance.
   const [headerHidden, setHeaderHidden] = useState(false);
@@ -203,6 +229,8 @@ const Chat = () => {
               onRegenerate={handleRegenerate}
               onStopStreaming={handleStopStreaming}
               onFollowup={(q) => void sendMessage(q)}
+              onQuizSelect={handleQuizSelect}
+              onNextRound={handleNextRound}
               activeStreamId={activeStreamId}
               contentOverrides={showCanvas ? canvasData.displayMap : undefined}
               hasCanvasCode={showCanvas ? canvasData.hasCodeMap : undefined}

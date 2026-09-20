@@ -342,6 +342,30 @@ const Composer = ({
   // Keep hidden to satisfy TS noUnusedLocals if edit-last shortcut is wired elsewhere.
   void handleEditLast;
 
+  // MCQ quiz shortcut: insert "mcq " prefix so the server routes to quiz.
+  // Never auto-sends — the user reviews/edits the topic, then hits Send.
+  const handleQuizPrefix = () => {
+    const el = textareaRef.current;
+    if (/^\s*mcq(\s|$)/i.test(value)) {
+      requestAnimationFrame(() => el?.focus());
+      return;
+    }
+    const stripped = value.replace(/^\s+/, "");
+    const next = stripped ? `mcq ${stripped}` : "mcq ";
+    setValue(next);
+    requestAnimationFrame(() => {
+      if (el) {
+        adjustTextareaHeight(el);
+        el.focus();
+        try {
+          el.selectionStart = el.selectionEnd = next.length;
+        } catch {
+          // ignore selection errors (non-text inputs never occur here)
+        }
+      }
+    });
+  };
+
   return (
     <div className="composer-dock">
       <div className="composer-input-container">
@@ -487,6 +511,19 @@ const Composer = ({
             type="button"
           >
             <i className={`bi ${cameraOpen ? "bi-camera-fill" : "bi-camera"} composer-upload-icon`} aria-hidden="true" />
+          </Button>
+
+          {/* MCQ quiz button — inserts "mcq " prefix, never auto-sends */}
+          <Button
+            variant="ghost"
+            className="composer-upload-btn"
+            disabled={disabled || compressing}
+            aria-label="Start quiz"
+            title="Start quiz (mcq)"
+            onClick={handleQuizPrefix}
+            type="button"
+          >
+            <i className="bi bi-patch-question composer-upload-icon" aria-hidden="true" />
           </Button>
 
           <button

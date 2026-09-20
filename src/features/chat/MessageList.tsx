@@ -1,11 +1,11 @@
 import "./MessageList.css";
 import { useEffect, useRef, useState } from "react";
-import type { ChatMessage, ModelOption } from "./message/types";
+import type { ChatMessage, ModelOption, QuizRound } from "./message/types";
 import { useMessageEdit } from "./message/useMessageEdit";
 import { UserMessage } from "./message/UserMessage";
 import { AssistantMessage } from "./message/AssistantMessage";
 
-export type { ChatMessage, ModelOption } from "./message/types";
+export type { ChatMessage, ModelOption, QuizQuestion, QuizRound } from "./message/types";
 
 type MessageListProps = {
   messages: ChatMessage[];
@@ -15,6 +15,8 @@ type MessageListProps = {
   onRegenerate?: (messageId: string, model: string) => void;
   onStopStreaming?: () => void;
   onFollowup?: (text: string) => void;
+  onQuizSelect?: (messageId: string, quiz: QuizRound) => void;
+  onNextRound?: (topic: string) => void;
   activeStreamId?: string | null;
   contentOverrides?: Record<string, string>;
   hasCanvasCode?: Record<string, boolean>;
@@ -29,6 +31,8 @@ const MessageList = ({
   onRegenerate,
   onStopStreaming,
   onFollowup,
+  onQuizSelect,
+  onNextRound,
   activeStreamId,
   contentOverrides,
   hasCanvasCode,
@@ -185,6 +189,8 @@ const MessageList = ({
               onRegenerate={onRegenerate}
               onStopStreaming={onStopStreaming}
               onFollowup={onFollowup}
+              onQuizSelect={onQuizSelect}
+              onNextRound={onNextRound}
               activeStreamId={activeStreamId}
               listRef={listRef}
             />

@@ -1,3 +1,18 @@
+export type QuizQuestion = {
+  question: string;
+  options: [string, string, string, string];
+  answerIndex: number;
+  explanation?: string;
+};
+
+export type QuizRound = {
+  round: number;
+  topic: string;
+  questions: QuizQuestion[];
+  selections?: (number | null)[];
+  revealed?: boolean;
+};
+
 export type ChatMessage = {
   id: string;
   role: "USER" | "ASSISTANT" | "SYSTEM";
@@ -6,6 +21,7 @@ export type ChatMessage = {
   model?: string | null;
   images?: string[];
   followups?: string[];
+  quiz?: QuizRound;
 };
 
 export type ModelOption = { label: string; value: string };

@@ -1,10 +1,11 @@
 import { RefObject, memo } from "react";
 import { DownloadMenu } from "../../../components/DownloadMenu";
-import type { ChatMessage, ModelOption } from "./types";
+import type { ChatMessage, ModelOption, QuizRound } from "./types";
 import { MessageImages } from "./MessageImages";
 import { MarkdownContent } from "./MarkdownContent";
 import { CopyButton, ShareButton } from "./MessageButtons";
 import { RegenerateMenu } from "./RegenerateMenu";
+import { QuizCard } from "./QuizCard";
 
 type AssistantMessageProps = {
   message: ChatMessage;
@@ -15,6 +16,8 @@ type AssistantMessageProps = {
   onRegenerate?: (messageId: string, model: string) => void;
   onStopStreaming?: () => void;
   onFollowup?: (text: string) => void;
+  onQuizSelect?: (messageId: string, quiz: QuizRound) => void;
+  onNextRound?: (topic: string) => void;
   activeStreamId?: string | null;
   listRef: RefObject<HTMLDivElement>;
 };
@@ -29,12 +32,40 @@ export const AssistantMessage = memo(
     onRegenerate,
     onStopStreaming,
     onFollowup,
+    onQuizSelect,
+    onNextRound,
     activeStreamId,
     listRef
   }: AssistantMessageProps) => {
-  if (!message.content && !(message.images && message.images.length > 0) && message.status !== "STREAMING") {
+  if (!message.content && !(message.images && message.images.length > 0) && !message.quiz && message.status !== "STREAMING") {
     return null;
   }
+
+  const handleQuizSelect = (qIndex: number, optIndex: number) => {
+    const quiz = message.quiz;
+    if (!quiz) return;
+    const total = quiz.questions.length;
+    if (qIndex < 0 || qIndex >= total) return;
+    if (optIndex < 0 || optIndex > 3) return;
+    const prevSel: (number | null)[] =
+      Array.isArray(quiz.selections) && quiz.selections.length === total
+        ? [...quiz.selections]
+        : Array(total).fill(null);
+    if (prevSel[qIndex] !== null && prevSel[qIndex] !== undefined) return;
+    prevSel[qIndex] = optIndex;
+    const allAnswered = prevSel.every((s) => s !== null && s !== undefined);
+    const next: QuizRound = {
+      ...quiz,
+      selections: prevSel,
+      revealed: allAnswered ? true : (quiz.revealed ?? false),
+    };
+    onQuizSelect?.(message.id, next);
+  };
+
+  const handleNextRound = () => {
+    if (!message.quiz) return;
+    onNextRound?.(message.quiz.topic);
+  };
 
   return (
     <div
@@ -42,7 +73,7 @@ export const AssistantMessage = memo(
     >
       <div className="markdown msg-assistant-body">
         <MessageImages images={message.images} />
-        {message.status === "STREAMING" && !displayContent ? (
+        {message.status === "STREAMING" && !displayContent && !message.quiz ? (
           <div className="msg-typing">
             <div className="msg-typing-dot msg-typing-dot--1"></div>
             <div className="msg-typing-dot msg-typing-dot--2"></div>
@@ -55,6 +86,14 @@ export const AssistantMessage = memo(
         ) : (
           <MarkdownContent content={displayContent} />
         )}
+        {message.quiz && message.quiz.questions.length > 0 ? (
+          <QuizCard
+            quiz={message.quiz}
+            disabled={message.status === "STREAMING"}
+            onSelect={handleQuizSelect}
+            onNextRound={handleNextRound}
+          />
+        ) : null}
         {message.followups && message.followups.length > 0 && message.status === "COMPLETE" ? (
           <div className="msg-followups">
             {message.followups.map((q, i) => (
