@@ -4,6 +4,9 @@
   background-color: var(--assistantRow);
   padding: 0.75rem;
   min-width: 0;
+  /* Skip rendering off-screen answers; keeps long threads smooth on scroll. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 240px;
 }
 @media (min-width: 640px) {
   .msg-assistant { padding: 1rem; }

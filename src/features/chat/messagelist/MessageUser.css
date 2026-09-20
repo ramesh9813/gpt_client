@@ -26,6 +26,9 @@
   justify-content: flex-end;
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
+  /* Skip rendering off-screen rows; keeps long threads smooth on scroll. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 160px;
 }
 .msg-user-row--editing { width: 100%; }
 .msg-user-col {
