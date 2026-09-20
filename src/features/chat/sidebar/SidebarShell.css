@@ -189,6 +189,15 @@
 }
 
 /* Shell-owned scroll + search (moved from SidebarFolders) */
+.conv-side-panel {
+  display: flex;
+  flex: 1 1 0%;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
 .conv-side-body {
   display: flex;
   flex: 1 1 0%;
@@ -234,5 +243,10 @@
   overflow-x: hidden;
   padding: 4px 12px 16px;
   min-height: 0;
+}
+
+/* Account footer stays pinned to the bottom of the history card. */
+.conv-side-panel .conv-side-footer {
+  margin-top: auto;
 }
 
