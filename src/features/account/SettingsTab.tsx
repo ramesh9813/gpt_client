@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { Button } from "../../components/Button";
 import { apiFetch } from "../../lib/api";
@@ -12,12 +13,14 @@ const settingsSchema = z.object({
   theme: z.enum(["SYSTEM", "DARK", "LIGHT"]),
   fontScale: z.enum(["SMALL", "DEFAULT", "LARGE"]),
   brand: z.enum(["default", "chatgpt", "claude", "gemini", "grok", "deepseek"]),
+  pinHeader: z.boolean(),
 });
 
 export type SettingsFormValues = z.infer<typeof settingsSchema>;
 
 export const SettingsTab = () => {
   const { data } = useSettings();
+  const queryClient = useQueryClient();
   const [status, setStatus] = useState<string | null>(null);
   const {
     register,
@@ -31,6 +34,7 @@ export const SettingsTab = () => {
       theme: "SYSTEM",
       fontScale: "DEFAULT",
       brand: "default" as BrandId,
+      pinHeader: false,
     },
   });
 
@@ -42,6 +46,7 @@ export const SettingsTab = () => {
       reset({
         theme: "SYSTEM",
         fontScale: "DEFAULT",
+        pinHeader: false,
         ...settings,
         brand: isBrandId(settings.brand) ? settings.brand : "default",
       });
@@ -78,6 +83,7 @@ export const SettingsTab = () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(values),
     });
+    await queryClient.invalidateQueries({ queryKey: ["settings"] });
     setStatus("Saved");
     setTimeout(() => setStatus(null), 2000);
   };
@@ -107,6 +113,24 @@ export const SettingsTab = () => {
             <option value="DEFAULT">Default</option>
             <option value="LARGE">Large</option>
           </select>
+        </div>
+        <div>
+          <label className="account-check-row">
+            <input
+              type="checkbox"
+              {...register("pinHeader")}
+              className="account-check-input"
+            />
+            <span className="account-check-body">
+              <span className="account-field-label account-check-label">
+                Fix top action bar / icons
+              </span>
+              <span className="account-check-hint">
+                Keep the top action pill pinned while scrolling. When off,
+                it hides on scroll down and reappears on scroll up.
+              </span>
+            </span>
+          </label>
         </div>
         <fieldset>
           <legend className="account-field-label">
