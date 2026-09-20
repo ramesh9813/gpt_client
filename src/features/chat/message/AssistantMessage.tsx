@@ -54,7 +54,7 @@ export const AssistantMessage = ({
         ) : (
           <MarkdownContent content={displayContent} />
         )}
-        {message.followups && message.followups.length > 0 && message.status !== "ERROR" ? (
+        {message.followups && message.followups.length > 0 && message.status === "COMPLETE" ? (
           <div className="msg-followups">
             {message.followups.map((q, i) => (
               <button
