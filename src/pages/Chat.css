@@ -39,6 +39,18 @@
   z-index: 30;
   pointer-events: none;
   flex-shrink: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  will-change: transform, opacity;
+}
+
+/* Smart scroll: slide + fade the pill out on scroll down, back in on scroll up. */
+.chat-header--hidden {
+  transform: translateY(-120%);
+  opacity: 0;
+}
+
+.chat-header--hidden .chat-header-pill {
+  pointer-events: none;
 }
 
 /* Compact floating pill that wraps only the action icons. */
@@ -204,6 +216,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .chat-header,
   .chat-header-pill,
   .chat-newchat-btn,
   .chat-canvas-toggle {
