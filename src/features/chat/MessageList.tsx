@@ -43,6 +43,15 @@ const MessageList = ({
   onScrollDirectionRef.current = onScrollDirection;
   const edit = useMessageEdit(onEditSubmit);
 
+  // Set when the user deliberately scrolls away from the live edge: auto-follow
+  // must yield until they return to the bottom (or tap jump-to-bottom).
+  const userInterrupted = useRef(false);
+
+  const jumpToBottom = (instant = false) => {
+    userInterrupted.current = false;
+    scrollToBottom(instant);
+  };
+
   const scrollToBottom = (instant = false) => {
     const el = listRef.current;
     if (!el) return;
@@ -61,7 +70,9 @@ const MessageList = ({
   };
 
   useEffect(() => {
-    if (atBottom) {
+    // Follow live tokens only while the user is still riding the bottom edge.
+    // Any deliberate scroll-up locks follow until they return or jump down.
+    if (atBottom && !userInterrupted.current) {
       // While the AI streams, tokens land in bursts — pin instantly so no
       // smooth-scroll animations pile up and judder. Animate only discrete
       // jumps (new turn when idle, jump buttons).
@@ -75,6 +86,11 @@ const MessageList = ({
     let raf = 0;
     const update = () => {
       const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+      if (distance >= 120) {
+        userInterrupted.current = true;
+      } else if (distance < 40) {
+        userInterrupted.current = false;
+      }
       setAtBottom(distance < 120);
       setAtTop(el.scrollTop < 100);
       setCanScroll(el.scrollHeight > el.clientHeight + 10);
@@ -191,7 +207,7 @@ const MessageList = ({
           {!atBottom && (
             <button
               className="msg-jump-btn"
-              onClick={() => scrollToBottom()}
+              onClick={() => jumpToBottom()}
               title="Jump to bottom"
               aria-label="Scroll to bottom"
               type="button"
