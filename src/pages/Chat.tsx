@@ -68,8 +68,13 @@ const Chat = () => {
     streamAssistant,
   });
 
-  const { canvasData, showCanvas, setShowCanvas, setCanvasDismissed } =
-    useChatCanvas(messages);
+  const {
+    canvasData,
+    showCanvas,
+    canvasClosing,
+    openCanvas,
+    closeCanvas,
+  } = useChatCanvas(messages);
 
   useSwipeSidebar({
     isMobile,
@@ -79,6 +84,10 @@ const Chat = () => {
     closeDrawer,
     showSidebar,
     hideSidebar,
+    canOpenCanvas: canvasData.blocks.length > 0,
+    isCanvasOpen: showCanvas,
+    openCanvas,
+    closeCanvas,
   });
 
   useChatViewport(composerInputRef);
@@ -171,11 +180,9 @@ const Chat = () => {
               <button
                 onClick={() => {
                   if (showCanvas) {
-                    setShowCanvas(false);
-                    setCanvasDismissed(true);
+                    closeCanvas();
                   } else {
-                    setShowCanvas(true);
-                    setCanvasDismissed(false);
+                    openCanvas();
                   }
                 }}
                 className="chat-canvas-toggle"
@@ -221,10 +228,8 @@ const Chat = () => {
           {showCanvas ? (
             <CanvasPanel
               blocks={canvasData.blocks}
-              onClose={() => {
-                setShowCanvas(false);
-                setCanvasDismissed(true);
-              }}
+              closing={canvasClosing}
+              onClose={closeCanvas}
             />
           ) : null}
         </div>

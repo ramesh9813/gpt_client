@@ -9,6 +9,10 @@ type SwipeSidebarOptions = {
   closeDrawer: () => void;
   showSidebar: () => void;
   hideSidebar: () => void;
+  canOpenCanvas: boolean;
+  isCanvasOpen: boolean;
+  openCanvas: () => void;
+  closeCanvas: () => void;
 };
 
 // Horizontal swipe gesture to open/close history sidebar on touch devices (Android & mobile)
@@ -21,6 +25,10 @@ export const useSwipeSidebar = ({
   closeDrawer,
   showSidebar,
   hideSidebar,
+  canOpenCanvas,
+  isCanvasOpen,
+  openCanvas,
+  closeCanvas,
 }: SwipeSidebarOptions) => {
   useEffect(() => {
     let touchStartX = 0;
@@ -62,18 +70,24 @@ export const useSwipeSidebar = ({
       // Ensure horizontal swipe is dominant (horizontal delta > 1.3x vertical delta) and at least 45px
       if (Math.abs(deltaX) >= 45 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3) {
         if (deltaX > 0) {
-          // Swipe Right -> Open history (drawer on mobile, expanded on desktop)
-          if (isMobile) {
+          // Swipe Right -> Close canvas first (mirror of canvas open),
+          // otherwise open history (drawer on mobile, expanded on desktop)
+          if (isCanvasOpen) {
+            closeCanvas();
+          } else if (isMobile) {
             if (!drawerOpen) openDrawer();
           } else if (sidebarState !== "expanded") {
             showSidebar();
           }
         } else {
-          // Swipe Left -> Hide history (close drawer on mobile, hide on desktop)
-          if (isMobile) {
-            if (drawerOpen) closeDrawer();
-          } else if (sidebarState === "expanded") {
-            hideSidebar();
+          // Swipe Left -> Hide history first (close drawer on mobile, hide on desktop),
+          // otherwise open canvas (mirror of canvas close)
+          const historyOpen = isMobile ? drawerOpen : sidebarState === "expanded";
+          if (historyOpen) {
+            if (isMobile) closeDrawer();
+            else hideSidebar();
+          } else if (canOpenCanvas && !isCanvasOpen) {
+            openCanvas();
           }
         }
       }
@@ -93,5 +107,9 @@ export const useSwipeSidebar = ({
     closeDrawer,
     showSidebar,
     hideSidebar,
+    canOpenCanvas,
+    isCanvasOpen,
+    openCanvas,
+    closeCanvas,
   ]);
 };

@@ -12,9 +12,11 @@ export type { CanvasBlock };
 
 const CanvasPanel = ({
   blocks,
+  closing,
   onClose
 }: {
   blocks: CanvasBlock[];
+  closing?: boolean;
   onClose?: () => void;
 }) => {
   const [activeId, setActiveId] = useState<string | null>(blocks[0]?.id ?? null);
@@ -100,7 +102,7 @@ const CanvasPanel = ({
   return (
     <aside
       ref={containerRef}
-      className="canvas-root"
+      className={`canvas-root${closing ? " canvas-root--closing" : ""}`}
       style={typeof window !== "undefined" && window.innerWidth >= 1024 ? { width: `${width}px` } : undefined}
     >
       <div
