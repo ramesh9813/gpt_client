@@ -2,6 +2,8 @@ import "./Composer.css";
 import { KeyboardEvent, MutableRefObject, useEffect, useRef, useState } from "react";
 import { Button } from "../../components/Button";
 import { ImageAttachments } from "./composer/ImageAttachments";
+import { RecentTray } from "./composer/RecentTray";
+import "./composer/RecentTray.css";
 import { ModelMenu } from "./composer/ModelMenu";
 import type { ModelOption, SortOption } from "./composer/ModelMenu";
 import { useComposerImages } from "./composer/useComposerImages";
@@ -47,7 +49,8 @@ const Composer = ({
   const [researchArmed, setResearchArmed] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { images, compressing, fileInputRef, handleFiles, removeImage, clearImages } =
+  const [showRecents, setShowRecents] = useState(false);
+  const { images, compressing, fileInputRef, handleFiles, removeImage, clearImages, recents, attachRecent } =
     useComposerImages();
 
   useEffect(() => {
@@ -74,6 +77,7 @@ const Composer = ({
     if (compressing) return;
     onSend(trimmed, images.length > 0 ? [...images] : undefined, researchArmed ? { research: true } : undefined);
     setValue("");
+    setShowRecents(false);
     // One-shot: disarm research mode after sending.
     setResearchArmed(false);
     requestAnimationFrame(() => {
@@ -224,7 +228,13 @@ const Composer = ({
             disabled={disabled || compressing}
             aria-label="Upload image"
             title="Upload image"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => {
+              if (recents.length === 0) {
+                fileInputRef.current?.click();
+              } else {
+                setShowRecents((prev) => !prev);
+              }
+            }}
             type="button"
           >
             <i className="bi bi-image composer-upload-icon" aria-hidden="true" />
@@ -276,6 +286,14 @@ const Composer = ({
           </div>
         </div>
       </div>
+      <RecentTray
+        open={showRecents && recents.length > 0}
+        recents={recents}
+        attached={images}
+        onPick={attachRecent}
+        onBrowse={() => fileInputRef.current?.click()}
+        onClose={() => setShowRecents(false)}
+      />
       {error ? (
         <div className="composer-error">{error}</div>
       ) : null}
