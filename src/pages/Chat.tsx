@@ -187,10 +187,10 @@ const Chat = () => {
                 }}
                 className="chat-canvas-toggle"
                 type="button"
+                title={showCanvas ? "Hide Canvas" : "Show Canvas"}
+                aria-label={showCanvas ? "Hide Canvas" : "Show Canvas"}
               >
-                <i className={`bi ${showCanvas ? "bi-layout-sidebar-inset" : "bi-layout-sidebar-inset-reverse"}`}></i>
-                <span className="chat-canvas-label-wide">{showCanvas ? "Hide Canvas" : "Show Canvas"}</span>
-                <span className="chat-canvas-label-narrow">Canvas</span>
+                <i className={`bi ${showCanvas ? "bi-layout-sidebar-inset" : "bi-layout-sidebar-inset-reverse"}`} aria-hidden="true"></i>
               </button>
             ) : null}
           </div>
