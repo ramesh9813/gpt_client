@@ -26,7 +26,6 @@ type UseChatMessagesOptions = {
 export const useChatMessages = ({
   conversationId,
   model,
-  setModel,
   setStreaming,
   setActiveStreamId,
   cancelRef,
@@ -206,7 +205,9 @@ export const useChatMessages = ({
     if (userMessage.role !== "USER") return;
 
     setStreaming(true);
-    setModel(newModel); // Optionally update the global model state
+    // One-off override only: newModel goes to streamAssistant selectedModel
+    // + the per-message badge below. Never call global setModel here, so the
+    // composer's selected model is untouched (no PATCH /api/me/settings).
     setActiveStreamId(messageId);
 
     // Optimistically update the UI to show loading state for the assistant message
