@@ -31,6 +31,22 @@
   flex: 1 1 0%;
 }
 
+/* Selected-model tag beside the image button: muted, single-line, ellipsis. */
+.composer-model-tag {
+  align-self: center;
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--muted);
+  padding-left: 0.125rem;
+  padding-right: 0.125rem;
+}
+
 .composer-stop-btn {
   height: 2.25rem;
   width: 2.25rem;
