@@ -21,6 +21,7 @@ type UseChatMessagesOptions = {
   setActiveStreamId: (value: string | null) => void;
   cancelRef: MutableRefObject<boolean>;
   streamAssistant: StreamAssistantFn;
+  resolveModelForPrompt?: (text: string) => string;
 };
 
 export const useChatMessages = ({
@@ -30,6 +31,7 @@ export const useChatMessages = ({
   setActiveStreamId,
   cancelRef,
   streamAssistant,
+  resolveModelForPrompt,
 }: UseChatMessagesOptions) => {
   const queryClient = useQueryClient();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -83,6 +85,11 @@ export const useChatMessages = ({
     setLastUserMessage(trimmed);
     const tempUserId = `local-user-${Date.now()}`;
     const tempAssistantId = `local-assistant-${Date.now()}`;
+    // Pre-route media prompts to the configured image/video model so the
+    // turn runs on a capable model instead of failing on the chat model.
+    const turnModel = resolveModelForPrompt
+      ? resolveModelForPrompt(trimmed)
+      : model;
 
     setMessages((prev) => [
       ...prev,
@@ -97,7 +104,7 @@ export const useChatMessages = ({
         role: "ASSISTANT",
         content: "",
         status: "STREAMING",
-        model: model === "default" ? "default" : model,
+        model: turnModel === "default" ? "default" : turnModel,
       },
     ]);
     setStreaming(true);
@@ -109,7 +116,7 @@ export const useChatMessages = ({
         conversationId,
         userMessage: trimmed,
         images: hasImages ? images : undefined,
-        selectedModel: model,
+        selectedModel: turnModel,
         ...(opts?.research ? { research: true as const } : {}),
         ...(opts?.artifact ? { artifact: true as const } : {}),
       });
@@ -148,6 +155,11 @@ export const useChatMessages = ({
     setStreaming(true);
     const tempAssistantId = `local-assistant-${Date.now()}`;
     setActiveStreamId(tempAssistantId);
+    // Edited prompts re-route too: an edit that adds image/video intent
+    // picks up the configured media model for the retry turn.
+    const editModel = resolveModelForPrompt
+      ? resolveModelForPrompt(text)
+      : model;
 
     try {
       await apiFetch<ApiResponse<{ message: ChatMessage }>>(
@@ -169,7 +181,7 @@ export const useChatMessages = ({
           role: "ASSISTANT",
           content: "",
           status: "STREAMING",
-          model: model === "default" ? "default" : model,
+          model: editModel === "default" ? "default" : editModel,
         });
         return next;
       });
@@ -178,7 +190,7 @@ export const useChatMessages = ({
         tempAssistantId,
         conversationId,
         existingUserMessageId: messageId,
-        selectedModel: model,
+        selectedModel: editModel,
       });
     } catch (err: any) {
       if (cancelRef.current) {

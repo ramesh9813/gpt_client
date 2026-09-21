@@ -56,6 +56,7 @@ const Chat = () => {
   const {
     model,
     setModel,
+    resolveModelForPrompt,
     sortBy,
     setSortBy,
     modelOptions,
@@ -87,6 +88,7 @@ const Chat = () => {
     setActiveStreamId,
     cancelRef,
     streamAssistant,
+    resolveModelForPrompt,
   });
 
   // Last-open chat: opening another chat replaces the stored one, so a

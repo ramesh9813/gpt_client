@@ -31,6 +31,35 @@ export const isDeepResearchModel = (id?: string, name?: string) => {
   return /deep[-_ ]?research/.test(haystack);
 };
 
+// Prompt-intent detectors mirror gpt_server/src/modules/chat/intents.ts so
+// the client can pre-route image/video prompts to the configured models.
+const IMAGE_PROMPT_INTENT = /\b(generat\w*|creat\w*|draw\w*|paint\w*|design\w*|render\w*|mak\w*|produc\w*)\b.{0,50}\b(image|picture|photo|artwork|logo|illustration|avatar|banner|drawing|painting|wallpaper|icon)\b|\b(image|picture|photo|logo)\s+of\b|\bdraw\s+me\b/i;
+const VIDEO_PROMPT_INTENT = /\b(generat\w*|creat\w*|mak\w*|develop\w*|build\w*|produc\w*|direct\w*)\b.{0,50}\b(video|clip|animation|movie|reel|short film|footage)\b|\bvideo\s+of\b/i;
+
+export const wantsImagePrompt = (text: string): boolean =>
+  IMAGE_PROMPT_INTENT.test(text || "");
+export const wantsVideoPrompt = (text: string): boolean =>
+  VIDEO_PROMPT_INTENT.test(text || "");
+
+// Capability probe shared by the composer menu and the settings selects.
+// Professional source: OpenRouter catalog entry architecture.output_modalities
+// with the same name-keyword fallback the server uses in lib/openrouter.ts.
+export const modelCapabilities = (m: OpenRouterModel) => {
+  const out = m.architecture?.output_modalities;
+  const id = (m.id || "").toLowerCase();
+  const name = (m.name || "").toLowerCase();
+  const supportsImage =
+    (Array.isArray(out) && out.includes("image")) ||
+    id.includes("image") ||
+    name.includes("image") ||
+    id.includes("flux");
+  const supportsVideo =
+    (Array.isArray(out) && out.includes("video")) ||
+    id.includes("video") ||
+    name.includes("video");
+  return { supportsImage, supportsVideo };
+};
+
 export const useChatModels = () => {
   const [model, setModelState] = useState("default");
   const modelInitialized = useRef(false);
@@ -215,16 +244,7 @@ export const useChatModels = () => {
         } else if (name.includes(":")) {
           name = name.split(":").slice(1).join(":");
         }
-        const out = m.architecture?.output_modalities;
-        const supportsImage =
-          (Array.isArray(out) && out.includes("image")) ||
-          m.id.toLowerCase().includes("image") ||
-          (m.name || "").toLowerCase().includes("image") ||
-          m.id.toLowerCase().includes("flux");
-        const supportsVideo =
-          (Array.isArray(out) && out.includes("video")) ||
-          m.id.toLowerCase().includes("video") ||
-          (m.name || "").toLowerCase().includes("video");
+        const { supportsImage, supportsVideo } = modelCapabilities(m);
 
         return {
           label: name.trim(),
@@ -264,9 +284,39 @@ export const useChatModels = () => {
     }
   }, [model, modelOptions, modelsLoading, persistModel]);
 
+  // Per-purpose defaults from Settings. "default" (or unset) means no
+  // override — the composer's chat model is used for every turn.
+  const settings = settingsData?.data?.settings as
+    | { imageModel?: unknown; videoModel?: unknown }
+    | undefined;
+  const imageModel =
+    typeof settings?.imageModel === "string" && settings.imageModel.length > 0
+      ? settings.imageModel
+      : "default";
+  const videoModel =
+    typeof settings?.videoModel === "string" && settings.videoModel.length > 0
+      ? settings.videoModel
+      : "default";
+
+  // Pre-route a prompt to the configured media model: video prompts go to
+  // the video model, image prompts to the image model, everything else keeps
+  // the composer's chat model. One-turn override — the global selection is
+  // never changed, so the next plain message uses the chat model again.
+  const resolveModelForPrompt = useCallback(
+    (text: string): string => {
+      if (wantsVideoPrompt(text) && videoModel !== "default") return videoModel;
+      if (wantsImagePrompt(text) && imageModel !== "default") return imageModel;
+      return model;
+    },
+    [model, imageModel, videoModel]
+  );
+
   return {
     model,
     setModel,
+    imageModel,
+    videoModel,
+    resolveModelForPrompt,
     sortBy,
     setSortBy,
     modelOptions,

@@ -1,11 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { Button } from "../../components/Button";
-import { apiFetch } from "../../lib/api";
+import { apiFetch, ApiResponse } from "../../lib/api";
 import { useSettings } from "../../lib/hooks";
+import { modelCapabilities } from "../chat/hooks/useChatModels";
+import {
+  isDeprecatedModel,
+  type OpenRouterModel,
+} from "../chat/hooks/modelCache";
 import {
   applyTheme,
   APP_FONT_MIN,
@@ -26,7 +31,20 @@ const settingsSchema = z.object({
   pinHeader: z.boolean(),
   appFontSize: z.number().int().min(APP_FONT_MIN).max(APP_FONT_MAX),
   iconScale: z.number().min(ICON_SCALE_MIN).max(ICON_SCALE_MAX),
+  model: z.string().min(1).max(200),
+  imageModel: z.string().min(1).max(200),
+  videoModel: z.string().min(1).max(200),
 });
+
+const toModelId = (value: unknown): string =>
+  typeof value === "string" && value.length > 0 ? value : "default";
+
+const shortModelName = (m: OpenRouterModel): string => {
+  const name = m.name || m.id;
+  if (name.includes(": ")) return name.split(": ").slice(1).join(": ").trim();
+  if (name.includes(":")) return name.split(":").slice(1).join(":").trim();
+  return name.trim();
+};
 
 const FONT_STEPS = ["XSMALL", "SMALL", "DEFAULT", "LARGE", "XLARGE"] as const;
 type FontStep = (typeof FONT_STEPS)[number];
@@ -70,6 +88,9 @@ export const SettingsTab = () => {
       pinHeader: false,
       appFontSize: APP_FONT_DEFAULT,
       iconScale: ICON_SCALE_DEFAULT,
+      model: "default",
+      imageModel: "default",
+      videoModel: "default",
     },
   });
 
@@ -86,9 +107,46 @@ export const SettingsTab = () => {
         brand: isBrandId(settings.brand) ? settings.brand : "default",
         appFontSize: clampAppFontSize(settings.appFontSize),
         iconScale: clampIconScale(settings.iconScale),
+        model: toModelId(settings.model),
+        imageModel: toModelId(settings.imageModel),
+        videoModel: toModelId(settings.videoModel),
       });
     }
   }, [data, reset]);
+
+  // Live OpenRouter catalog (same ["models"] cache the composer fills —
+  // no extra fetch). Professional filter: architecture.output_modalities.
+  const { data: modelsData } = useQuery({
+    queryKey: ["models"],
+    queryFn: () =>
+      apiFetch<ApiResponse<{ models: OpenRouterModel[] }>>("/api/models"),
+    staleTime: 1000 * 60 * 5,
+  });
+  const { chatModelOptions, imageModelOptions, videoModelOptions } =
+    useMemo(() => {
+      const seen = new Set<string>();
+      const live = (modelsData?.data?.models ?? []).filter((m) => {
+        if (!m?.id || seen.has(m.id) || isDeprecatedModel(m)) return false;
+        seen.add(m.id);
+        return true;
+      });
+      const sorted = [...live].sort((a, b) =>
+        shortModelName(a).localeCompare(shortModelName(b))
+      );
+      const label = (m: OpenRouterModel) => ({
+        label: shortModelName(m),
+        value: m.id,
+      });
+      return {
+        chatModelOptions: sorted.map(label),
+        imageModelOptions: sorted
+          .filter((m) => modelCapabilities(m).supportsImage)
+          .map(label),
+        videoModelOptions: sorted
+          .filter((m) => modelCapabilities(m).supportsVideo)
+          .map(label),
+      };
+    }, [modelsData]);
 
   useEffect(() => {
     const subscription = watch((values) => {
@@ -242,6 +300,79 @@ export const SettingsTab = () => {
             </span>
           </div>
         </div>
+        <fieldset>
+          <legend className="account-field-label">Models</legend>
+          <div className="account-fields">
+            <div>
+              <label className="account-field-label" htmlFor="settings-chat-model">
+                Chat model
+              </label>
+              <select
+                id="settings-chat-model"
+                className="account-select"
+                {...register("model")}
+              >
+                <option value="default">Default model</option>
+                {chatModelOptions.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <span className="account-check-hint">
+                Default model for plain text chats.
+              </span>
+            </div>
+            <div>
+              <label className="account-field-label" htmlFor="settings-image-model">
+                Image generation model{" "}
+                <span className="account-font-size-value">
+                  {imageModelOptions.length} capable
+                </span>
+              </label>
+              <select
+                id="settings-image-model"
+                className="account-select"
+                {...register("imageModel")}
+              >
+                <option value="default">Default model</option>
+                {imageModelOptions.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <span className="account-check-hint">
+                Only image-capable models are listed. Image prompts use this
+                automatically.
+              </span>
+            </div>
+            <div>
+              <label className="account-field-label" htmlFor="settings-video-model">
+                Video generation model{" "}
+                <span className="account-font-size-value">
+                  {videoModelOptions.length} capable
+                </span>
+              </label>
+              <select
+                id="settings-video-model"
+                className="account-select"
+                {...register("videoModel")}
+              >
+                <option value="default">Default model</option>
+                {videoModelOptions.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <span className="account-check-hint">
+                Only video-capable models are listed. Video prompts use this
+                automatically.
+              </span>
+            </div>
+          </div>
+        </fieldset>
         <div>
           <label className="account-check-row">
             <input

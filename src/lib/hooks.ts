@@ -19,6 +19,8 @@ export type UserSettings = {
   brand: BrandId;
   pinHeader: boolean;
   model: string;
+  imageModel?: string;
+  videoModel?: string;
   appFontSize?: number;
   iconScale?: number;
 };
