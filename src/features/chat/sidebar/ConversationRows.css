@@ -122,7 +122,24 @@
   height: 24px !important;
   width: 24px !important;
   border-radius: 8px !important;
-  color: var(--muted) !important;
+  color: var(--text) !important;
+}
+
+/* Theme-sensitive three-dot: white in dark, black in light */
+[data-theme="dark"] .conv-side-conv-menu-btn,
+.dark .conv-side-conv-menu-btn,
+[data-theme="dark"] .conv-side-folder-menu-btn,
+.dark .conv-side-folder-menu-btn {
+  color: #fff !important;
+}
+
+[data-theme="light"] .conv-side-conv-menu-btn,
+.light .conv-side-conv-menu-btn,
+:root:not(.dark):not([data-theme="dark"]) .conv-side-conv-menu-btn,
+[data-theme="light"] .conv-side-folder-menu-btn,
+.light .conv-side-folder-menu-btn,
+:root:not(.dark):not([data-theme="dark"]) .conv-side-folder-menu-btn {
+  color: #000 !important;
 }
 
 .conv-side-conv-menu-btn:hover {
@@ -254,6 +271,7 @@
   height: 1.25rem;
   width: 1.25rem;
   border: 0;
+  color: var(--text);
 }
 @media (hover: hover) {
   .conv-side-folder-menu--closed .conv-side-folder-menu-btn {
