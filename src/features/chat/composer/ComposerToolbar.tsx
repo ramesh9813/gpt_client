@@ -27,6 +27,8 @@ export interface ComposerToolbarProps {
   onArtifactSelect: () => void;
   researchArmed?: boolean;
   artifactArmed?: boolean;
+  webSearchArmed?: boolean;
+  onWebSearchToggle: () => void;
   disabled?: boolean;
   compressing?: boolean;
   hasRecents: boolean;
@@ -74,6 +76,8 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
     onArtifactSelect,
     researchArmed,
     artifactArmed,
+    webSearchArmed,
+    onWebSearchToggle,
     disabled,
     compressing,
     hasRecents,
@@ -183,6 +187,22 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
       type="button"
     >
       <i className="bi bi-patch-question composer-upload-icon" aria-hidden="true" />
+    </Button>
+
+    {/* Web search toggle — arms the OpenRouter web_search tool for this turn */}
+    <Button
+      variant="ghost"
+      className={`composer-upload-btn ${
+        webSearchArmed ? "composer-upload-btn--armed" : ""
+      }`}
+      disabled={disabled || compressing}
+      aria-label={webSearchArmed ? "Turn web search off" : "Turn web search on"}
+      aria-pressed={!!webSearchArmed}
+      title={webSearchArmed ? "Web search on" : "Web search off"}
+      onClick={onWebSearchToggle}
+      type="button"
+    >
+      <i className={`bi ${webSearchArmed ? "bi-globe-americas" : "bi-globe"} composer-upload-icon`} aria-hidden="true" />
     </Button>
 
     {/* Read-only selected-model label — change via the '+' menu instead. */}

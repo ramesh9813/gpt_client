@@ -16,7 +16,7 @@ export type { ModelOption, SortOption };
 
 export type ComposerProps = {
   // images?:string[] is optional → backward compat with (value: string) => void
-  onSend: (value: string, images?: string[], opts?: { research?: boolean; artifact?: boolean }) => void;
+  onSend: (value: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean }) => void;
   onStop?: () => void;
   disabled?: boolean;
   streaming?: boolean;
@@ -66,6 +66,9 @@ const Composer = ({
   // Armed when the user picks Artifact / Simulation from the '+' menu.
   // Mirrors researchArmed exactly: chip indicator, send opts, one-shot disarm.
   const [artifactArmed, setArtifactArmed] = useState(false);
+  // Armed when the user toggles the globe button: this turn gets the
+  // OpenRouter web_search server tool. Same one-shot pattern.
+  const [webSearchArmed, setWebSearchArmed] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [showRecents, setShowRecents] = useState(false);
@@ -148,18 +151,20 @@ const Composer = ({
     if (!trimmed && images.length === 0) return;
     if (compressing) return;
     const opts =
-      researchArmed || artifactArmed
+      researchArmed || artifactArmed || webSearchArmed
         ? {
             ...(researchArmed ? { research: true as const } : {}),
             ...(artifactArmed ? { artifact: true as const } : {}),
+            ...(webSearchArmed ? { webSearch: true as const } : {}),
           }
         : undefined;
     onSend(trimmed, images.length > 0 ? [...images] : undefined, opts);
     setValue("");
     setShowRecents(false);
-    // One-shot: disarm research + artifact modes after sending.
+    // One-shot: disarm research + artifact + web-search modes after sending.
     setResearchArmed(false);
     setArtifactArmed(false);
+    setWebSearchArmed(false);
     requestAnimationFrame(() => {
       const el = textareaRef.current;
       if (el) adjustTextareaHeight(el);
@@ -251,6 +256,8 @@ const Composer = ({
           onClearResearch={() => setResearchArmed(false)}
           artifactArmed={artifactArmed}
           onClearArtifact={() => setArtifactArmed(false)}
+          webSearchArmed={webSearchArmed}
+          onClearWebSearch={() => setWebSearchArmed(false)}
           listening={listening}
           error={error}
           listenError={listenError}
@@ -315,6 +322,8 @@ const Composer = ({
             onArtifactSelect={() => setArtifactArmed(true)}
             researchArmed={researchArmed}
             artifactArmed={artifactArmed}
+            webSearchArmed={webSearchArmed}
+            onWebSearchToggle={() => setWebSearchArmed((prev) => !prev)}
             disabled={disabled}
             compressing={compressing}
             hasRecents={recentPhotos.length + recentScreenshots.length > 0}

@@ -4,6 +4,8 @@ export interface ComposerStatusProps {
   onClearResearch: () => void;
   artifactArmed?: boolean;
   onClearArtifact?: () => void;
+  webSearchArmed?: boolean;
+  onClearWebSearch?: () => void;
   listening: boolean;
   error?: string | null;
   listenError?: string | null;
@@ -20,6 +22,8 @@ export const ComposerStatus = ({
   onClearResearch,
   artifactArmed,
   onClearArtifact,
+  webSearchArmed,
+  onClearWebSearch,
   listening,
   error,
   listenError,
@@ -56,6 +60,24 @@ export const ComposerStatus = ({
             onClick={onClearArtifact}
             aria-label="Cancel artifact mode"
             title="Cancel artifact mode"
+          >
+            <i className="bi bi-x" aria-hidden="true"></i>
+          </button>
+        </div>
+      )}
+
+      {webSearchArmed && (
+        <div className="composer-websearch-chip">
+          <i className="bi bi-globe-americas composer-websearch-icon" aria-hidden="true"></i>
+          <span className="composer-websearch-label" title="Live web search on for this message">
+            Web search • Live results
+          </span>
+          <button
+            type="button"
+            className="composer-websearch-clear"
+            onClick={onClearWebSearch}
+            aria-label="Cancel web search"
+            title="Cancel web search"
           >
             <i className="bi bi-x" aria-hidden="true"></i>
           </button>

@@ -7,6 +7,15 @@ export const MarkdownContent = ({ content }: { content: string }) => {
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       components={{
+        // Citations (incl. web-search sources) open in a new tab.
+        a(props) {
+          const { children, node, ...rest } = props;
+          return (
+            <a {...rest} target="_blank" rel="noreferrer">
+              {children}
+            </a>
+          );
+        },
         pre(props) {
           return <div className="msg-md-pre">{props.children}</div>;
         },

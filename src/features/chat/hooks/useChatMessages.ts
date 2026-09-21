@@ -66,7 +66,7 @@ export const useChatMessages = ({
     }
   }, [messageData, conversationId]);
 
-  const sendMessage = async (text: string, images?: string[], opts?: { research?: boolean; artifact?: boolean }) => {
+  const sendMessage = async (text: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean }) => {
     if (!conversationId) return;
     const trimmed = text.trim();
     const hasImages = !!images && images.length > 0;
@@ -119,6 +119,7 @@ export const useChatMessages = ({
         selectedModel: turnModel,
         ...(opts?.research ? { research: true as const } : {}),
         ...(opts?.artifact ? { artifact: true as const } : {}),
+        ...(opts?.webSearch ? { webSearch: true as const } : {}),
       });
     } catch (err: any) {
       if (cancelRef.current) {

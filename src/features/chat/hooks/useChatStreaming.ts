@@ -21,6 +21,7 @@ export type StreamAssistantArgs = {
   selectedModel?: string;
   research?: boolean;
   artifact?: boolean;
+  webSearch?: boolean;
 };
 
 export const useChatStreaming = () => {
@@ -41,6 +42,7 @@ export const useChatStreaming = () => {
       selectedModel,
       research,
       artifact,
+      webSearch,
     }: StreamAssistantArgs
   ) => {
     cancelRef.current = false;
@@ -70,6 +72,7 @@ export const useChatStreaming = () => {
               : undefined,
           ...(research ? { research: true } : {}),
           ...(artifact ? { artifact: true } : {}),
+          ...(webSearch ? { webSearch: true } : {}),
         }),
         signal: controller.signal,
       });
