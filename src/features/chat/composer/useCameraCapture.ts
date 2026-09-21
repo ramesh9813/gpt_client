@@ -18,6 +18,10 @@ export const useCameraCapture = ({ onFiles }: CameraCaptureOptions) => {
     const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
     const [zoomRange, setZoomRange] = useState<{ min: number; max: number; step: number } | null>(null);
     const [zoom, setZoomState] = useState(1);
+    // Software brightness (preview filter + baked into captures). Works on
+    // every device, unlike the rarely-supported hardware constraint.
+    const [brightness, setBrightnessState] = useState(1);
+    const brightnessRef = useRef(1);
     const [torchSupported, setTorchSupported] = useState(false);
     const [torchOn, setTorchOn] = useState(false);
 
@@ -102,13 +106,28 @@ export const useCameraCapture = ({ onFiles }: CameraCaptureOptions) => {
         });
     };
 
+    const setBrightness = (next: number) => {
+      const clamped = Math.min(2, Math.max(0.3, Math.round(next * 100) / 100));
+      brightnessRef.current = clamped;
+      setBrightnessState(clamped);
+    };
+
     const handleCapturePhoto = () => {
       const video = videoRef.current;
       if (!video || video.videoWidth === 0) return;
       const canvas = document.createElement("canvas");
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      canvas.getContext("2d")?.drawImage(video, 0, 0);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      // Bake the preview brightness into the file (CSS filters don't
+      // affect drawImage, so the canvas filter does it explicitly).
+      try {
+        ctx.filter = `brightness(${brightnessRef.current})`;
+      } catch {
+        // older canvas implementations ignore filter — capture unfiltered
+      }
+      ctx.drawImage(video, 0, 0);
       canvas.toBlob(
         (blob) => {
           if (!blob) return;
@@ -135,6 +154,8 @@ export const useCameraCapture = ({ onFiles }: CameraCaptureOptions) => {
     zoomRange,
     zoom,
     setZoomLevel,
+    brightness,
+    setBrightness,
     torchSupported,
     torchOn,
     toggleTorch,

@@ -159,6 +159,8 @@ const Composer = ({
     zoomRange,
     zoom,
     setZoomLevel,
+    brightness,
+    setBrightness,
     torchSupported,
     torchOn,
     toggleTorch,
@@ -393,6 +395,8 @@ const Composer = ({
         zoomRange={zoomRange}
         zoom={zoom}
         onZoomChange={setZoomLevel}
+        brightness={brightness}
+        onBrightnessChange={setBrightness}
         torchSupported={torchSupported}
         torchOn={torchOn}
         onToggleTorch={toggleTorch}
