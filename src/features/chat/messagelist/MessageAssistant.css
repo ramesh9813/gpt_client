@@ -30,10 +30,10 @@
   width: 0.375rem;
   border-radius: 9999px;
   background-color: var(--muted);
-  animation: msg-bounce 1s infinite;
+  animation: msg-bounce 0.55s infinite;
 }
-.msg-typing-dot--1 { animation-delay: -0.3s; }
-.msg-typing-dot--2 { animation-delay: -0.15s; }
+.msg-typing-dot--1 { animation-delay: -0.18s; }
+.msg-typing-dot--2 { animation-delay: -0.09s; }
 .msg-typing-dot--3 { animation-delay: 0s; }
 .msg-canvas-notice {
   border-radius: 0.5rem;
@@ -71,10 +71,10 @@
   width: 0.25rem;
   border-radius: 9999px;
   background-color: var(--accent);
-  animation: msg-bounce 1s infinite;
+  animation: msg-bounce 0.55s infinite;
 }
-.msg-generating-dot--1 { animation-delay: -0.3s; }
-.msg-generating-dot--2 { animation-delay: -0.15s; }
+.msg-generating-dot--1 { animation-delay: -0.18s; }
+.msg-generating-dot--2 { animation-delay: -0.09s; }
 .msg-generating-dot--3 { animation-delay: 0s; }
 .msg-assistant-actions {
   display: flex;
