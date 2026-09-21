@@ -134,20 +134,16 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
       )}
     </div>
 
-    {/* Upload photo button */}
+    {/* Image button: opens the recents card (camera-size). The card shows
+        recent images by default; its expand button opens the system photo
+        selector. */}
     <Button
       variant="ghost"
       className="composer-upload-btn"
       disabled={disabled || compressing}
       aria-label="Upload image"
       title="Upload image"
-      onClick={() => {
-        if (!hasRecents) {
-          fileInputRef.current?.click();
-        } else {
-          onToggleRecents();
-        }
-      }}
+      onClick={onToggleRecents}
       type="button"
     >
       <i className="bi bi-image composer-upload-icon" aria-hidden="true" />

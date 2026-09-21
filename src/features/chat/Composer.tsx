@@ -293,7 +293,7 @@ const Composer = ({
         </div>
       </div>
       <RecentTray
-        open={showRecents && recents.length > 0}
+        open={showRecents}
         recents={recents}
         attached={images}
         onPick={attachRecent}
