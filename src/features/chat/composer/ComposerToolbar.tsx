@@ -29,6 +29,7 @@ export interface ComposerToolbarProps {
   artifactArmed?: boolean;
   webSearchArmed?: boolean;
   onWebSearchToggle: () => void;
+  mcqArmed?: boolean;
   disabled?: boolean;
   compressing?: boolean;
   hasRecents: boolean;
@@ -78,6 +79,7 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
     artifactArmed,
     webSearchArmed,
     onWebSearchToggle,
+    mcqArmed,
     disabled,
     compressing,
     hasRecents,
@@ -176,13 +178,16 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
       <i className={`bi ${cameraOpen ? "bi-camera-fill" : "bi-camera"} composer-upload-icon`} aria-hidden="true" />
     </Button>
 
-    {/* MCQ quiz button — inserts "mcq " prefix, never auto-sends */}
+    {/* MCQ quiz toggle — sticky quiz mode until explicitly cleared */}
     <Button
       variant="ghost"
-      className="composer-upload-btn"
+      className={`composer-upload-btn ${
+        mcqArmed ? "composer-upload-btn--armed" : ""
+      }`}
       disabled={disabled || compressing}
-      aria-label="Start quiz"
-      title="Start quiz (mcq)"
+      aria-label={mcqArmed ? "Turn quiz mode off" : "Turn quiz mode on"}
+      aria-pressed={!!mcqArmed}
+      title={mcqArmed ? "Quiz mode on" : "Quiz mode off"}
       onClick={onQuizClick}
       type="button"
     >

@@ -14,6 +14,9 @@ import { useCameraCapture } from "./composer/useCameraCapture";
 
 export type { ModelOption, SortOption };
 
+// Quiz routing prefix (server treats a leading "mcq " as a quiz turn).
+const MCQ_PREFIX = /^\s*mcq(\s|$)/i;
+
 export type ComposerProps = {
   // images?:string[] is optional → backward compat with (value: string) => void
   onSend: (value: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean }) => void;
@@ -66,9 +69,33 @@ const Composer = ({
   // Armed when the user picks Artifact / Simulation from the '+' menu.
   // Mirrors researchArmed exactly: chip indicator, send opts, one-shot disarm.
   const [artifactArmed, setArtifactArmed] = useState(false);
-  // Armed when the user toggles the globe button: this turn gets the
-  // OpenRouter web_search server tool. Same one-shot pattern.
-  const [webSearchArmed, setWebSearchArmed] = useState(false);
+  // Sticky modes: stay on across sends until explicitly cleared.
+  // Web search defaults ON; quiz defaults OFF. Both persist in localStorage.
+  const [webSearchArmed, setWebSearchArmed] = useState(() => {
+    try {
+      const v = window.localStorage.getItem("chatapp.websearch.armed");
+      return v === null ? true : v !== "false";
+    } catch {
+      return true;
+    }
+  });
+  const [mcqArmed, setMcqArmed] = useState(() => {
+    try {
+      return window.localStorage.getItem("chatapp.mcq.armed") === "true";
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("chatapp.websearch.armed", String(webSearchArmed));
+    } catch {}
+  }, [webSearchArmed]);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("chatapp.mcq.armed", String(mcqArmed));
+    } catch {}
+  }, [mcqArmed]);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [showRecents, setShowRecents] = useState(false);
@@ -157,6 +184,11 @@ const Composer = ({
     const trimmed = text.trim();
     if (!trimmed && images.length === 0) return;
     if (compressing) return;
+    // Sticky quiz mode: route through the quiz pipeline even as the user
+    // edits the prompt — no visible prefix needed. Images-only sends skip
+    // the prefix so attachments still go through normally.
+    const routed =
+      mcqArmed && trimmed && !MCQ_PREFIX.test(trimmed) ? `mcq ${trimmed}` : trimmed;
     const opts =
       researchArmed || artifactArmed || webSearchArmed
         ? {
@@ -165,13 +197,13 @@ const Composer = ({
             ...(webSearchArmed ? { webSearch: true as const } : {}),
           }
         : undefined;
-    onSend(trimmed, images.length > 0 ? [...images] : undefined, opts);
+    onSend(routed, images.length > 0 ? [...images] : undefined, opts);
     setValue("");
     setShowRecents(false);
-    // One-shot: disarm research + artifact + web-search modes after sending.
+    // One-shot: disarm research + artifact after sending. Web search and
+    // quiz stay on until explicitly cleared.
     setResearchArmed(false);
     setArtifactArmed(false);
-    setWebSearchArmed(false);
     requestAnimationFrame(() => {
       const el = textareaRef.current;
       if (el) adjustTextareaHeight(el);
@@ -227,29 +259,8 @@ const Composer = ({
   // Keep hidden to satisfy TS noUnusedLocals if edit-last shortcut is wired elsewhere.
   void handleEditLast;
 
-  // MCQ quiz shortcut: insert "mcq " prefix so the server routes to quiz.
-  // Never auto-sends — the user reviews/edits the topic, then hits Send.
-  const handleQuizPrefix = () => {
-    const el = textareaRef.current;
-    if (/^\s*mcq(\s|$)/i.test(value)) {
-      requestAnimationFrame(() => el?.focus());
-      return;
-    }
-    const stripped = value.replace(/^\s+/, "");
-    const next = stripped ? `mcq ${stripped}` : "mcq ";
-    setValue(next);
-    requestAnimationFrame(() => {
-      if (el) {
-        adjustTextareaHeight(el);
-        el.focus();
-        try {
-          el.selectionStart = el.selectionEnd = next.length;
-        } catch {
-          // ignore selection errors (non-text inputs never occur here)
-        }
-      }
-    });
-  };
+  // Sticky quiz mode lives in mcqArmed (chip + auto-prefix on send), so no
+  // manual prefix juggling here.
 
   return (
     <div className="composer-dock">
@@ -265,6 +276,8 @@ const Composer = ({
           onClearArtifact={() => setArtifactArmed(false)}
           webSearchArmed={webSearchArmed}
           onClearWebSearch={() => setWebSearchArmed(false)}
+          mcqArmed={mcqArmed}
+          onClearMcq={() => setMcqArmed(false)}
           listening={listening}
           error={error}
           listenError={listenError}
@@ -341,7 +354,8 @@ const Composer = ({
             onToggleRecents={() => setShowRecents((prev) => !prev)}
             cameraOpen={cameraOpen}
             onCameraToggle={() => setCameraOpen((prev) => !prev)}
-            onQuizClick={handleQuizPrefix}
+            mcqArmed={mcqArmed}
+            onQuizClick={() => setMcqArmed((prev) => !prev)}
             listening={listening}
             speechSupported={speechSupported}
             onMicClick={() => (listening ? stopListening() : startListening())}

@@ -6,6 +6,8 @@ export interface ComposerStatusProps {
   onClearArtifact?: () => void;
   webSearchArmed?: boolean;
   onClearWebSearch?: () => void;
+  mcqArmed?: boolean;
+  onClearMcq?: () => void;
   listening: boolean;
   error?: string | null;
   listenError?: string | null;
@@ -24,6 +26,8 @@ export const ComposerStatus = ({
   onClearArtifact,
   webSearchArmed,
   onClearWebSearch,
+  mcqArmed,
+  onClearMcq,
   listening,
   error,
   listenError,
@@ -78,6 +82,24 @@ export const ComposerStatus = ({
             onClick={onClearWebSearch}
             aria-label="Cancel web search"
             title="Cancel web search"
+          >
+            <i className="bi bi-x" aria-hidden="true"></i>
+          </button>
+        </div>
+      )}
+
+      {mcqArmed && (
+        <div className="composer-quiz-chip">
+          <i className="bi bi-patch-question composer-quiz-icon" aria-hidden="true"></i>
+          <span className="composer-quiz-label" title="Quiz mode stays on until cleared">
+            Quiz mode • stays on
+          </span>
+          <button
+            type="button"
+            className="composer-quiz-clear"
+            onClick={onClearMcq}
+            aria-label="Cancel quiz mode"
+            title="Cancel quiz mode"
           >
             <i className="bi bi-x" aria-hidden="true"></i>
           </button>
