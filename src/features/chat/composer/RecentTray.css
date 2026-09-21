@@ -11,6 +11,9 @@
   display: flex;
   flex-direction: column;
 }
+.composer-recents--large {
+  height: 80dvh;
+}
 .composer-recents-head {
   display: flex;
   align-items: center;
@@ -30,6 +33,7 @@
   align-items: center;
   gap: 0.25rem;
 }
+.composer-recents-browse-btn,
 .composer-recents-expand,
 .composer-recents-close {
   display: inline-flex;
@@ -44,6 +48,7 @@
   cursor: pointer;
   font-size: 1rem;
 }
+.composer-recents-browse-btn:hover,
 .composer-recents-expand:hover,
 .composer-recents-close:hover {
   color: var(--text);
@@ -54,6 +59,7 @@
   min-height: 0;
   display: flex;
   gap: 0.75rem;
+  align-items: center;
   overflow-x: auto;
   overflow-y: hidden;
   padding: 0.25rem 0.75rem 0.75rem;
@@ -61,12 +67,12 @@
   scrollbar-width: thin;
   scroll-snap-type: x mandatory;
 }
+/* Compact squares: ~3 visible on phones, ~5 on desktop. */
 .composer-recents-thumb {
   position: relative;
   flex-shrink: 0;
-  height: 100%;
-  aspect-ratio: 4 / 3;
-  max-width: 85%;
+  height: 9rem;
+  width: 9rem;
   border-radius: 0.75rem;
   overflow: hidden;
   border: 1px solid var(--border);

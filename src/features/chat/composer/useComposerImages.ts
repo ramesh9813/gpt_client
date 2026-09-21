@@ -1,11 +1,51 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { compressImageFile, MAX_IMAGES_PER_MESSAGE } from "../../../lib/image";
+
+// Persisted recents so the card shows photos by default even after reload.
+// Newest first (time order). Compressed dataURLs — cap count for quota safety.
+const RECENTS_STORAGE_KEY = "chatapp.recents.images";
+const MAX_STORED_RECENTS = 6;
+
+const loadStoredRecents = (): string[] => {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return [];
+    const raw = window.localStorage.getItem(RECENTS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((v): v is string => typeof v === "string" && v.startsWith("data:image"))
+      .slice(0, MAX_STORED_RECENTS);
+  } catch {
+    return [];
+  }
+};
 
 export const useComposerImages = () => {
   const [images, setImages] = useState<string[]>([]);
-  const [recents, setRecents] = useState<string[]>([]);
+  const [recents, setRecents] = useState<string[]>(() => loadStoredRecents());
   const [compressing, setCompressing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined" || !window.localStorage) return;
+      window.localStorage.setItem(
+        RECENTS_STORAGE_KEY,
+        JSON.stringify(recents.slice(0, MAX_STORED_RECENTS))
+      );
+    } catch {
+      // Quota exceeded: retry with fewer items, else give up silently.
+      try {
+        window.localStorage.setItem(
+          RECENTS_STORAGE_KEY,
+          JSON.stringify(recents.slice(0, 3))
+        );
+      } catch {
+        // ignore — recents just won't survive reload
+      }
+    }
+  }, [recents]);
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;

@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 type RecentTrayProps = {
   open: boolean;
   recents: string[];
@@ -8,9 +10,9 @@ type RecentTrayProps = {
 };
 
 /**
- * Recent-images card: same footprint as the camera view (50dvh). Shows
- * recent images by default in a horizontal snap-scroll row; the expand
- * button opens the system photo selector.
+ * Recent-images card: same footprint as the camera view. Shows recent
+ * clicked / screenshot photos newest-first (up to ~5 visible, scroll for
+ * more). Browse sits beside Expand in the header; Expand enlarges the card.
  */
 export const RecentTray = ({
   open,
@@ -20,20 +22,38 @@ export const RecentTray = ({
   onBrowse,
   onClose,
 }: RecentTrayProps) => {
+  const [expanded, setExpanded] = useState(false);
   if (!open) return null;
   return (
-    <div className="composer-recents" role="dialog" aria-label="Recent images">
+    <div
+      className={`composer-recents${expanded ? " composer-recents--large" : ""}`}
+      role="dialog"
+      aria-label="Recent images"
+    >
       <div className="composer-recents-head">
         <span className="composer-recents-title">Recent</span>
         <div className="composer-recents-head-actions">
           <button
             type="button"
-            className="composer-recents-expand"
+            className="composer-recents-browse-btn"
             onClick={onBrowse}
-            aria-label="Open system photo selector"
-            title="Open system photo selector"
+            aria-label="Browse photos"
+            title="Browse photos"
           >
-            <i className="bi bi-arrows-expand" aria-hidden="true" />
+            <i className="bi bi-folder2-open" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="composer-recents-expand"
+            onClick={() => setExpanded((prev) => !prev)}
+            aria-label={expanded ? "Shrink recent images" : "Expand recent images"}
+            aria-pressed={expanded}
+            title={expanded ? "Shrink" : "Expand"}
+          >
+            <i
+              className={`bi ${expanded ? "bi-arrows-collapse" : "bi-arrows-expand"}`}
+              aria-hidden="true"
+            />
           </button>
           <button
             type="button"
