@@ -1,4 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  idbGetHandle,
+  idbSetHandle,
+  isSupported,
+  type DeviceFolderKind,
+  type DirHandle,
+} from "./deviceDb";
+import {
+  MAX_ROW_IMAGES,
+  MAX_SCAN_FILES,
+  isScreenshotFound,
+  walkDir,
+  type Found,
+} from "./deviceScan";
+
+export type { DeviceFolderKind, DirHandle, Found };
+export { isSupported };
 
 // Device gallery (SD card) recents via the File System Access API.
 // Two folders can be granted independently: one for camera photos, one for
@@ -13,144 +30,6 @@ export type DeviceStatus =
   | "loading"
   | "ready"
   | "denied";
-export type DeviceFolderKind = "photos" | "screenshots";
-
-const IDB_DB = "chatui-media";
-const IDB_STORE = "handles";
-const HANDLE_KEYS: Record<DeviceFolderKind, string> = {
-  photos: "photos-dir",
-  screenshots: "shots-dir",
-};
-
-const IMAGE_EXT = /\.(jpe?g|png|webp|gif|bmp)$/i;
-const MAX_SCAN_FILES = 250;
-const MAX_ROW_IMAGES = 10;
-
-type DirEntry = {
-  kind: string;
-  name: string;
-  getFile?: () => Promise<File>;
-  values?: () => AsyncIterableIterator<DirEntry>;
-};
-
-type DirHandle = {
-  name?: string;
-  values?: () => AsyncIterableIterator<DirEntry>;
-  entries?: () => AsyncIterableIterator<[string, DirEntry]>;
-  queryPermission?: (opts: { mode: string }) => Promise<string>;
-  requestPermission?: (opts: { mode: string }) => Promise<string>;
-};
-
-// values() → entries() → async-iterator fallback: implementations differ.
-async function* iterateEntries(dir: DirHandle): AsyncGenerator<DirEntry> {
-  if (typeof dir.values === "function") {
-    for await (const entry of dir.values()) yield entry;
-    return;
-  }
-  if (typeof dir.entries === "function") {
-    for await (const [, handle] of dir.entries()) yield handle;
-    return;
-  }
-  const iterable = dir as unknown as {
-    [Symbol.asyncIterator]?: () => AsyncIterableIterator<[string, DirEntry]>;
-  };
-  if (typeof iterable[Symbol.asyncIterator] === "function") {
-    for await (const [, handle] of iterable[Symbol.asyncIterator]?.() ?? []) yield handle;
-  }
-}
-
-const isSupported = (): boolean =>
-  typeof window !== "undefined" &&
-  typeof (window as unknown as { showDirectoryPicker?: unknown })
-    .showDirectoryPicker === "function" &&
-  typeof indexedDB !== "undefined";
-
-const openDb = (): Promise<IDBDatabase> =>
-  new Promise((resolve, reject) => {
-    try {
-      const req = indexedDB.open(IDB_DB, 1);
-      req.onupgradeneeded = () => {
-        req.result.createObjectStore(IDB_STORE);
-      };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    } catch (e) {
-      reject(e);
-    }
-  });
-
-const idbGetHandle = async (kind: DeviceFolderKind): Promise<DirHandle | null> => {
-  try {
-    const db = await openDb();
-    const value: unknown = await new Promise((resolve, reject) => {
-      try {
-        const tx = db.transaction(IDB_STORE, "readonly");
-        const rq = tx.objectStore(IDB_STORE).get(HANDLE_KEYS[kind]);
-        rq.onsuccess = () => resolve(rq.result ?? null);
-        rq.onerror = () => reject(rq.error);
-      } catch (e) {
-        reject(e);
-      }
-    });
-    db.close();
-    return (value as DirHandle | null) ?? null;
-  } catch {
-    return null;
-  }
-};
-
-const idbSetHandle = async (kind: DeviceFolderKind, handle: DirHandle): Promise<void> => {
-  const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    try {
-      const tx = db.transaction(IDB_STORE, "readwrite");
-      const rq = tx.objectStore(IDB_STORE).put(handle, HANDLE_KEYS[kind]);
-      rq.onsuccess = () => resolve();
-      rq.onerror = () => reject(rq.error);
-    } catch (e) {
-      reject(e);
-    }
-  });
-  db.close();
-};
-
-type Found = { file: File; path: string; kind: DeviceFolderKind };
-
-const walkDir = async (
-  dir: DirHandle,
-  kind: DeviceFolderKind,
-  prefix: string,
-  out: Found[],
-  budget: { n: number },
-  depth: number
-): Promise<void> => {
-  if (depth > 3 || budget.n <= 0) return;
-  for await (const entry of iterateEntries(dir)) {
-    if (budget.n <= 0) return;
-    try {
-      if (entry.kind === "file" && IMAGE_EXT.test(entry.name)) {
-        const file = await entry.getFile?.();
-        if (file) {
-          out.push({ file, path: `${prefix}/${entry.name}`, kind });
-          budget.n -= 1;
-        }
-      } else if (
-        entry.kind === "directory" &&
-        depth < 3 &&
-        !entry.name.startsWith(".")
-      ) {
-        await walkDir(entry as unknown as DirHandle, kind, `${prefix}/${entry.name}`, out, budget, depth + 1);
-      }
-    } catch {
-      // unreadable entry — skip it
-    }
-  }
-};
-
-// Row rule: the screenshots-folder pick always lands in the screenshots row;
-// everywhere else, screenshot-like paths do. Both rows stay newest-first.
-const isScreenshotFound = (f: Found): boolean =>
-  f.kind === "screenshots" || /screenshot/i.test(f.path);
 
 export const useDeviceImages = () => {
   const [status, setStatus] = useState<DeviceStatus>(() =>

@@ -1,19 +1,16 @@
 import "./Chat.css";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   clearLastConversationId,
   loadLastConversationId,
   saveLastConversationId,
 } from "../features/chat/sidebarState";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ConversationSidebar from "../features/chat/ConversationSidebar";
 import SidebarToggle from "../components/SidebarToggle";
 import { useSidebar } from "../features/chat/useSidebar";
 import MessageList from "../features/chat/MessageList";
-import type { QuizRound } from "../features/chat/MessageList";
 import Composer from "../features/chat/Composer";
-import { apiFetch, ApiResponse } from "../lib/api";
 import CanvasPanel from "../features/chat/CanvasPanel";
 import { buildArtifactData } from "../features/chat/artifact";
 import { useChatStreaming } from "../features/chat/hooks/useChatStreaming";
@@ -22,12 +19,13 @@ import { useChatMessages } from "../features/chat/hooks/useChatMessages";
 import { useSwipeSidebar } from "../features/chat/hooks/useSwipeSidebar";
 import { useChatCanvas } from "../features/chat/hooks/useChatCanvas";
 import { useChatViewport } from "../features/chat/hooks/useChatViewport";
-import { useSettings } from "../lib/hooks";
+import { useNewChat } from "./useNewChat";
+import { useChatQuiz } from "../features/chat/hooks/useChatQuiz";
+import { useChatHeader } from "../features/chat/hooks/useChatHeader";
 
 const Chat = () => {
   const { conversationId } = useParams();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const {
     sidebarState,
     drawerOpen,
@@ -158,115 +156,18 @@ const Chat = () => {
 
   useChatViewport(composerInputRef);
 
-  const newChatMutation = useMutation({
-    mutationFn: () =>
-      apiFetch<ApiResponse<{ conversation: { id: string } }>>(
-        "/api/conversations",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: "{}",
-        }
-      ),
-    onMutate: () => {
-      // Instant feedback: clear thread + stop any stream while POST is in
-      // flight, so the UI feels immediate instead of waiting on network.
-      try {
-        cancelRef.current = true;
-      } catch {
-        /* noop */
-      }
-      setStreaming(false);
-      setActiveStreamId(null);
-      setMessages([]);
-    },
-    onSuccess: (res) => {
-      const conv = res.data.conversation as { id: string };
-      // Pre-fill empty messages cache so the new thread renders instantly
-      // without waiting for the GET /messages round-trip.
-      queryClient.setQueryData(["messages", conv.id], {
-        success: true,
-        data: { messages: [] },
-      });
-      // Optimistically prepend to sidebar caches so the list updates without
-      // waiting for a full refetch of up to 100 conversations.
-      const prepend = (old: unknown) => {
-        const o = old as {
-          data?: { items?: Array<{ id: string }> };
-        } | undefined;
-        if (!o?.data?.items) return old;
-        return {
-          ...(o as object),
-          data: {
-            ...(o.data as object),
-            items: [
-              conv,
-              ...(o.data.items as Array<{ id: string }>).filter(
-                (c) => c.id !== conv.id
-              ),
-            ],
-          },
-        };
-      };
-      queryClient.setQueryData(["conversations"], prepend);
-      queryClient.setQueryData(["conversations", ""], prepend);
-      // Background revalidation (non-blocking — navigation happens first).
-      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      void queryClient.invalidateQueries({ queryKey: ["folders"] });
-      navigate(`/c/${conv.id}`);
-    },
-  });
+  const newChatMutation = useNewChat({ cancelRef, setStreaming, setActiveStreamId, setMessages });
 
-  const handleHeaderToggle = () => {
-    if (isMobile) {
-      toggleDrawer();
-    } else if (sidebarState === "expanded") {
-      // Laptop: minimize completely hides history, chat expands full width.
-      // Floating pill stays visible so user can expand again.
-      hideSidebar();
-    } else {
-      showSidebar();
-    }
-  };
+  const { handleHeaderToggle, headerHidden, pinHeader, handleScrollDirection } = useChatHeader({
+    isMobile, sidebarState, toggleDrawer, hideSidebar, showSidebar,
+  });
 
   const handleStopStreaming = () => {
     stopStreaming(setMessages);
     setActiveTurnKind(null);
   };
 
-  // MCQ quiz: optimistic local update + best-effort persist (no refetch loop).
-  const handleQuizSelect = useCallback(
-    (messageId: string, quiz: QuizRound) => {
-      setMessages((prev) =>
-        prev.map((m) => (m.id === messageId ? { ...m, quiz } : m))
-      );
-      if (!conversationId) return;
-      const cid = conversationId;
-      void apiFetch(`/api/conversations/${cid}/messages/${messageId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quiz }),
-      }).catch(() => undefined);
-    },
-    [conversationId, setMessages]
-  );
-
-  const handleNextRound = useCallback(
-    (topic: string) => {
-      const t = topic?.trim() ?? "";
-      void sendMessage(t ? `mcq ${t}` : "mcq");
-    },
-    [sendMessage]
-  );
-
-  // Smart scroll: hide the floating pill on scroll down, reveal on scroll up.
-  // Disabled when the user pins the header in Settings > Appearance.
-  const [headerHidden, setHeaderHidden] = useState(false);
-  const { data: settingsData } = useSettings();
-  const pinHeader = settingsData?.data?.settings?.pinHeader ?? false;
-  const handleScrollDirection = useCallback((direction: "up" | "down") => {
-    setHeaderHidden(direction === "down");
-  }, []);
+  const { handleQuizSelect, handleNextRound } = useChatQuiz({ conversationId, setMessages, sendMessage });
 
   return (
     <div className="chat-root">

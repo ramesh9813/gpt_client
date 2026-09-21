@@ -1,16 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { z } from "zod";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "../../components/Button";
-import { apiFetch, ApiResponse } from "../../lib/api";
+import { apiFetch } from "../../lib/api";
 import { useSettings } from "../../lib/hooks";
-import { modelCapabilities } from "../chat/hooks/useChatModels";
-import {
-  isDeprecatedModel,
-  type OpenRouterModel,
-} from "../chat/hooks/modelCache";
 import {
   applyTheme,
   APP_FONT_MIN,
@@ -23,50 +17,20 @@ import {
   clampIconScale,
 } from "../../lib/theme";
 import { BRANDS, applyBrand, isBrandId, type BrandId } from "../../lib/brandTheme";
+import {
+  settingsSchema,
+  FONT_STEPS,
+  FONT_STEP_LABELS,
+  FONT_STEP_SIZES,
+  toFontStep,
+  toModelId,
+  resolvePreviewMode,
+  type SettingsFormValues,
+} from "./settingsForm";
+import { useSettingsModels } from "./useSettingsModels";
+import { SettingsModelsFields } from "./SettingsModelsFields";
 
-const settingsSchema = z.object({
-  theme: z.enum(["SYSTEM", "DARK", "LIGHT"]),
-  fontScale: z.enum(["XSMALL", "SMALL", "DEFAULT", "LARGE", "XLARGE"]),
-  brand: z.enum(["default", "chatgpt", "claude", "gemini", "grok", "deepseek"]),
-  pinHeader: z.boolean(),
-  appFontSize: z.number().int().min(APP_FONT_MIN).max(APP_FONT_MAX),
-  iconScale: z.number().min(ICON_SCALE_MIN).max(ICON_SCALE_MAX),
-  model: z.string().min(1).max(200),
-  imageModel: z.string().min(1).max(200),
-  videoModel: z.string().min(1).max(200),
-});
-
-const toModelId = (value: unknown): string =>
-  typeof value === "string" && value.length > 0 ? value : "default";
-
-const shortModelName = (m: OpenRouterModel): string => {
-  const name = m.name || m.id;
-  if (name.includes(": ")) return name.split(": ").slice(1).join(": ").trim();
-  if (name.includes(":")) return name.split(":").slice(1).join(":").trim();
-  return name.trim();
-};
-
-const FONT_STEPS = ["XSMALL", "SMALL", "DEFAULT", "LARGE", "XLARGE"] as const;
-type FontStep = (typeof FONT_STEPS)[number];
-const FONT_STEP_LABELS: Record<FontStep, string> = {
-  XSMALL: "Extra small",
-  SMALL: "Small",
-  DEFAULT: "Default",
-  LARGE: "Large",
-  XLARGE: "Extra large",
-};
-const FONT_STEP_SIZES: Record<FontStep, number> = {
-  XSMALL: 13,
-  SMALL: 14,
-  DEFAULT: 16,
-  LARGE: 18,
-  XLARGE: 20,
-};
-const DEFAULT_FONT_STEP: FontStep = "DEFAULT";
-const toFontStep = (value: unknown): FontStep =>
-  FONT_STEPS.includes(value as FontStep) ? (value as FontStep) : DEFAULT_FONT_STEP;
-
-export type SettingsFormValues = z.infer<typeof settingsSchema>;
+export type { SettingsFormValues } from "./settingsForm";
 
 export const SettingsTab = () => {
   const { data } = useSettings();
@@ -114,39 +78,8 @@ export const SettingsTab = () => {
     }
   }, [data, reset]);
 
-  // Live OpenRouter catalog (same ["models"] cache the composer fills —
-  // no extra fetch). Professional filter: architecture.output_modalities.
-  const { data: modelsData } = useQuery({
-    queryKey: ["models"],
-    queryFn: () =>
-      apiFetch<ApiResponse<{ models: OpenRouterModel[] }>>("/api/models"),
-    staleTime: 1000 * 60 * 5,
-  });
   const { chatModelOptions, imageModelOptions, videoModelOptions } =
-    useMemo(() => {
-      const seen = new Set<string>();
-      const live = (modelsData?.data?.models ?? []).filter((m) => {
-        if (!m?.id || seen.has(m.id) || isDeprecatedModel(m)) return false;
-        seen.add(m.id);
-        return true;
-      });
-      const sorted = [...live].sort((a, b) =>
-        shortModelName(a).localeCompare(shortModelName(b))
-      );
-      const label = (m: OpenRouterModel) => ({
-        label: shortModelName(m),
-        value: m.id,
-      });
-      return {
-        chatModelOptions: sorted.map(label),
-        imageModelOptions: sorted
-          .filter((m) => modelCapabilities(m).supportsImage)
-          .map(label),
-        videoModelOptions: sorted
-          .filter((m) => modelCapabilities(m).supportsVideo)
-          .map(label),
-      };
-    }, [modelsData]);
+    useSettingsModels();
 
   useEffect(() => {
     const subscription = watch((values) => {
@@ -165,16 +98,7 @@ export const SettingsTab = () => {
     return () => subscription.unsubscribe();
   }, [watch]);
 
-  const watchedTheme = watch("theme");
-  const previewMode =
-    watchedTheme === "DARK"
-      ? "dark"
-      : watchedTheme === "LIGHT"
-        ? "light"
-        : typeof window !== "undefined" &&
-            window.matchMedia?.("(prefers-color-scheme: dark)").matches
-          ? "dark"
-          : "light";
+  const previewMode = resolvePreviewMode(watch("theme"));
 
   const onSubmit = async (values: SettingsFormValues) => {
     setStatus(null);
@@ -300,79 +224,12 @@ export const SettingsTab = () => {
             </span>
           </div>
         </div>
-        <fieldset>
-          <legend className="account-field-label">Models</legend>
-          <div className="account-fields">
-            <div>
-              <label className="account-field-label" htmlFor="settings-chat-model">
-                Chat model
-              </label>
-              <select
-                id="settings-chat-model"
-                className="account-select"
-                {...register("model")}
-              >
-                <option value="default">Default model</option>
-                {chatModelOptions.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-              <span className="account-check-hint">
-                Default model for plain text chats.
-              </span>
-            </div>
-            <div>
-              <label className="account-field-label" htmlFor="settings-image-model">
-                Image generation model{" "}
-                <span className="account-font-size-value">
-                  {imageModelOptions.length} capable
-                </span>
-              </label>
-              <select
-                id="settings-image-model"
-                className="account-select"
-                {...register("imageModel")}
-              >
-                <option value="default">Default model</option>
-                {imageModelOptions.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-              <span className="account-check-hint">
-                Only image-capable models are listed. Image prompts use this
-                automatically.
-              </span>
-            </div>
-            <div>
-              <label className="account-field-label" htmlFor="settings-video-model">
-                Video generation model{" "}
-                <span className="account-font-size-value">
-                  {videoModelOptions.length} capable
-                </span>
-              </label>
-              <select
-                id="settings-video-model"
-                className="account-select"
-                {...register("videoModel")}
-              >
-                <option value="default">Default model</option>
-                {videoModelOptions.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-              <span className="account-check-hint">
-                Only video-capable models are listed. Video prompts use this
-                automatically.
-              </span>
-            </div>
-          </div>
-        </fieldset>
+        <SettingsModelsFields
+          register={register}
+          chatModelOptions={chatModelOptions}
+          imageModelOptions={imageModelOptions}
+          videoModelOptions={videoModelOptions}
+        />
         <div>
           <label className="account-check-row">
             <input

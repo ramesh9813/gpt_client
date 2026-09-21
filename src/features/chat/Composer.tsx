@@ -1,5 +1,5 @@
 import "./Composer.css";
-import { KeyboardEvent, MutableRefObject, useEffect, useRef, useState } from "react";
+import { MutableRefObject, useEffect, useRef, useState } from "react";
 import { ImageAttachments } from "./composer/ImageAttachments";
 import { RecentTray } from "./composer/RecentTray";
 import "./composer/RecentTray.css";
@@ -11,12 +11,10 @@ import { useComposerImages } from "./composer/useComposerImages";
 import { useDeviceImages } from "./composer/useDeviceImages";
 import { useVoiceInput } from "./composer/useVoiceInput";
 import { useCameraCapture } from "./composer/useCameraCapture";
-import { WEBSEARCH_ARMED_KEY, readWebSearchArmed } from "./sidebarState";
+import { useComposerArmed, useComposerText } from "./composer/useComposerText";
+
 
 export type { ModelOption, SortOption };
-
-// Quiz routing prefix (server treats a leading "mcq " as a quiz turn).
-const MCQ_PREFIX = /^\s*mcq(\s|$)/i;
 
 export type ComposerProps = {
   // images?:string[] is optional → backward compat with (value: string) => void
@@ -65,32 +63,16 @@ const Composer = ({
   const [value, setValue] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
-  // Armed when the user picks a model from the Deep Research list.
-  const [researchArmed, setResearchArmed] = useState(false);
-  // Armed when the user picks Artifact / Simulation from the '+' menu.
-  // Mirrors researchArmed exactly: chip indicator, send opts, one-shot disarm.
-  const [artifactArmed, setArtifactArmed] = useState(false);
-  // Sticky modes: stay on across sends until explicitly cleared.
-  // Web search defaults ON; quiz defaults OFF. Both persist in localStorage.
-  const [webSearchArmed, setWebSearchArmed] = useState(() => readWebSearchArmed());
-  const [mcqArmed, setMcqArmed] = useState(() => {
-    try {
-      return window.localStorage.getItem("chatapp.mcq.armed") === "true";
-    } catch {
-      return false;
-    }
-  });
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(WEBSEARCH_ARMED_KEY, String(webSearchArmed));
-    } catch {}
-  }, [webSearchArmed]);
-  useEffect(() => {
-    try {
-      window.localStorage.setItem("chatapp.mcq.armed", String(mcqArmed));
-    } catch {}
-  }, [mcqArmed]);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const {
+    researchArmed,
+    setResearchArmed,
+    artifactArmed,
+    setArtifactArmed,
+    webSearchArmed,
+    setWebSearchArmed,
+    mcqArmed,
+    setMcqArmed,
+  } = useComposerArmed();
   const menuRef = useRef<HTMLDivElement>(null);
   const [showRecents, setShowRecents] = useState(false);
   const { images, compressing, fileInputRef, handleFiles, removeImage, clearImages, recentPhotos, recentScreenshots, attachRecent } =
@@ -115,30 +97,6 @@ const Composer = ({
   useEffect(() => {
     if (showRecents) void ensureDeviceImages(true);
   }, [showRecents, ensureDeviceImages]);
-
-  // Device rows serve blob: URLs — convert back to a File so attach/send
-  // flows keep working on real compressed dataURLs.
-  const handlePickSrc = (src: string) => {
-    if (!src.startsWith("blob:")) {
-      attachRecent(src);
-      return;
-    }
-    void (async () => {
-      try {
-        const res = await fetch(src);
-        const blob = await res.blob();
-        if (!blob.type.startsWith("image/")) return;
-        const file = new File([blob], `device-photo-${Date.now()}.jpg`, {
-          type: blob.type,
-        });
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        await handleFiles(dt.files, "photo");
-      } catch {
-        // unreadable blob — ignore
-      }
-    })();
-  };
 
   const { listening, listenError, speechSupported, startListening, stopListening } =
     useVoiceInput({
@@ -172,84 +130,38 @@ const Composer = ({
 
 
 
-  const canSend = value.trim().length > 0 || images.length > 0;
-
-  const handleSend = () => sendText(value);
-
-  const sendText = (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed && images.length === 0) return;
-    if (compressing) return;
-    // Sticky quiz mode: route through the quiz pipeline even as the user
-    // edits the prompt — no visible prefix needed. Images-only sends skip
-    // the prefix so attachments still go through normally.
-    const routed =
-      mcqArmed && trimmed && !MCQ_PREFIX.test(trimmed) ? `mcq ${trimmed}` : trimmed;
-    // webSearch is always explicit (true/false) so an explicit OFF beats
-    // the pipeline default-ON; research/artifact stay one-shot opt-ins.
-    const opts =
-      researchArmed || artifactArmed
-        ? {
-            ...(researchArmed ? { research: true as const } : {}),
-            ...(artifactArmed ? { artifact: true as const } : {}),
-            webSearch: webSearchArmed,
-          }
-        : { webSearch: webSearchArmed };
-    onSend(routed, images.length > 0 ? [...images] : undefined, opts);
-    setValue("");
-    setShowRecents(false);
-    // One-shot: disarm research + artifact after sending. Web search and
-    // quiz stay on until explicitly cleared.
-    setResearchArmed(false);
-    setArtifactArmed(false);
-    requestAnimationFrame(() => {
-      const el = textareaRef.current;
-      if (el) adjustTextareaHeight(el);
-    });
-    clearImages();
-  };
-
-
-  const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
-      if (!disabled && !streaming && !compressing) {
-        handleSend();
-      }
-    }
-  };
-
-  const handleEditLast = () => {
-    if (!lastUserMessage) return;
-    setValue(lastUserMessage);
-    requestAnimationFrame(() => textareaRef.current?.focus());
-  };
-
-  const setTextareaRefs = (node: HTMLTextAreaElement | null) => {
-    textareaRef.current = node;
-    if (inputRef) {
-      inputRef.current = node;
-    }
-    if (node) adjustTextareaHeight(node);
-  };
-
-  // Single row initially, grow line-by-line up to 4 rows, then scroll inside.
-  const adjustTextareaHeight = (el: HTMLTextAreaElement) => {
-    el.style.height = "auto";
-    const cs = window.getComputedStyle(el);
-    const lineHeight = parseFloat(cs.lineHeight) || 24;
-    const padding =
-      (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
-    const maxHeight = Math.round(lineHeight * 4 + padding);
-    const next = Math.min(el.scrollHeight, maxHeight);
-    el.style.height = `${next}px`;
-    el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
-  };
-
-  useEffect(() => {
-    const el = textareaRef.current;
-    if (el) adjustTextareaHeight(el);
-  }, [value]);
+  const {
+    textareaRef,
+    canSend,
+    handleSend,
+    onKeyDown,
+    handleEditLast,
+    setTextareaRefs,
+    handleChange,
+    handlePaste,
+    handlePickSrc,
+  } = useComposerText({
+    value,
+    setValue,
+    images,
+    compressing,
+    mcqArmed,
+    researchArmed,
+    artifactArmed,
+    webSearchArmed,
+    disabled,
+    streaming,
+    lastUserMessage,
+    inputRef,
+    onSend,
+    clearImages,
+    handleFiles,
+    attachRecent,
+    setShowRecents,
+    setCameraOpen,
+    setResearchArmed,
+    setArtifactArmed,
+  });
 
   const currentModelLabel =
     modelOptions.find((o) => o.value === model)?.label || "Model";
@@ -286,29 +198,9 @@ const Composer = ({
             ref={setTextareaRefs}
             rows={1}
             value={value}
-            onChange={(e) => {
-              setValue(e.target.value);
-              adjustTextareaHeight(e.target);
-              // Typing takes over: auto-close the camera view and the
-              // image-selector card so the thread gets full space.
-              if (e.target.value.length > 0) {
-                setCameraOpen(false);
-                setShowRecents(false);
-              }
-            }}
+            onChange={handleChange}
             onKeyDown={onKeyDown}
-            onPaste={(e) => {
-              const files = e.clipboardData?.files;
-              if (files && files.length > 0) {
-                const imgs = Array.from(files).filter((f) => f.type.startsWith("image/"));
-                if (imgs.length > 0) {
-                  e.preventDefault();
-                  const dt = new DataTransfer();
-                  imgs.forEach((f) => dt.items.add(f));
-                  void handleFiles(dt.files, "screenshot");
-                }
-              }
-            }}
+            onPaste={handlePaste}
             placeholder="Send a message"
             className="composer-textarea"
           />

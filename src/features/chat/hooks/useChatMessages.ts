@@ -1,49 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import type { MutableRefObject } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { apiFetch, ApiResponse } from "../../../lib/api";
 import { readWebSearchArmed } from "../sidebarState";
 import type { ChatMessage, TurnKind } from "../message/types";
-import { wantsImagePrompt, wantsVideoPrompt } from "./useChatModels";
-import type { MessagesSetter, StreamAssistantArgs } from "./useChatStreaming";
-
-// Mirrors gpt_server artifact intent so edited simulation prompts keep
-// their turn kind for the status indicator.
-const ARTIFACT_KEYWORDS = /\b(simulation|simulator|interactive visualization|artifact)\b/i;
-const MCQ_PREFIX = /^\s*mcq\b/i;
-
-const detectTurnKind = (
-  text: string,
-  opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean }
-): TurnKind => {
-  if (opts?.webSearch) return "websearch";
-  if (opts?.research) return "research";
-  if (opts?.artifact) return "artifact";
-  if (MCQ_PREFIX.test(text)) return "mcq";
-  if (wantsVideoPrompt(text)) return "video";
-  if (wantsImagePrompt(text)) return "image";
-  if (ARTIFACT_KEYWORDS.test(text)) return "artifact";
-  return "text";
-};
-
-type StreamAssistantFn = (
-  setMessages: MessagesSetter,
-  args: StreamAssistantArgs
-) => Promise<void>;
-
-type UseChatMessagesOptions = {
-  conversationId: string | undefined;
-  model: string;
-  setModel: (value: string) => void;
-  streaming: boolean;
-  setStreaming: (value: boolean) => void;
-  activeStreamId: string | null;
-  setActiveStreamId: (value: string | null) => void;
-  cancelRef: MutableRefObject<boolean>;
-  streamAssistant: StreamAssistantFn;
-  resolveModelForPrompt?: (text: string) => string;
-};
+import { detectRegenKind, detectTurnKind } from "./turnKind";
+import type { UseChatMessagesOptions } from "./turnKind";
 
 export const useChatMessages = ({
   conversationId,
@@ -264,15 +226,7 @@ export const useChatMessages = ({
     // Keep the status honest: quiz/image/video regenerations show their own
     // phase, everything else falls back to plain streaming dots.
     const regenTarget = messages[messageIndex];
-    setActiveTurnKind(
-      regenTarget?.quiz
-        ? "mcq"
-        : (regenTarget?.images?.length ?? 0) > 0
-          ? "image"
-          : (regenTarget?.videos?.length ?? 0) > 0
-            ? "video"
-            : detectTurnKind(userMessage.content)
-    );
+    setActiveTurnKind(detectRegenKind(regenTarget, userMessage.content));
 
     // Optimistically update the UI to show loading state for the assistant message
     setMessages((prev) => {
