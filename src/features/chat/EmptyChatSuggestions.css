@@ -1,0 +1,112 @@
+/* Empty-state starter questions — centered in the middle of the chat area. */
+
+.msg-list-inner--empty {
+  min-height: 100%;
+  display: flex;
+  padding-top: 3.25rem;
+}
+
+.empty-suggest {
+  display: flex;
+  flex: 1 1 0%;
+  min-height: 100%;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  padding: 3.5rem 1rem 1.5rem;
+}
+
+.empty-suggest-inner {
+  width: 100%;
+  max-width: 36rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+}
+
+.empty-suggest-title {
+  margin: 0;
+  font-size: 1.375rem;
+  line-height: 1.75rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.empty-suggest-sub {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--muted);
+}
+
+.empty-suggest-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.empty-suggest-card {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border-radius: 0.875rem;
+  border: 1px solid var(--border);
+  background-color: var(--panel);
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 150ms ease, border-color 150ms ease,
+    background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.empty-suggest-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.08);
+}
+
+.empty-suggest-card:active {
+  transform: scale(0.99);
+}
+
+.empty-suggest-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.empty-suggest-text {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+.empty-suggest-icon {
+  flex-shrink: 0;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.empty-suggest-card:hover .empty-suggest-icon {
+  color: var(--accent);
+}
+
+@media (min-width: 640px) {
+  .empty-suggest-title {
+    font-size: 1.625rem;
+    line-height: 2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .empty-suggest-card {
+    transition: none;
+  }
+}

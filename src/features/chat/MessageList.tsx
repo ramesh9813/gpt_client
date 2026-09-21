@@ -5,6 +5,7 @@ import type { ArtifactBlock } from "./artifact";
 import { useMessageEdit } from "./message/useMessageEdit";
 import { UserMessage } from "./message/UserMessage";
 import { AssistantMessage } from "./message/AssistantMessage";
+import EmptyChatSuggestions from "./EmptyChatSuggestions";
 
 export type { ChatMessage, ModelOption, QuizQuestion, QuizRound } from "./message/types";
 
@@ -23,6 +24,7 @@ type MessageListProps = {
   hasCanvasCode?: Record<string, boolean>;
   artifacts?: ArtifactBlock[];
   onScrollDirection?: (direction: "up" | "down") => void;
+  conversationKey?: string;
 };
 
 const MessageList = ({
@@ -39,7 +41,8 @@ const MessageList = ({
   contentOverrides,
   hasCanvasCode,
   artifacts,
-  onScrollDirection
+  onScrollDirection,
+  conversationKey
 }: MessageListProps) => {
   const listRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
@@ -144,6 +147,14 @@ const MessageList = ({
 
   return (
     <div className="msg-list scrollbar-thin" ref={listRef}>
+      {messages.length === 0 ? (
+        <div className="msg-list-inner msg-list-inner--empty">
+          <EmptyChatSuggestions
+            conversationKey={conversationKey}
+            onSelect={(q) => onFollowup?.(q)}
+          />
+        </div>
+      ) : (
       <div className="msg-list-inner">
         {messages.map((message) => {
           if (message.role === "SYSTEM") {
@@ -201,6 +212,7 @@ const MessageList = ({
           );
         })}
       </div>
+      )}
       {messages.length > 0 && canScroll && (!atTop || !atBottom) && (
         <div className="msg-jump-wrap">
           {!atTop && (

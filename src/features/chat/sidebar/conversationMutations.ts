@@ -32,9 +32,36 @@ export function useConversationMutations({
         }
       ),
     onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      queryClient.invalidateQueries({ queryKey: ["folders"] });
-      navigate(`/c/${res.data.conversation.id}`);
+      const conv = res.data.conversation;
+      // Pre-fill empty messages cache + optimistically prepend to the sidebar
+      // list so navigation feels instant; refetch happens in background.
+      queryClient.setQueryData(["messages", conv.id], {
+        success: true,
+        data: { messages: [] },
+      });
+      const prepend = (old: unknown) => {
+        const o = old as
+          | { data?: { items?: Conversation[] } }
+          | undefined;
+        if (!o?.data?.items) return old;
+        return {
+          ...(o as object),
+          data: {
+            ...(o.data as object),
+            items: [
+              conv,
+              (o.data.items as Conversation[]).filter(
+                (c) => c.id !== conv.id
+              ),
+            ],
+          },
+        };
+      };
+      queryClient.setQueryData(["conversations"], prepend);
+      queryClient.setQueryData(["conversations", ""], prepend);
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      void queryClient.invalidateQueries({ queryKey: ["folders"] });
+      navigate(`/c/${conv.id}`);
       if (isMobile) onCloseDrawer();
     }
   });

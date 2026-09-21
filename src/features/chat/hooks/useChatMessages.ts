@@ -50,6 +50,15 @@ export const useChatMessages = ({
   });
 
   useEffect(() => {
+    // Instant clear on conversation switch: prevents old chat flashing
+    // while the new conversation's messages load, and makes "New chat"
+    // feel immediate right after navigation (before the GET resolves).
+    setMessages([]);
+    setLastUserMessage("");
+    setComposerError(null);
+  }, [conversationId]);
+
+  useEffect(() => {
     if (messageData?.data?.messages) {
       setMessages(messageData.data.messages);
     }

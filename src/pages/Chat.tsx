@@ -137,10 +137,52 @@ const Chat = () => {
           body: "{}",
         }
       ),
+    onMutate: () => {
+      // Instant feedback: clear thread + stop any stream while POST is in
+      // flight, so the UI feels immediate instead of waiting on network.
+      try {
+        cancelRef.current = true;
+      } catch {
+        /* noop */
+      }
+      setStreaming(false);
+      setActiveStreamId(null);
+      setMessages([]);
+    },
     onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      queryClient.invalidateQueries({ queryKey: ["folders"] });
-      navigate(`/c/${res.data.conversation.id}`);
+      const conv = res.data.conversation as { id: string };
+      // Pre-fill empty messages cache so the new thread renders instantly
+      // without waiting for the GET /messages round-trip.
+      queryClient.setQueryData(["messages", conv.id], {
+        success: true,
+        data: { messages: [] },
+      });
+      // Optimistically prepend to sidebar caches so the list updates without
+      // waiting for a full refetch of up to 100 conversations.
+      const prepend = (old: unknown) => {
+        const o = old as {
+          data?: { items?: Array<{ id: string }> };
+        } | undefined;
+        if (!o?.data?.items) return old;
+        return {
+          ...(o as object),
+          data: {
+            ...(o.data as object),
+            items: [
+              conv,
+              ...(o.data.items as Array<{ id: string }>).filter(
+                (c) => c.id !== conv.id
+              ),
+            ],
+          },
+        };
+      };
+      queryClient.setQueryData(["conversations"], prepend);
+      queryClient.setQueryData(["conversations", ""], prepend);
+      // Background revalidation (non-blocking — navigation happens first).
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      void queryClient.invalidateQueries({ queryKey: ["folders"] });
+      navigate(`/c/${conv.id}`);
     },
   });
 
@@ -256,6 +298,7 @@ const Chat = () => {
           <section className="chat-thread">
             <MessageList
               messages={messages}
+              conversationKey={conversationId}
               onEditSubmit={handleEditSubmit}
               editDisabled={streaming}
               modelOptions={modelOptions}
