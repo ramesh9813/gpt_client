@@ -6,7 +6,17 @@ import { z } from "zod";
 import { Button } from "../../components/Button";
 import { apiFetch } from "../../lib/api";
 import { useSettings } from "../../lib/hooks";
-import { applyTheme } from "../../lib/theme";
+import {
+  applyTheme,
+  APP_FONT_MIN,
+  APP_FONT_MAX,
+  APP_FONT_DEFAULT,
+  ICON_SCALE_MIN,
+  ICON_SCALE_MAX,
+  ICON_SCALE_DEFAULT,
+  clampAppFontSize,
+  clampIconScale,
+} from "../../lib/theme";
 import { BRANDS, applyBrand, isBrandId, type BrandId } from "../../lib/brandTheme";
 
 const settingsSchema = z.object({
@@ -14,6 +24,8 @@ const settingsSchema = z.object({
   fontScale: z.enum(["XSMALL", "SMALL", "DEFAULT", "LARGE", "XLARGE"]),
   brand: z.enum(["default", "chatgpt", "claude", "gemini", "grok", "deepseek"]),
   pinHeader: z.boolean(),
+  appFontSize: z.number().int().min(APP_FONT_MIN).max(APP_FONT_MAX),
+  iconScale: z.number().min(ICON_SCALE_MIN).max(ICON_SCALE_MAX),
 });
 
 const FONT_STEPS = ["XSMALL", "SMALL", "DEFAULT", "LARGE", "XLARGE"] as const;
@@ -56,6 +68,8 @@ export const SettingsTab = () => {
       fontScale: "DEFAULT",
       brand: "default" as BrandId,
       pinHeader: false,
+      appFontSize: APP_FONT_DEFAULT,
+      iconScale: ICON_SCALE_DEFAULT,
     },
   });
 
@@ -70,6 +84,8 @@ export const SettingsTab = () => {
         ...settings,
         fontScale: toFontStep(settings.fontScale),
         brand: isBrandId(settings.brand) ? settings.brand : "default",
+        appFontSize: clampAppFontSize(settings.appFontSize),
+        iconScale: clampIconScale(settings.iconScale),
       });
     }
   }, [data, reset]);
@@ -77,7 +93,12 @@ export const SettingsTab = () => {
   useEffect(() => {
     const subscription = watch((values) => {
       if (values.theme && values.fontScale) {
-        applyTheme(values.theme, values.fontScale);
+        applyTheme(
+          values.theme,
+          values.fontScale,
+          clampAppFontSize(values.appFontSize),
+          clampIconScale(values.iconScale)
+        );
       }
       if (isBrandId(values.brand)) {
         applyBrand(values.brand);
@@ -151,6 +172,66 @@ export const SettingsTab = () => {
           <div className="account-range-ends" aria-hidden="true">
             <span className="account-range-end-small">A</span>
             <span className="account-range-end-large">A</span>
+          </div>
+        </div>
+        <div>
+          <label className="account-field-label" htmlFor="app-font-size">
+            App font size{" "}
+            <span className="account-font-size-value">
+              {clampAppFontSize(watch("appFontSize"))}px
+            </span>
+          </label>
+          <input
+            id="app-font-size"
+            type="range"
+            min={APP_FONT_MIN}
+            max={APP_FONT_MAX}
+            step={1}
+            value={clampAppFontSize(watch("appFontSize"))}
+            onChange={(e) =>
+              setValue("appFontSize", Number(e.target.value), {
+                shouldDirty: true,
+                shouldValidate: true,
+              })
+            }
+            className="account-range"
+            aria-valuetext={`${clampAppFontSize(watch("appFontSize"))} pixels overall app font`}
+          />
+          <div className="account-range-ends" aria-hidden="true">
+            <span className="account-range-end-small">A</span>
+            <span className="account-range-end-large">A</span>
+          </div>
+        </div>
+        <div>
+          <label className="account-field-label" htmlFor="icon-size">
+            Icon size{" "}
+            <span className="account-font-size-value">
+              {Math.round(clampIconScale(watch("iconScale")) * 100)}%
+            </span>
+          </label>
+          <input
+            id="icon-size"
+            type="range"
+            min={ICON_SCALE_MIN}
+            max={ICON_SCALE_MAX}
+            step={0.05}
+            value={clampIconScale(watch("iconScale"))}
+            onChange={(e) =>
+              setValue("iconScale", Math.round(Number(e.target.value) * 100) / 100, {
+                shouldDirty: true,
+                shouldValidate: true,
+              })
+            }
+            className="account-range"
+            aria-valuetext={`${Math.round(clampIconScale(watch("iconScale")) * 100)} percent icon size`}
+          />
+          <div className="account-range-ends" aria-hidden="true">
+            <span className="account-range-end-small">
+              <i className="bi bi-emoji-smile" aria-hidden="true" />
+            </span>
+            <span className="account-range-end-large">
+              <i className="bi bi-emoji-smile" aria-hidden="true" />
+            </span>
           </div>
         </div>
         <div>

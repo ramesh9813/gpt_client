@@ -19,6 +19,8 @@ export type UserSettings = {
   brand: BrandId;
   pinHeader: boolean;
   model: string;
+  appFontSize?: number;
+  iconScale?: number;
 };
 
 export const useMe = (enabled = true) =>

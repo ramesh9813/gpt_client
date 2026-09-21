@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { apiFetch, ApiResponse } from "./lib/api";
 import { type OpenRouterModel } from "./features/chat/hooks/modelCache";
 import { useMe, useSettings } from "./lib/hooks";
-import { applyTheme } from "./lib/theme";
+import { applyTheme, clampAppFontSize, clampIconScale } from "./lib/theme";
 import { applyBrand, isBrandId } from "./lib/brandTheme";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -55,7 +55,12 @@ const App = () => {
   useEffect(() => {
     const settings = data?.data?.settings;
     if (!settings) return;
-    applyTheme(settings.theme, settings.fontScale);
+    applyTheme(
+      settings.theme,
+      settings.fontScale,
+      clampAppFontSize(settings.appFontSize),
+      clampIconScale(settings.iconScale)
+    );
     if (isBrandId((settings as { brand?: unknown }).brand)) {
       applyBrand(settings.brand);
     }

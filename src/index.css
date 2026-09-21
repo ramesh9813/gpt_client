@@ -104,6 +104,23 @@
   font-size: 20px;
 }
 
+/* ---- Global app font + icon scaling (sliders) ----
+   --app-zoom scales all px/rem text+layout on body.
+   --icon-scale multiplies icons on top (total = app-zoom x icon-scale). */
+:root {
+  --app-zoom: 1;
+  --app-font-size: 16px;
+  --icon-scale: 1;
+}
+body {
+  zoom: var(--app-zoom, 1);
+}
+i.bi,
+i[class*="bi-"],
+.material-symbols-outlined {
+  zoom: var(--icon-scale, 1);
+}
+
 html {
   height: 100%;
   height: 100dvh;
