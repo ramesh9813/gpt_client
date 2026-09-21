@@ -78,6 +78,8 @@ const Composer = ({
     devicePhotos,
     deviceScreenshots,
     deviceStatus,
+    photoFolderName,
+    shotsFolderName,
     ensureSilent,
     pickFolder,
   } = useDeviceImages();
@@ -352,7 +354,10 @@ const Composer = ({
         devicePhotos={devicePhotos}
         deviceScreenshots={deviceScreenshots}
         deviceStatus={deviceStatus}
-        onAllowDevice={pickFolder}
+        photoFolderName={photoFolderName}
+        shotsFolderName={shotsFolderName}
+        onPickPhotosFolder={() => pickFolder("photos")}
+        onPickScreenshotsFolder={() => pickFolder("screenshots")}
         attached={images}
         onPick={handlePickSrc}
         onBrowse={() => fileInputRef.current?.click()}

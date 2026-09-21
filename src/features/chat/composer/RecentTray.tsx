@@ -8,7 +8,10 @@ type RecentTrayProps = {
   devicePhotos: DeviceImage[];
   deviceScreenshots: DeviceImage[];
   deviceStatus: DeviceStatus;
-  onAllowDevice: () => void;
+  photoFolderName: string | null;
+  shotsFolderName: string | null;
+  onPickPhotosFolder: () => void;
+  onPickScreenshotsFolder: () => void;
   attached: string[];
   onPick: (src: string) => void;
   onBrowse: () => void;
@@ -21,15 +24,35 @@ const PhotoRow = ({
   onPick,
   emptyLabel,
   rowLabel,
+  folderName,
+  chooseTitle,
+  onChooseFolder,
 }: {
   images: string[];
   attached: string[];
   onPick: (src: string) => void;
   emptyLabel: string;
   rowLabel: string;
+  folderName: string | null;
+  chooseTitle: string;
+  onChooseFolder: () => void;
 }) => (
   <div className="composer-recents-section">
-    <div className="composer-recents-label">{rowLabel}</div>
+    <div className="composer-recents-label-row">
+      <div className="composer-recents-label">{rowLabel}</div>
+      <button
+        type="button"
+        className="composer-recents-folder-btn"
+        onClick={onChooseFolder}
+        aria-label={chooseTitle}
+        title={folderName ? `${chooseTitle} (now: ${folderName})` : chooseTitle}
+      >
+        <i className="bi bi-folder2-open" aria-hidden="true" />
+        {folderName ? (
+          <span className="composer-recents-folder-name">{folderName}</span>
+        ) : null}
+      </button>
+    </div>
     {images.length > 0 ? (
       <div className="composer-recents-row">
         {images.map((src, idx) => {
@@ -66,10 +89,10 @@ const PhotoRow = ({
 
 /**
  * Recents card: same footprint as the camera view. First row shows device
- * recent photos, second row device recent screenshots (both newest-first);
- * session photos fill any gap. Attached images are never duplicated here —
- * they already sit in the input card. Device rows need a one-time folder
- * permission via the Allow button.
+ * camera photos, second row device screenshots (both newest-first); session
+ * photos fill any gap. Attached images are never duplicated here — they
+ * already sit in the input card. Each row has its own folder button so the
+ * user can grant the camera folder and the screenshots folder separately.
  */
 export const RecentTray = ({
   open,
@@ -78,7 +101,10 @@ export const RecentTray = ({
   devicePhotos,
   deviceScreenshots,
   deviceStatus,
-  onAllowDevice,
+  photoFolderName,
+  shotsFolderName,
+  onPickPhotosFolder,
+  onPickScreenshotsFolder,
   attached,
   onPick,
   onBrowse,
@@ -96,7 +122,6 @@ export const RecentTray = ({
     ...deviceScreenshots.map((d) => d.url),
     ...recentScreenshots.filter((s) => !isAttached(s)),
   ];
-
 
   return (
     <div
@@ -140,33 +165,12 @@ export const RecentTray = ({
           </button>
         </div>
       </div>
-      {(deviceStatus === "idle" ||
-        deviceStatus === "loading" ||
-        deviceStatus === "denied") && (
+      {deviceStatus === "denied" && (
         <div className="composer-recents-permit">
-          {deviceStatus === "loading" ? (
-            <span className="composer-recents-permit-text">
-              Loading device photos…
-            </span>
-          ) : deviceStatus === "denied" ? (
-            <span className="composer-recents-permit-text">
-              Device photo access denied — enable it in the browser site
-              settings, or try again.
-            </span>
-          ) : (
-            <>
-              <span className="composer-recents-permit-text">
-                Show recent photos from this device?
-              </span>
-              <button
-                type="button"
-                className="composer-recents-permit-btn"
-                onClick={onAllowDevice}
-              >
-                Allow access
-              </button>
-            </>
-          )}
+          <span className="composer-recents-permit-text">
+            Device photo access denied — enable it in the browser site
+            settings, then pick the folders again.
+          </span>
         </div>
       )}
       <PhotoRow
@@ -175,6 +179,9 @@ export const RecentTray = ({
         onPick={onPick}
         emptyLabel="No recent photos yet"
         rowLabel="Recent photos"
+        folderName={photoFolderName}
+        chooseTitle="Choose camera folder"
+        onChooseFolder={onPickPhotosFolder}
       />
       <PhotoRow
         images={screenshots}
@@ -182,6 +189,9 @@ export const RecentTray = ({
         onPick={onPick}
         emptyLabel="No recent screenshots yet"
         rowLabel="Recent screenshots"
+        folderName={shotsFolderName}
+        chooseTitle="Choose screenshots folder"
+        onChooseFolder={onPickScreenshotsFolder}
       />
     </div>
   );
