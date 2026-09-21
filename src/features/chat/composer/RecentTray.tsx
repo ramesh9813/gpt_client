@@ -10,6 +10,8 @@ type RecentTrayProps = {
   deviceStatus: DeviceStatus;
   photoFolderName: string | null;
   shotsFolderName: string | null;
+  photoScan: { folder: string; scanned: number } | null;
+  shotsScan: { folder: string; scanned: number } | null;
   onPickPhotosFolder: () => void;
   onPickScreenshotsFolder: () => void;
   attached: string[];
@@ -103,6 +105,8 @@ export const RecentTray = ({
   deviceStatus,
   photoFolderName,
   shotsFolderName,
+  photoScan,
+  shotsScan,
   onPickPhotosFolder,
   onPickScreenshotsFolder,
   attached,
@@ -177,7 +181,11 @@ export const RecentTray = ({
         images={photos}
         attached={attached}
         onPick={onPick}
-        emptyLabel="No recent photos yet"
+        emptyLabel={
+          photoFolderName
+            ? `No images in “${photoFolderName}”${photoScan ? ` — ${photoScan.scanned} file(s) scanned` : ""}`
+            : "No recent photos yet"
+        }
         rowLabel="Recent photos"
         folderName={photoFolderName}
         chooseTitle="Choose camera folder"
@@ -187,7 +195,11 @@ export const RecentTray = ({
         images={screenshots}
         attached={attached}
         onPick={onPick}
-        emptyLabel="No recent screenshots yet"
+        emptyLabel={
+          shotsFolderName
+            ? `No images in “${shotsFolderName}”${shotsScan ? ` — ${shotsScan.scanned} file(s) scanned` : ""}`
+            : "No recent screenshots yet"
+        }
         rowLabel="Recent screenshots"
         folderName={shotsFolderName}
         chooseTitle="Choose screenshots folder"

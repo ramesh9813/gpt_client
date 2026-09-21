@@ -156,12 +156,13 @@
   color: var(--muted);
   font-style: italic;
 }
-/* Fill the row height: squares scale with the card, ~3-5 per view. */
+/* Fill the row height; portrait 3/4 cards fit 3-4 per row on phones,
+   more on desktop. */
 .composer-recents-thumb {
   position: relative;
   flex-shrink: 0;
   height: 100%;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 3 / 4;
   border-radius: 0.625rem;
   overflow: hidden;
   border: 1px solid var(--border);

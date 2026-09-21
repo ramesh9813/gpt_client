@@ -26,12 +26,38 @@ const IMAGE_EXT = /\.(jpe?g|png|webp|gif|bmp)$/i;
 const MAX_SCAN_FILES = 250;
 const MAX_ROW_IMAGES = 10;
 
+type DirEntry = {
+  kind: string;
+  name: string;
+  getFile?: () => Promise<File>;
+  values?: () => AsyncIterableIterator<DirEntry>;
+};
+
 type DirHandle = {
   name?: string;
-  values: () => AsyncIterableIterator<{ kind: string; name: string; getFile?: () => Promise<File> }>;
+  values?: () => AsyncIterableIterator<DirEntry>;
+  entries?: () => AsyncIterableIterator<[string, DirEntry]>;
   queryPermission?: (opts: { mode: string }) => Promise<string>;
   requestPermission?: (opts: { mode: string }) => Promise<string>;
 };
+
+// values() → entries() → async-iterator fallback: implementations differ.
+async function* iterateEntries(dir: DirHandle): AsyncGenerator<DirEntry> {
+  if (typeof dir.values === "function") {
+    for await (const entry of dir.values()) yield entry;
+    return;
+  }
+  if (typeof dir.entries === "function") {
+    for await (const [, handle] of dir.entries()) yield handle;
+    return;
+  }
+  const iterable = dir as unknown as {
+    [Symbol.asyncIterator]?: () => AsyncIterableIterator<[string, DirEntry]>;
+  };
+  if (typeof iterable[Symbol.asyncIterator] === "function") {
+    for await (const [, handle] of iterable[Symbol.asyncIterator]?.() ?? []) yield handle;
+  }
+}
 
 const isSupported = (): boolean =>
   typeof window !== "undefined" &&
@@ -97,8 +123,8 @@ const walkDir = async (
   budget: { n: number },
   depth: number
 ): Promise<void> => {
-  if (depth > 2 || budget.n <= 0) return;
-  for await (const entry of dir.values()) {
+  if (depth > 3 || budget.n <= 0) return;
+  for await (const entry of iterateEntries(dir)) {
     if (budget.n <= 0) return;
     try {
       if (entry.kind === "file" && IMAGE_EXT.test(entry.name)) {
@@ -109,7 +135,7 @@ const walkDir = async (
         }
       } else if (
         entry.kind === "directory" &&
-        depth < 2 &&
+        depth < 3 &&
         !entry.name.startsWith(".")
       ) {
         await walkDir(entry as unknown as DirHandle, `${prefix}/${entry.name}`, out, budget, depth + 1);
@@ -128,6 +154,11 @@ export const useDeviceImages = () => {
   const [screenshots, setScreenshots] = useState<DeviceImage[]>([]);
   const [photoFolderName, setPhotoFolderName] = useState<string | null>(null);
   const [shotsFolderName, setShotsFolderName] = useState<string | null>(null);
+  // Visible diagnostics: files scanned per folder, so an empty row explains
+  // itself instead of failing silently.
+  const [scanInfo, setScanInfo] = useState<
+    Record<DeviceFolderKind, { folder: string; scanned: number } | null>
+  >({ photos: null, screenshots: null });
   const urlsRef = useRef<string[]>([]);
   // Per-folder scan results so granting a second folder unions with the
   // first instead of replacing it.
@@ -184,40 +215,61 @@ export const useDeviceImages = () => {
       const found: Found[] = [];
       await walkDir(dir, "", found, { n: MAX_SCAN_FILES }, 0);
       sourcesRef.current[kind] = found;
-      if (dir.name) {
-        if (kind === "photos") setPhotoFolderName(dir.name);
-        else setShotsFolderName(dir.name);
-      }
+      const folder = dir.name || (kind === "photos" ? "camera folder" : "screenshots folder");
+      if (kind === "photos") setPhotoFolderName(dir.name ?? null);
+      else setShotsFolderName(dir.name ?? null);
+      setScanInfo((prev) => ({ ...prev, [kind]: { folder, scanned: found.length } }));
       rebuildRows();
     },
     [rebuildRows]
   );
 
-  // Silent path: loads every stored handle that already has permission.
-  // Never prompts — the row folder buttons are the only prompters.
-  const ensureSilent = useCallback(async () => {
-    if (!isSupported() || status === "ready" || status === "loading") return;
-    setStatus("loading");
-    try {
-      let loadedAny = false;
-      for (const kind of ["photos", "screenshots"] as DeviceFolderKind[]) {
-        const handle = await idbGetHandle(kind);
-        if (!handle) continue;
-        try {
-          const q = await handle.queryPermission?.({ mode: "read" });
-          if (q === "granted") {
-            await scanFolder(kind, handle);
-            loadedAny = true;
+  // Auto-load path for granted folders. Runs silently at mount AND on
+  // card open. When opened from a real tap (fromGesture), a dormant grant
+  // may be re-confirmed via requestPermission without re-picking folders,
+  // so every reload reopens straight into loaded rows.
+  const ensureDeviceImages = useCallback(
+    async (fromGesture: boolean) => {
+      if (!isSupported() || status === "ready" || status === "loading") return;
+      setStatus("loading");
+      try {
+        let loadedAny =
+          sourcesRef.current.photos.length + sourcesRef.current.screenshots.length > 0;
+        for (const kind of ["photos", "screenshots"] as DeviceFolderKind[]) {
+          const handle = await idbGetHandle(kind);
+          if (!handle) continue;
+          try {
+            // No queryPermission API = older grant model: the stored handle
+            // itself implies access, so try the scan.
+            let q =
+              typeof handle.queryPermission === "function"
+                ? await handle.queryPermission({ mode: "read" })
+                : "granted";
+            // Card opens from a tap: transient activation lets us
+            // re-confirm a dormant grant with just the permission chip —
+            // no folder re-pick needed.
+            if (
+              q !== "granted" &&
+              fromGesture &&
+              typeof handle.requestPermission === "function"
+            ) {
+              q = await handle.requestPermission({ mode: "read" });
+            }
+            if (q === "granted") {
+              await scanFolder(kind, handle);
+              loadedAny = true;
+            }
+          } catch {
+            // ignore this handle
           }
-        } catch {
-          // ignore this handle
         }
+        setStatus(loadedAny ? "ready" : "idle");
+      } catch {
+        setStatus("idle");
       }
-      setStatus(loadedAny ? "ready" : "idle");
-    } catch {
-      setStatus("idle");
-    }
-  }, [scanFolder, status]);
+    },
+    [scanFolder, status]
+  );
 
   const pickFolder = useCallback(
     async (kind: DeviceFolderKind) => {
@@ -233,7 +285,11 @@ export const useDeviceImages = () => {
           mode: "read",
           startIn: "pictures",
         })) as DirHandle;
-        const granted = await dir.requestPermission?.({ mode: "read" });
+        // No requestPermission API = the picker grant itself suffices.
+        const granted =
+          typeof dir.requestPermission === "function"
+            ? await dir.requestPermission({ mode: "read" })
+            : "granted";
         if (granted !== "granted") {
           setStatus(sourcesRef.current.photos.length + sourcesRef.current.screenshots.length > 0 ? "ready" : "denied");
           return;
@@ -263,7 +319,9 @@ export const useDeviceImages = () => {
     deviceStatus: status,
     photoFolderName,
     shotsFolderName,
-    ensureSilent,
+    scanInfo,
+    ensureSilent: ensureDeviceImages,
+    ensureDeviceImages,
     pickFolder,
   };
 };

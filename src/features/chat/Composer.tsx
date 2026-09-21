@@ -80,15 +80,20 @@ const Composer = ({
     deviceStatus,
     photoFolderName,
     shotsFolderName,
-    ensureSilent,
+    scanInfo,
+    ensureDeviceImages,
     pickFolder,
   } = useDeviceImages();
 
-  // Silent device-gallery load whenever the card opens (no prompt — the
-  // Allow button is the only prompter).
+  // Auto-load granted folders on every reload: silent attempt at mount, and
+  // a gesture-backed re-confirm whenever the card opens (re-confirms dormant
+  // grants with just the permission chip — never a folder re-pick).
   useEffect(() => {
-    if (showRecents) void ensureSilent();
-  }, [showRecents, ensureSilent]);
+    void ensureDeviceImages(false);
+  }, [ensureDeviceImages]);
+  useEffect(() => {
+    if (showRecents) void ensureDeviceImages(true);
+  }, [showRecents, ensureDeviceImages]);
 
   // Device rows serve blob: URLs — convert back to a File so attach/send
   // flows keep working on real compressed dataURLs.
@@ -356,6 +361,8 @@ const Composer = ({
         deviceStatus={deviceStatus}
         photoFolderName={photoFolderName}
         shotsFolderName={shotsFolderName}
+        photoScan={scanInfo.photos}
+        shotsScan={scanInfo.screenshots}
         onPickPhotosFolder={() => pickFolder("photos")}
         onPickScreenshotsFolder={() => pickFolder("screenshots")}
         attached={images}
