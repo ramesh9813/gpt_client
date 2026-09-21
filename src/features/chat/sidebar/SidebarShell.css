@@ -194,8 +194,38 @@
   flex: 1 1 0%;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
   height: 100%;
   overflow: hidden;
+}
+
+/* Panel visibility — missing rules caused the collapsed/hidden desktop
+   sidebar to keep rendering the full 300px panel inside a 56px/0px shell,
+   which looked rigid/broken and blocked the chat area from growing. */
+.conv-side-panel--visible {
+  display: flex;
+}
+.conv-side-panel--hidden {
+  display: none !important;
+}
+
+@media (min-width: 1024px) {
+  /* Collapsed: rail only (56px). Panel is removed so .chat-main flexes
+     and the chat area grows. Aside width still animates 300px -> 56px. */
+  .conv-side--collapsed .conv-side-panel {
+    display: none !important;
+  }
+  /* Hidden: nothing visible (0px). Chat gets full width. */
+  .conv-side--hidden .conv-side-panel,
+  .conv-side--hidden .sb-rail {
+    display: none !important;
+  }
+  /* Fluid width animation — chat-main (flex:1) follows automatically. */
+  .conv-side--expanded,
+  .conv-side--collapsed,
+  .conv-side--hidden {
+    transition: width 220ms ease-out;
+  }
 }
 
 .conv-side-body {

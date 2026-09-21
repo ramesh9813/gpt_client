@@ -193,7 +193,7 @@ const ConversationSidebar = ({
           className={cn(
             "conv-side-panel",
             "side-ui-panel",
-            !isMobile && sidebarState === "collapsed" ? "conv-side-panel--hidden" : "conv-side-panel--visible"
+            !isMobile && sidebarState !== "expanded" ? "conv-side-panel--hidden" : "conv-side-panel--visible"
           )}
           aria-hidden={!isMobile && sidebarState !== "expanded"}
         >
