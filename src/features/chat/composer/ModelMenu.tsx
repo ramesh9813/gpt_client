@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Input } from "../../../components/Input";
+import { ModelSearch } from "./ModelSearch";
 import { ModelMenuFooter } from "./ModelMenuFooter";
 import { ModelSortMenu } from "./ModelSortMenu";
 import { formatUpdatedAgo } from "../utils/formatUpdatedAgo";
@@ -252,43 +252,24 @@ export const ModelMenu = ({
               />
             )}
           </div>
-          <div className="composer-query-wrap">
-            <div className="composer-query-box">
-              <i className="bi bi-search composer-query-icon" aria-hidden="true"></i>
-              <Input
-                autoFocus
-                value={modelQuery}
-                onChange={(e) => setModelQuery(e.target.value)}
-                onKeyDown={(e) => e.stopPropagation()}
-                placeholder={
-                  researchOnly
-                    ? "Search research models..."
-                    : imageOnly
-                      ? "Search image generation models..."
-                      : "Search models..."
-                }
-                aria-label={
-                  researchOnly
-                    ? "Search research models"
-                    : imageOnly
-                      ? "Search image generation models"
-                      : "Search models"
-                }
-                className="composer-query-input"
-              />
-              {modelQuery && (
-                <button
-                  type="button"
-                  onClick={() => setModelQuery("")}
-                  aria-label="Clear model search"
-                  title="Clear"
-                  className="composer-query-clear"
-                >
-                  <i className="bi bi-x composer-clear-icon" aria-hidden="true"></i>
-                </button>
-              )}
-            </div>
-          </div>
+          <ModelSearch
+            value={modelQuery}
+            onChange={setModelQuery}
+            placeholder={
+              researchOnly
+                ? "Search research models..."
+                : imageOnly
+                  ? "Search image generation models..."
+                  : "Search models..."
+            }
+            ariaLabel={
+              researchOnly
+                ? "Search research models"
+                : imageOnly
+                  ? "Search image generation models"
+                  : "Search models"
+            }
+          />
           <div className="composer-model-listbox">
             {filtered.map((option) => {
               const active = option.value === model;
