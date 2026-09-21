@@ -1,6 +1,7 @@
 import { RefObject, memo, useMemo } from "react";
 import { DownloadMenu } from "../../../components/DownloadMenu";
-import type { ChatMessage, ModelOption, QuizRound } from "./types";
+import type { ChatMessage, ModelOption, QuizRound, TurnKind } from "./types";
+import { GenerationStatus } from "./GenerationStatus";
 import type { ArtifactBlock } from "../artifact";
 import { MessageImages } from "./MessageImages";
 import { VideoBlock } from "./VideoBlock";
@@ -22,6 +23,7 @@ type AssistantMessageProps = {
   onQuizSelect?: (messageId: string, quiz: QuizRound) => void;
   onNextRound?: (topic: string) => void;
   activeStreamId?: string | null;
+  activeTurnKind?: TurnKind | null;
   listRef: RefObject<HTMLDivElement>;
   artifacts?: ArtifactBlock[];
   chatName?: string;
@@ -40,6 +42,7 @@ export const AssistantMessage = memo(
     onQuizSelect,
     onNextRound,
     activeStreamId,
+    activeTurnKind,
     listRef,
     artifacts,
     chatName,
@@ -82,11 +85,31 @@ export const AssistantMessage = memo(
     onNextRound?.(message.quiz.topic);
   };
 
+  // Live phase line: while THIS message streams, say what is happening
+  // (searching / planning artifact / generating image…) instead of leaving
+  // the user guessing. Media kinds reserve their area with a shimmer until
+  // the real images/videos land.
+  const isActiveStream = activeStreamId === message.id;
+  const showGenStatus =
+    isActiveStream &&
+    !!activeTurnKind &&
+    activeTurnKind !== "text" &&
+    (activeTurnKind === "image"
+      ? !(message.images && message.images.length > 0)
+      : activeTurnKind === "video"
+        ? !(message.videos && message.videos.length > 0)
+        : activeTurnKind === "mcq"
+          ? !message.quiz
+          : true);
+
   return (
     <div
       className="msg-assistant"
     >
       <div className="markdown msg-assistant-body">
+        {showGenStatus && activeTurnKind && (
+          <GenerationStatus kind={activeTurnKind} />
+        )}
         <MessageImages images={message.images} />
         <VideoBlock videos={message.videos} />
         {message.status === "STREAMING" && !displayContent && !message.quiz ? (
@@ -203,6 +226,7 @@ export const AssistantMessage = memo(
   prev.displayContent === next.displayContent &&
   prev.isCanvasOnly === next.isCanvasOnly &&
   prev.activeStreamId === next.activeStreamId &&
+  prev.activeTurnKind === next.activeTurnKind &&
   prev.modelOptions === next.modelOptions &&
   prev.chatName === next.chatName &&
   prev.messages.length === next.messages.length

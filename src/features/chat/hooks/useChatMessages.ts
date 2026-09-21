@@ -3,8 +3,28 @@ import type { MutableRefObject } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { apiFetch, ApiResponse } from "../../../lib/api";
-import type { ChatMessage } from "../MessageList";
+import type { ChatMessage, TurnKind } from "../message/types";
+import { wantsImagePrompt, wantsVideoPrompt } from "./useChatModels";
 import type { MessagesSetter, StreamAssistantArgs } from "./useChatStreaming";
+
+// Mirrors gpt_server artifact intent so edited simulation prompts keep
+// their turn kind for the status indicator.
+const ARTIFACT_KEYWORDS = /\b(simulation|simulator|interactive visualization|artifact)\b/i;
+const MCQ_PREFIX = /^\s*mcq\b/i;
+
+const detectTurnKind = (
+  text: string,
+  opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean }
+): TurnKind => {
+  if (opts?.webSearch) return "websearch";
+  if (opts?.research) return "research";
+  if (opts?.artifact) return "artifact";
+  if (MCQ_PREFIX.test(text)) return "mcq";
+  if (wantsVideoPrompt(text)) return "video";
+  if (wantsImagePrompt(text)) return "image";
+  if (ARTIFACT_KEYWORDS.test(text)) return "artifact";
+  return "text";
+};
 
 type StreamAssistantFn = (
   setMessages: MessagesSetter,
@@ -37,6 +57,8 @@ export const useChatMessages = ({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [lastUserMessage, setLastUserMessage] = useState("");
   const [composerError, setComposerError] = useState<string | null>(null);
+  // Live phase of the in-flight turn for the "what is happening" status.
+  const [activeTurnKind, setActiveTurnKind] = useState<TurnKind | null>(null);
   const messageSchema = useMemo(
     () => z.string().min(1, "Message is required").max(8000, "Message too long"),
     []
@@ -109,6 +131,7 @@ export const useChatMessages = ({
     ]);
     setStreaming(true);
     setActiveStreamId(tempAssistantId);
+    setActiveTurnKind(detectTurnKind(trimmed, opts));
 
     try {
       await streamAssistant(setMessages, {
@@ -139,6 +162,7 @@ export const useChatMessages = ({
     } finally {
       setStreaming(false);
       setActiveStreamId(null);
+      setActiveTurnKind(null);
       queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
     }
@@ -156,6 +180,7 @@ export const useChatMessages = ({
     setStreaming(true);
     const tempAssistantId = `local-assistant-${Date.now()}`;
     setActiveStreamId(tempAssistantId);
+    setActiveTurnKind(detectTurnKind(text));
     // Edited prompts re-route too: an edit that adds image/video intent
     // picks up the configured media model for the retry turn.
     const editModel = resolveModelForPrompt
@@ -212,6 +237,7 @@ export const useChatMessages = ({
     } finally {
       setStreaming(false);
       setActiveStreamId(null);
+      setActiveTurnKind(null);
       queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
     }
@@ -231,6 +257,18 @@ export const useChatMessages = ({
     // + the per-message badge below. Never call global setModel here, so the
     // composer's selected model is untouched (no PATCH /api/me/settings).
     setActiveStreamId(messageId);
+    // Keep the status honest: quiz/image/video regenerations show their own
+    // phase, everything else falls back to plain streaming dots.
+    const regenTarget = messages[messageIndex];
+    setActiveTurnKind(
+      regenTarget?.quiz
+        ? "mcq"
+        : (regenTarget?.images?.length ?? 0) > 0
+          ? "image"
+          : (regenTarget?.videos?.length ?? 0) > 0
+            ? "video"
+            : detectTurnKind(userMessage.content)
+    );
 
     // Optimistically update the UI to show loading state for the assistant message
     setMessages((prev) => {
@@ -271,6 +309,7 @@ export const useChatMessages = ({
     } finally {
       setStreaming(false);
       setActiveStreamId(null);
+      setActiveTurnKind(null);
       queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
     }
   };
@@ -282,6 +321,8 @@ export const useChatMessages = ({
     composerError,
     setComposerError,
     messageData,
+    activeTurnKind,
+    setActiveTurnKind,
     sendMessage,
     handleEditSubmit,
     handleRegenerate,

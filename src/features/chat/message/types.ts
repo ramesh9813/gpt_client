@@ -13,6 +13,18 @@ export type QuizRound = {
   revealed?: boolean;
 };
 
+// Live generation phase of the currently streaming turn. Drives the
+// "what is happening" status (searching / planning artifact / generating
+// image / generating quiz) shown while tokens arrive.
+export type TurnKind =
+  | "text"
+  | "research"
+  | "artifact"
+  | "websearch"
+  | "mcq"
+  | "image"
+  | "video";
+
 export type ChatMessage = {
   id: string;
   role: "USER" | "ASSISTANT" | "SYSTEM";

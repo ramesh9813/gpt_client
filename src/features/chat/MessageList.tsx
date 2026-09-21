@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch, ApiResponse } from "../../lib/api";
 import type { Conversation } from "./sidebar/types";
-import type { ChatMessage, ModelOption, QuizRound } from "./message/types";
+import type { ChatMessage, ModelOption, QuizRound, TurnKind } from "./message/types";
 import type { ArtifactBlock } from "./artifact";
 import { useMessageEdit } from "./message/useMessageEdit";
 import { UserMessage } from "./message/UserMessage";
@@ -23,6 +23,7 @@ type MessageListProps = {
   onQuizSelect?: (messageId: string, quiz: QuizRound) => void;
   onNextRound?: (topic: string) => void;
   activeStreamId?: string | null;
+  activeTurnKind?: TurnKind | null;
   contentOverrides?: Record<string, string>;
   hasCanvasCode?: Record<string, boolean>;
   artifacts?: ArtifactBlock[];
@@ -41,6 +42,7 @@ const MessageList = ({
   onQuizSelect,
   onNextRound,
   activeStreamId,
+  activeTurnKind,
   contentOverrides,
   hasCanvasCode,
   artifacts,
@@ -301,6 +303,7 @@ const MessageList = ({
               onQuizSelect={onQuizSelect}
               onNextRound={onNextRound}
               activeStreamId={activeStreamId}
+              activeTurnKind={activeTurnKind}
               listRef={listRef}
               artifacts={artifacts}
               chatName={chatName}

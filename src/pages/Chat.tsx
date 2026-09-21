@@ -75,6 +75,8 @@ const Chat = () => {
     lastUserMessage,
     composerError,
     messageData,
+    activeTurnKind,
+    setActiveTurnKind,
     sendMessage,
     handleEditSubmit,
     handleRegenerate,
@@ -227,7 +229,10 @@ const Chat = () => {
     }
   };
 
-  const handleStopStreaming = () => stopStreaming(setMessages);
+  const handleStopStreaming = () => {
+    stopStreaming(setMessages);
+    setActiveTurnKind(null);
+  };
 
   // MCQ quiz: optimistic local update + best-effort persist (no refetch loop).
   const handleQuizSelect = useCallback(
@@ -339,6 +344,7 @@ const Chat = () => {
               onQuizSelect={handleQuizSelect}
               onNextRound={handleNextRound}
               activeStreamId={activeStreamId}
+              activeTurnKind={activeTurnKind}
               contentOverrides={hasOverrides ? combinedOverrides : showCanvas ? canvasData.displayMap : undefined}
               hasCanvasCode={showCanvas ? canvasData.hasCodeMap : undefined}
               artifacts={artifactData.blocks}
