@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Input } from "../../../components/Input";
 import { Dropdown } from "../../../components/Dropdown";
 import { IconButton } from "../../../components/IconButton";
@@ -41,11 +41,40 @@ export function FolderSection({
   onDeleteFolder,
   renderConversation,
 }: FolderSectionProps) {
+  const [categoriesOpen, setCategoriesOpen] = useState(() => {
+    try {
+      const v = window.localStorage.getItem("chatapp.sidebar.categories.open");
+      return v === null ? true : v !== "false";
+    } catch {
+      return true;
+    }
+  });
+  const toggleCategories = () => {
+    setCategoriesOpen((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem("chatapp.sidebar.categories.open", String(next));
+      } catch {}
+      return next;
+    });
+  };
   return (
     <div className="conv-side-section">
       <div className="conv-side-section-head">
         <div className="conv-side-section-title">
-          <span className="conv-side-section-label">Categories</span>
+          <button
+            type="button"
+            className="conv-side-section-toggle"
+            onClick={toggleCategories}
+            aria-expanded={categoriesOpen}
+            title={categoriesOpen ? "Minimize categories" : "Expand categories"}
+          >
+            <i
+              className={`bi ${categoriesOpen ? "bi-chevron-down" : "bi-chevron-right"} conv-side-section-chev`}
+              aria-hidden="true"
+            ></i>
+            <span className="conv-side-section-label">Categories</span>
+          </button>
         </div>
         <IconButton
           className="conv-side-add-folder-btn"
@@ -56,7 +85,7 @@ export function FolderSection({
         </IconButton>
       </div>
 
-      {isCreatingFolder && (
+      {categoriesOpen && isCreatingFolder && (
         <div className="conv-side-newfolder-wrap">
           <Input
             autoFocus
@@ -75,6 +104,7 @@ export function FolderSection({
         </div>
       )}
 
+      {categoriesOpen && (
       <div className="conv-side-folder-list">
         {folders.map((folder) => (
           <div key={folder.id} className="conv-side-folder-group">
@@ -126,6 +156,7 @@ export function FolderSection({
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }

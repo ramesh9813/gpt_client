@@ -158,9 +158,44 @@
 /* Folder icon follows the selected brand style color */
 .conv-side-folder-icon {
   flex-shrink: 0;
-  font-size: 13px;
+  font-size: 17px;
   line-height: 1;
   color: var(--accent);
+  -webkit-text-stroke: 0.5px currentColor;
+}
+
+/* Clickable section headers: Categories / History minimize on click */
+.conv-side-section-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 2px 4px;
+  margin-left: -4px;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.conv-side-section-toggle:hover {
+  color: var(--text);
+}
+.conv-side-section-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.conv-side-section-chev {
+  flex-shrink: 0;
+  font-size: 10px;
+  line-height: 1;
+  -webkit-text-stroke: 0.8px currentColor;
 }
 
 .conv-side-folder-name {
