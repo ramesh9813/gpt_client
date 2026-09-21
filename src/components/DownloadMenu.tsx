@@ -67,8 +67,8 @@ export const DownloadMenu = ({ content, messages, chatContainerRef, chatName }: 
   };
 
   const downloadPdf = async () => {
-    if (!chatContainerRef?.current) {
-      alert("Chat view not found.");
+    if (!messages || messages.length === 0) {
+      alert("No messages to export.");
       return;
     }
 
@@ -77,13 +77,8 @@ export const DownloadMenu = ({ content, messages, chatContainerRef, chatName }: 
 
     // Small delay to allow React to render the spinner state
     setTimeout(async () => {
-      const originalElement = chatContainerRef?.current;
-      if (!originalElement) {
-        setIsGenerating(false);
-        return;
-      }
       try {
-        await saveChatElementAsPdf(originalElement, chatFile("pdf"), base);
+        await saveChatElementAsPdf(messages, chatFile("pdf"), base);
       } catch (err) {
         console.error("PDF generation failed:", err);
         alert("Failed to generate PDF.");

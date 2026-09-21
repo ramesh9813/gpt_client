@@ -41,6 +41,7 @@ export const getExtensionForLang = (lang: string) => {
 export type SimpleMessage = {
   role: string;
   content: string;
+  images?: string[];
 };
 
 export type CodeBlock = {
