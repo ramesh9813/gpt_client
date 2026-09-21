@@ -83,7 +83,7 @@ export const DownloadMenu = ({ content, messages, chatContainerRef, chatName }: 
         return;
       }
       try {
-        await saveChatElementAsPdf(originalElement, chatFile("pdf"));
+        await saveChatElementAsPdf(originalElement, chatFile("pdf"), base);
       } catch (err) {
         console.error("PDF generation failed:", err);
         alert("Failed to generate PDF.");

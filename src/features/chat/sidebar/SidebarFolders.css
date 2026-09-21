@@ -84,7 +84,8 @@
 }
 
 .conv-side-add-folder-icon {
-  font-size: 12px;
+  font-size: 15px;
+  -webkit-text-stroke: 0.5px currentColor;
 }
 
 /* New-folder composer row */
