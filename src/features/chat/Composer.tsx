@@ -226,6 +226,12 @@ const Composer = ({
             onChange={(e) => {
               setValue(e.target.value);
               adjustTextareaHeight(e.target);
+              // Typing takes over: auto-close the camera view and the
+              // image-selector card so the thread gets full space.
+              if (e.target.value.length > 0) {
+                setCameraOpen(false);
+                setShowRecents(false);
+              }
             }}
             onKeyDown={onKeyDown}
             onPaste={(e) => {
