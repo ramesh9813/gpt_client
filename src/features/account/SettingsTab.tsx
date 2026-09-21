@@ -132,8 +132,16 @@ export const SettingsTab = () => {
 
   return (
     <div className="account-narrow">
-      <h2 className="account-section-title">Appearance</h2>
       <form onSubmit={handleSubmit(onSubmit)} className="account-stack-lg">
+        <div className="account-settings-head">
+          <h2 className="account-section-title account-settings-title">Appearance</h2>
+          <div className="account-settings-save">
+            {status ? <span className="account-status">{status}</span> : null}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Saving..." : "Save settings"}
+            </Button>
+          </div>
+        </div>
         <div>
           <label className="account-field-label">Theme</label>
           <select
@@ -293,12 +301,6 @@ export const SettingsTab = () => {
             ))}
           </div>
         </fieldset>
-        <div className="account-form-actions">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : "Save settings"}
-          </Button>
-          {status ? <span className="account-status">{status}</span> : null}
-        </div>
       </form>
     </div>
   );
