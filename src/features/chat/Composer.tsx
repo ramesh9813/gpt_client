@@ -11,6 +11,7 @@ import { useComposerImages } from "./composer/useComposerImages";
 import { useDeviceImages } from "./composer/useDeviceImages";
 import { useVoiceInput } from "./composer/useVoiceInput";
 import { useCameraCapture } from "./composer/useCameraCapture";
+import { WEBSEARCH_ARMED_KEY, readWebSearchArmed } from "./sidebarState";
 
 export type { ModelOption, SortOption };
 
@@ -71,14 +72,7 @@ const Composer = ({
   const [artifactArmed, setArtifactArmed] = useState(false);
   // Sticky modes: stay on across sends until explicitly cleared.
   // Web search defaults ON; quiz defaults OFF. Both persist in localStorage.
-  const [webSearchArmed, setWebSearchArmed] = useState(() => {
-    try {
-      const v = window.localStorage.getItem("chatapp.websearch.armed");
-      return v === null ? true : v !== "false";
-    } catch {
-      return true;
-    }
-  });
+  const [webSearchArmed, setWebSearchArmed] = useState(() => readWebSearchArmed());
   const [mcqArmed, setMcqArmed] = useState(() => {
     try {
       return window.localStorage.getItem("chatapp.mcq.armed") === "true";
@@ -88,7 +82,7 @@ const Composer = ({
   });
   useEffect(() => {
     try {
-      window.localStorage.setItem("chatapp.websearch.armed", String(webSearchArmed));
+      window.localStorage.setItem(WEBSEARCH_ARMED_KEY, String(webSearchArmed));
     } catch {}
   }, [webSearchArmed]);
   useEffect(() => {
@@ -189,14 +183,16 @@ const Composer = ({
     // the prefix so attachments still go through normally.
     const routed =
       mcqArmed && trimmed && !MCQ_PREFIX.test(trimmed) ? `mcq ${trimmed}` : trimmed;
+    // webSearch is always explicit (true/false) so an explicit OFF beats
+    // the pipeline default-ON; research/artifact stay one-shot opt-ins.
     const opts =
-      researchArmed || artifactArmed || webSearchArmed
+      researchArmed || artifactArmed
         ? {
             ...(researchArmed ? { research: true as const } : {}),
             ...(artifactArmed ? { artifact: true as const } : {}),
-            ...(webSearchArmed ? { webSearch: true as const } : {}),
+            webSearch: webSearchArmed,
           }
-        : undefined;
+        : { webSearch: webSearchArmed };
     onSend(routed, images.length > 0 ? [...images] : undefined, opts);
     setValue("");
     setShowRecents(false);

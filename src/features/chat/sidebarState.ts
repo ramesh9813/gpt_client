@@ -61,3 +61,19 @@ export const clearLastConversationId = (): void => {
     // ignore
   }
 };
+
+// Web search stays ON by default for every input until explicitly turned
+// off. The composer persists the globe toggle here; the send pipeline
+// falls back to it whenever a turn carries no explicit flag (follow-up
+// chips, quiz rounds, edits, regenerates).
+export const WEBSEARCH_ARMED_KEY = "chatapp.websearch.armed";
+
+export const readWebSearchArmed = (): boolean => {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return true;
+    const v = window.localStorage.getItem(WEBSEARCH_ARMED_KEY);
+    return v === null ? true : v !== "false";
+  } catch {
+    return true;
+  }
+};

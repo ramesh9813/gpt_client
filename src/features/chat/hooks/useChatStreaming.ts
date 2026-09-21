@@ -72,7 +72,8 @@ export const useChatStreaming = () => {
               : undefined,
           ...(research ? { research: true } : {}),
           ...(artifact ? { artifact: true } : {}),
-          ...(webSearch ? { webSearch: true } : {}),
+          // Always explicit: an explicit OFF must beat the default-ON.
+          ...(webSearch === undefined ? {} : { webSearch }),
         }),
         signal: controller.signal,
       });

@@ -3,6 +3,7 @@ import type { MutableRefObject } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { apiFetch, ApiResponse } from "../../../lib/api";
+import { readWebSearchArmed } from "../sidebarState";
 import type { ChatMessage, TurnKind } from "../message/types";
 import { wantsImagePrompt, wantsVideoPrompt } from "./useChatModels";
 import type { MessagesSetter, StreamAssistantArgs } from "./useChatStreaming";
@@ -112,6 +113,8 @@ export const useChatMessages = ({
     const turnModel = resolveModelForPrompt
       ? resolveModelForPrompt(trimmed)
       : model;
+    // Web search defaults ON for every input; only an explicit OFF wins.
+    const searchOn = opts?.webSearch ?? readWebSearchArmed();
 
     setMessages((prev) => [
       ...prev,
@@ -142,7 +145,7 @@ export const useChatMessages = ({
         selectedModel: turnModel,
         ...(opts?.research ? { research: true as const } : {}),
         ...(opts?.artifact ? { artifact: true as const } : {}),
-        ...(opts?.webSearch ? { webSearch: true as const } : {}),
+        webSearch: searchOn,
       });
     } catch (err: any) {
       if (cancelRef.current) {
@@ -217,6 +220,7 @@ export const useChatMessages = ({
         conversationId,
         existingUserMessageId: messageId,
         selectedModel: editModel,
+        webSearch: readWebSearchArmed(),
       });
     } catch (err: any) {
       if (cancelRef.current) {
@@ -290,6 +294,7 @@ export const useChatMessages = ({
         conversationId,
         existingUserMessageId: userMessage.id,
         selectedModel: newModel,
+        webSearch: readWebSearchArmed(),
       });
     } catch (err: any) {
       if (cancelRef.current) {
