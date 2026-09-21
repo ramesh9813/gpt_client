@@ -1,5 +1,8 @@
 import "./MessageList.css";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch, ApiResponse } from "../../lib/api";
+import type { Conversation } from "./sidebar/types";
 import type { ChatMessage, ModelOption, QuizRound } from "./message/types";
 import type { ArtifactBlock } from "./artifact";
 import { useMessageEdit } from "./message/useMessageEdit";
@@ -52,6 +55,22 @@ const MessageList = ({
   const onScrollDirectionRef = useRef(onScrollDirection);
   onScrollDirectionRef.current = onScrollDirection;
   const edit = useMessageEdit(onEditSubmit);
+
+  // Chat name for download filenames (<chatname>.<ext>). Subscribes to the
+  // same ["conversations", ""] cache the sidebar fills, so no extra fetch.
+  const { data: convList } = useQuery({
+    queryKey: ["conversations", ""],
+    queryFn: () =>
+      apiFetch<ApiResponse<{ items: Conversation[] }>>(
+        "/api/conversations?search="
+      ),
+    staleTime: 1000 * 30,
+  });
+  const chatName = useMemo(
+    () =>
+      convList?.data?.items?.find((c) => c.id === conversationKey)?.title,
+    [convList, conversationKey]
+  );
 
   // Set when the user deliberately scrolls away from the live edge: auto-follow
   // must yield until they return to the bottom (or tap jump-to-bottom).
@@ -284,6 +303,7 @@ const MessageList = ({
               activeStreamId={activeStreamId}
               listRef={listRef}
               artifacts={artifacts}
+              chatName={chatName}
             />
           );
         })}

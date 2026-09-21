@@ -24,6 +24,7 @@ type AssistantMessageProps = {
   activeStreamId?: string | null;
   listRef: RefObject<HTMLDivElement>;
   artifacts?: ArtifactBlock[];
+  chatName?: string;
 };
 
 export const AssistantMessage = memo(
@@ -41,7 +42,8 @@ export const AssistantMessage = memo(
     activeStreamId,
     listRef,
     artifacts,
-    }: AssistantMessageProps) => {
+    chatName,
+  }: AssistantMessageProps) => {
   const messageArtifacts = useMemo(
     () =>
       artifacts && artifacts.length > 0
@@ -175,6 +177,7 @@ export const AssistantMessage = memo(
                 content={message.content}
                 messages={messages}
                 chatContainerRef={listRef}
+                chatName={chatName}
               />
               {onRegenerate && (
                 <RegenerateMenu
@@ -201,5 +204,6 @@ export const AssistantMessage = memo(
   prev.isCanvasOnly === next.isCanvasOnly &&
   prev.activeStreamId === next.activeStreamId &&
   prev.modelOptions === next.modelOptions &&
+  prev.chatName === next.chatName &&
   prev.messages.length === next.messages.length
 );

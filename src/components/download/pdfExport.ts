@@ -1,7 +1,10 @@
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
-export const saveChatElementAsPdf = async (originalElement: HTMLElement) => {
+export const saveChatElementAsPdf = async (
+  originalElement: HTMLElement,
+  filename = "chat-history.pdf"
+) => {
   const clone = originalElement.cloneNode(true) as HTMLElement;
 
   // Position off-screen but visible for rendering
@@ -55,7 +58,7 @@ export const saveChatElementAsPdf = async (originalElement: HTMLElement) => {
       unprintedHeight -= pdfHeight;
     }
 
-    pdf.save("chat-history.pdf");
+    pdf.save(filename);
   } finally {
     if (document.body.contains(clone)) {
       document.body.removeChild(clone);
