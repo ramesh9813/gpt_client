@@ -114,6 +114,8 @@
 }
 body {
   zoom: var(--app-zoom, 1);
+  /* Whole-app text defaults to 16px; the App font size slider moves it. */
+  font-size: var(--app-font-size, 16px);
 }
 i.bi,
 i[class*="bi-"],

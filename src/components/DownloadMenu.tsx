@@ -61,7 +61,7 @@ export const DownloadMenu = ({ content, messages, chatContainerRef, chatName }: 
   };
 
   const downloadDocx = async () => {
-    const blob = await buildDocxBlob(content);
+    const blob = await buildDocxBlob(content, base);
     saveAs(blob, chatFile("docx"));
     setOpen(false);
   };
