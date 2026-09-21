@@ -9,7 +9,12 @@ export const loadSidebarState = (): SidebarState => {
   try {
     if (typeof window === "undefined" || !window.localStorage) return "expanded";
     const raw = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
-    if (isSidebarState(raw)) return raw;
+    if (isSidebarState(raw)) {
+      // Laptop behavior: minimize fully hides (no 56px rail step).
+      // Migrate any persisted collapsed state to hidden.
+      if (raw === "collapsed") return "hidden";
+      return raw;
+    }
   } catch {
     // ignore storage errors (private mode, etc.) and fall back to default
   }

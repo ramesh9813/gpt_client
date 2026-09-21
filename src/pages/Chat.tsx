@@ -189,10 +189,12 @@ const Chat = () => {
   const handleHeaderToggle = () => {
     if (isMobile) {
       toggleDrawer();
-    } else if (sidebarState === "hidden") {
-      showSidebar();
+    } else if (sidebarState === "expanded") {
+      // Laptop: minimize completely hides history, chat expands full width.
+      // Floating pill stays visible so user can expand again.
+      hideSidebar();
     } else {
-      toggleSidebarCollapse();
+      showSidebar();
     }
   };
 
@@ -239,7 +241,7 @@ const Chat = () => {
         drawerOpen={drawerOpen}
         isMobile={isMobile}
         onExpand={expandSidebar}
-        onCollapse={collapseSidebar}
+        onCollapse={hideSidebar}
         onHide={hideSidebar}
         onCloseDrawer={closeDrawer}
         onOpenDrawer={openDrawer}

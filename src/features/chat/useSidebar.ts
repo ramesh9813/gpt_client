@@ -70,13 +70,15 @@ export const useSidebar = (): UseSidebarResult => {
   }, []);
 
   const expand = useCallback(() => setSidebarStateInner("expanded"), []);
-  const collapse = useCallback(() => setSidebarStateInner("collapsed"), []);
+  // Laptop behavior: minimize fully hides history so chat gets full width.
+  // Collapsed rail step is skipped (kept in type for compat only).
+  const collapse = useCallback(() => setSidebarStateInner("hidden"), []);
   const hide = useCallback(() => setSidebarStateInner("hidden"), []);
   const show = useCallback(() => setSidebarStateInner("expanded"), []);
 
   const toggleCollapse = useCallback(() => {
     setSidebarStateInner((prev) =>
-      prev === "expanded" ? "collapsed" : "expanded"
+      prev === "expanded" ? "hidden" : "expanded"
     );
   }, []);
 
