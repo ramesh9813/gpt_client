@@ -114,10 +114,11 @@ const idbSetHandle = async (kind: DeviceFolderKind, handle: DirHandle): Promise<
   db.close();
 };
 
-type Found = { file: File; path: string };
+type Found = { file: File; path: string; kind: DeviceFolderKind };
 
 const walkDir = async (
   dir: DirHandle,
+  kind: DeviceFolderKind,
   prefix: string,
   out: Found[],
   budget: { n: number },
@@ -130,7 +131,7 @@ const walkDir = async (
       if (entry.kind === "file" && IMAGE_EXT.test(entry.name)) {
         const file = await entry.getFile?.();
         if (file) {
-          out.push({ file, path: `${prefix}/${entry.name}` });
+          out.push({ file, path: `${prefix}/${entry.name}`, kind });
           budget.n -= 1;
         }
       } else if (
@@ -138,13 +139,18 @@ const walkDir = async (
         depth < 3 &&
         !entry.name.startsWith(".")
       ) {
-        await walkDir(entry as unknown as DirHandle, `${prefix}/${entry.name}`, out, budget, depth + 1);
+        await walkDir(entry as unknown as DirHandle, kind, `${prefix}/${entry.name}`, out, budget, depth + 1);
       }
     } catch {
       // unreadable entry — skip it
     }
   }
 };
+
+// Row rule: the screenshots-folder pick always lands in the screenshots row;
+// everywhere else, screenshot-like paths do. Both rows stay newest-first.
+const isScreenshotFound = (f: Found): boolean =>
+  f.kind === "screenshots" || /screenshot/i.test(f.path);
 
 export const useDeviceImages = () => {
   const [status, setStatus] = useState<DeviceStatus>(() =>
@@ -190,7 +196,7 @@ export const useDeviceImages = () => {
     const shots: DeviceImage[] = [];
     const pics: DeviceImage[] = [];
     for (const f of all) {
-      const isShot = /screenshot/i.test(f.path);
+      const isShot = isScreenshotFound(f);
       if (isShot && shots.length >= MAX_ROW_IMAGES) continue;
       if (!isShot && pics.length >= MAX_ROW_IMAGES) continue;
       let url: string;
@@ -213,7 +219,7 @@ export const useDeviceImages = () => {
   const scanFolder = useCallback(
     async (kind: DeviceFolderKind, dir: DirHandle) => {
       const found: Found[] = [];
-      await walkDir(dir, "", found, { n: MAX_SCAN_FILES }, 0);
+      await walkDir(dir, kind, "", found, { n: MAX_SCAN_FILES }, 0);
       sourcesRef.current[kind] = found;
       const folder = dir.name || (kind === "photos" ? "camera folder" : "screenshots folder");
       if (kind === "photos") setPhotoFolderName(dir.name ?? null);
