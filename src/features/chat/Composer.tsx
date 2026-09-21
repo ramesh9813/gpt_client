@@ -68,7 +68,7 @@ const Composer = ({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [showRecents, setShowRecents] = useState(false);
-  const { images, compressing, fileInputRef, handleFiles, removeImage, clearImages, recents, attachRecent } =
+  const { images, compressing, fileInputRef, handleFiles, removeImage, clearImages, recentPhotos, recentScreenshots, attachRecent } =
     useComposerImages();
 
   const { listening, listenError, speechSupported, startListening, stopListening } =
@@ -95,7 +95,7 @@ const Composer = ({
     toggleTorch,
   } = useCameraCapture({
     onFiles: (files) => {
-      void handleFiles(files);
+      void handleFiles(files, "photo");
     },
   });
 
@@ -236,7 +236,7 @@ const Composer = ({
                   e.preventDefault();
                   const dt = new DataTransfer();
                   imgs.forEach((f) => dt.items.add(f));
-                  void handleFiles(dt.files);
+                  void handleFiles(dt.files, "screenshot");
                 }
               }
             }}
@@ -273,10 +273,10 @@ const Composer = ({
             artifactArmed={artifactArmed}
             disabled={disabled}
             compressing={compressing}
-            hasRecents={recents.length > 0}
+            hasRecents={recentPhotos.length + recentScreenshots.length > 0}
             fileInputRef={fileInputRef}
             onFiles={(files) => {
-              void handleFiles(files);
+              void handleFiles(files, "photo");
             }}
             onToggleRecents={() => setShowRecents((prev) => !prev)}
             cameraOpen={cameraOpen}
@@ -294,7 +294,8 @@ const Composer = ({
       </div>
       <RecentTray
         open={showRecents}
-        recents={recents}
+        recentPhotos={recentPhotos}
+        recentScreenshots={recentScreenshots}
         attached={images}
         onPick={attachRecent}
         onBrowse={() => fileInputRef.current?.click()}

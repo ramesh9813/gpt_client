@@ -2,21 +2,72 @@ import { useState } from "react";
 
 type RecentTrayProps = {
   open: boolean;
-  recents: string[];
+  recentPhotos: string[];
+  recentScreenshots: string[];
   attached: string[];
   onPick: (src: string) => void;
   onBrowse: () => void;
   onClose: () => void;
 };
 
+const PhotoRow = ({
+  images,
+  attached,
+  onPick,
+  emptyLabel,
+  rowLabel,
+}: {
+  images: string[];
+  attached: string[];
+  onPick: (src: string) => void;
+  emptyLabel: string;
+  rowLabel: string;
+}) => (
+  <div className="composer-recents-section">
+    <div className="composer-recents-label">{rowLabel}</div>
+    {images.length > 0 ? (
+      <div className="composer-recents-row">
+        {images.map((src, idx) => {
+          const isAttached = attached.includes(src);
+          return (
+            <button
+              key={idx}
+              type="button"
+              className={`composer-recents-thumb${isAttached ? " composer-recents-thumb--attached" : ""}`}
+              onClick={() => onPick(src)}
+              aria-label={`Attach ${rowLabel.toLowerCase()} image ${idx + 1}${isAttached ? " (attached)" : ""}`}
+              title={isAttached ? "Attached" : "Attach"}
+            >
+              <img
+                src={src}
+                alt={`${rowLabel} ${idx + 1}`}
+                loading="lazy"
+                className="composer-recents-img"
+              />
+              {isAttached && (
+                <span className="composer-recents-check" aria-hidden="true">
+                  <i className="bi bi-check" />
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    ) : (
+      <div className="composer-recents-row-empty">{emptyLabel}</div>
+    )}
+  </div>
+);
+
 /**
- * Recent-images card: same footprint as the camera view. Shows recent
- * clicked / screenshot photos newest-first (up to ~5 visible, scroll for
- * more). Browse sits beside Expand in the header; Expand enlarges the card.
+ * Recents card: same footprint as the camera view. Two time-ordered rows —
+ * Recent photos (camera / picked) and Recent screenshots (pasted) — each
+ * scrolling horizontally. Browse sits beside Expand in the header.
  */
 export const RecentTray = ({
   open,
-  recents,
+  recentPhotos,
+  recentScreenshots,
   attached,
   onPick,
   onBrowse,
@@ -66,51 +117,20 @@ export const RecentTray = ({
           </button>
         </div>
       </div>
-      {recents.length > 0 ? (
-        <div className="composer-recents-row">
-          {recents.map((src, idx) => {
-            const isAttached = attached.includes(src);
-            return (
-              <button
-                key={idx}
-                type="button"
-                className={`composer-recents-thumb${isAttached ? " composer-recents-thumb--attached" : ""}`}
-                onClick={() => onPick(src)}
-                aria-label={`Attach recent image ${idx + 1}${isAttached ? " (attached)" : ""}`}
-                title={isAttached ? "Attached" : "Attach"}
-              >
-                <img
-                  src={src}
-                  alt={`Recent ${idx + 1}`}
-                  loading="lazy"
-                  className="composer-recents-img"
-                />
-                {isAttached && (
-                  <span className="composer-recents-check" aria-hidden="true">
-                    <i className="bi bi-check" />
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="composer-recents-empty">
-          <i
-            className="bi bi-images composer-recents-empty-icon"
-            aria-hidden="true"
-          />
-          <p className="composer-recents-empty-text">No recent images yet</p>
-          <button
-            type="button"
-            className="composer-recents-empty-btn"
-            onClick={onBrowse}
-          >
-            <i className="bi bi-folder2-open" aria-hidden="true" />
-            <span>Browse photos</span>
-          </button>
-        </div>
-      )}
+      <PhotoRow
+        images={recentPhotos}
+        attached={attached}
+        onPick={onPick}
+        emptyLabel="No recent photos yet"
+        rowLabel="Recent photos"
+      />
+      <PhotoRow
+        images={recentScreenshots}
+        attached={attached}
+        onPick={onPick}
+        emptyLabel="No recent screenshots yet"
+        rowLabel="Recent screenshots"
+      />
     </div>
   );
 };
