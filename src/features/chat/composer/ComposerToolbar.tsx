@@ -36,7 +36,6 @@ export interface ComposerToolbarProps {
   cameraOpen: boolean;
   onCameraToggle: () => void;
   onQuizClick: () => void;
-  onOpenModelPicker: () => void;
   listening: boolean;
   speechSupported: boolean;
   onMicClick: () => void;
@@ -84,7 +83,6 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
     cameraOpen,
     onCameraToggle,
     onQuizClick,
-    onOpenModelPicker,
     listening,
     speechSupported,
     onMicClick,
@@ -191,19 +189,15 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
       <i className="bi bi-patch-question composer-upload-icon" aria-hidden="true" />
     </Button>
 
-    <button
-      type="button"
+    {/* Read-only selected-model label — change via the '+' menu instead. */}
+    <span
       className="composer-model-tag"
       title={currentModelLabel}
-      aria-label={`Selected model: ${currentModelLabel}. Change model`}
-      aria-haspopup="dialog"
-      onMouseDown={(e) => e.stopPropagation()}
-      onClick={() => {
-        onOpenModelPicker();
-      }}
+      aria-label={`Selected model: ${currentModelLabel}`}
+      aria-readonly="true"
     >
       {currentModelLabel}
-    </button>
+    </span>
 
       <div className="composer-spacer" />
     {speechSupported && (

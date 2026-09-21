@@ -282,10 +282,6 @@ const Composer = ({
             cameraOpen={cameraOpen}
             onCameraToggle={() => setCameraOpen((prev) => !prev)}
             onQuizClick={handleQuizPrefix}
-            onOpenModelPicker={() => {
-              setMenuOpen(true);
-              setModelMenuOpen(true);
-            }}
             listening={listening}
             speechSupported={speechSupported}
             onMicClick={() => (listening ? stopListening() : startListening())}

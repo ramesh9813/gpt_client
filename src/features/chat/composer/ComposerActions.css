@@ -31,14 +31,15 @@
   flex: 1 1 0%;
 }
 
-/* Selected-model tag beside the image button: muted, single-line, ellipsis. */
+/* Selected-model label: read-only text, not clickable.
+   Change the model via the '+' menu instead. */
 .composer-model-tag {
   align-self: center;
   background: transparent;
   border: 0;
   padding-top: 0.25rem;
   padding-bottom: 0.25rem;
-  cursor: pointer;
+  cursor: default;
   text-align: left;
   font-family: inherit;
   flex-shrink: 1;
@@ -52,9 +53,7 @@
   color: var(--muted);
   padding-left: 0.125rem;
   padding-right: 0.125rem;
-}
-.composer-model-tag:hover {
-  color: var(--text);
+  user-select: none;
 }
 
 .composer-stop-btn {
