@@ -50,6 +50,17 @@ export const useSwipeSidebar = ({
           touchStartX = 0;
           return;
         }
+        // Never trigger from the bottom cards (composer input, recents
+        // photo rows, camera view): horizontal swipes there scroll photos
+        // or viewfinder content — they must not open the history sidebar.
+        if (
+          target.closest(
+            ".composer-dock, .composer-recents, .composer-camera-view"
+          )
+        ) {
+          touchStartX = 0;
+          return;
+        }
         // Don't trigger if swiping inside other horizontally scrollable content
         const scrollable = target.closest(".overflow-x-auto");
         if (scrollable && scrollable.scrollWidth > scrollable.clientWidth) {
