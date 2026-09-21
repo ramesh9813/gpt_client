@@ -8,6 +8,7 @@ import { CameraView } from "./composer/CameraView";
 import { ComposerStatus } from "./composer/ComposerStatus";
 import type { ModelOption, SortOption } from "./composer/ModelMenu";
 import { useComposerImages } from "./composer/useComposerImages";
+import { useDeviceImages } from "./composer/useDeviceImages";
 import { useVoiceInput } from "./composer/useVoiceInput";
 import { useCameraCapture } from "./composer/useCameraCapture";
 
@@ -70,6 +71,43 @@ const Composer = ({
   const [showRecents, setShowRecents] = useState(false);
   const { images, compressing, fileInputRef, handleFiles, removeImage, clearImages, recentPhotos, recentScreenshots, attachRecent } =
     useComposerImages();
+  const {
+    devicePhotos,
+    deviceScreenshots,
+    deviceStatus,
+    ensureSilent,
+    pickFolder,
+  } = useDeviceImages();
+
+  // Silent device-gallery load whenever the card opens (no prompt — the
+  // Allow button is the only prompter).
+  useEffect(() => {
+    if (showRecents) void ensureSilent();
+  }, [showRecents, ensureSilent]);
+
+  // Device rows serve blob: URLs — convert back to a File so attach/send
+  // flows keep working on real compressed dataURLs.
+  const handlePickSrc = (src: string) => {
+    if (!src.startsWith("blob:")) {
+      attachRecent(src);
+      return;
+    }
+    void (async () => {
+      try {
+        const res = await fetch(src);
+        const blob = await res.blob();
+        if (!blob.type.startsWith("image/")) return;
+        const file = new File([blob], `device-photo-${Date.now()}.jpg`, {
+          type: blob.type,
+        });
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        await handleFiles(dt.files, "photo");
+      } catch {
+        // unreadable blob — ignore
+      }
+    })();
+  };
 
   const { listening, listenError, speechSupported, startListening, stopListening } =
     useVoiceInput({
@@ -302,8 +340,12 @@ const Composer = ({
         open={showRecents}
         recentPhotos={recentPhotos}
         recentScreenshots={recentScreenshots}
+        devicePhotos={devicePhotos}
+        deviceScreenshots={deviceScreenshots}
+        deviceStatus={deviceStatus}
+        onAllowDevice={pickFolder}
         attached={images}
-        onPick={attachRecent}
+        onPick={handlePickSrc}
         onBrowse={() => fileInputRef.current?.click()}
         onClose={() => setShowRecents(false)}
       />

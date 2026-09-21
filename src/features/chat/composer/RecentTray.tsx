@@ -1,9 +1,14 @@
 import { useState } from "react";
+import type { DeviceImage, DeviceStatus } from "./useDeviceImages";
 
 type RecentTrayProps = {
   open: boolean;
   recentPhotos: string[];
   recentScreenshots: string[];
+  devicePhotos: DeviceImage[];
+  deviceScreenshots: DeviceImage[];
+  deviceStatus: DeviceStatus;
+  onAllowDevice: () => void;
   attached: string[];
   onPick: (src: string) => void;
   onBrowse: () => void;
@@ -60,14 +65,20 @@ const PhotoRow = ({
 );
 
 /**
- * Recents card: same footprint as the camera view. Two time-ordered rows —
- * Recent photos (camera / picked) and Recent screenshots (pasted) — each
- * scrolling horizontally. Browse sits beside Expand in the header.
+ * Recents card: same footprint as the camera view. First row shows device
+ * recent photos, second row device recent screenshots (both newest-first);
+ * session photos fill any gap. Attached images are never duplicated here —
+ * they already sit in the input card. Device rows need a one-time folder
+ * permission via the Allow button.
  */
 export const RecentTray = ({
   open,
   recentPhotos,
   recentScreenshots,
+  devicePhotos,
+  deviceScreenshots,
+  deviceStatus,
+  onAllowDevice,
   attached,
   onPick,
   onBrowse,
@@ -75,6 +86,18 @@ export const RecentTray = ({
 }: RecentTrayProps) => {
   const [expanded, setExpanded] = useState(false);
   if (!open) return null;
+
+  const isAttached = (src: string) => attached.includes(src);
+  const photos = [
+    ...devicePhotos.map((d) => d.url),
+    ...recentPhotos.filter((s) => !isAttached(s)),
+  ];
+  const screenshots = [
+    ...deviceScreenshots.map((d) => d.url),
+    ...recentScreenshots.filter((s) => !isAttached(s)),
+  ];
+
+
   return (
     <div
       className={`composer-recents${expanded ? " composer-recents--large" : ""}`}
@@ -117,15 +140,44 @@ export const RecentTray = ({
           </button>
         </div>
       </div>
+      {(deviceStatus === "idle" ||
+        deviceStatus === "loading" ||
+        deviceStatus === "denied") && (
+        <div className="composer-recents-permit">
+          {deviceStatus === "loading" ? (
+            <span className="composer-recents-permit-text">
+              Loading device photos…
+            </span>
+          ) : deviceStatus === "denied" ? (
+            <span className="composer-recents-permit-text">
+              Device photo access denied — enable it in the browser site
+              settings, or try again.
+            </span>
+          ) : (
+            <>
+              <span className="composer-recents-permit-text">
+                Show recent photos from this device?
+              </span>
+              <button
+                type="button"
+                className="composer-recents-permit-btn"
+                onClick={onAllowDevice}
+              >
+                Allow access
+              </button>
+            </>
+          )}
+        </div>
+      )}
       <PhotoRow
-        images={recentPhotos}
+        images={photos}
         attached={attached}
         onPick={onPick}
         emptyLabel="No recent photos yet"
         rowLabel="Recent photos"
       />
       <PhotoRow
-        images={recentScreenshots}
+        images={screenshots}
         attached={attached}
         onPick={onPick}
         emptyLabel="No recent screenshots yet"
