@@ -1,6 +1,11 @@
 import "./Chat.css";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import {
+  clearLastConversationId,
+  loadLastConversationId,
+  saveLastConversationId,
+} from "../features/chat/sidebarState";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ConversationSidebar from "../features/chat/ConversationSidebar";
 import SidebarToggle from "../components/SidebarToggle";
@@ -68,6 +73,7 @@ const Chat = () => {
     setMessages,
     lastUserMessage,
     composerError,
+    messageData,
     sendMessage,
     handleEditSubmit,
     handleRegenerate,
@@ -82,6 +88,27 @@ const Chat = () => {
     cancelRef,
     streamAssistant,
   });
+
+  // Last-open chat: opening another chat replaces the stored one, so a
+  // reload always restores the current thread instantly.
+  useEffect(() => {
+    if (conversationId) saveLastConversationId(conversationId);
+  }, [conversationId]);
+
+  // Stale restore guard: stored id was deleted elsewhere → drop it and fall
+  // back to HomeRedirect instead of sitting on a dead thread.
+  useEffect(() => {
+    const code = (messageData?.error as { error?: { code?: string } } | null)
+      ?.error?.code;
+    if (
+      code === "NOT_FOUND" &&
+      conversationId &&
+      loadLastConversationId() === conversationId
+    ) {
+      clearLastConversationId();
+      navigate("/", { replace: true });
+    }
+  }, [messageData?.error, conversationId, navigate]);
 
   const {
     canvasData,

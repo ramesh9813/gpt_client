@@ -29,3 +29,35 @@ export const saveSidebarState = (state: SidebarState): void => {
     // ignore write errors — sidebar still works for the session
   }
 };
+
+// Last-open chat: instant restore on reload. Overwritten on every
+// conversation switch so only the current chat is ever stored.
+export const LAST_CONVERSATION_KEY = "chatapp.last.conversationId";
+
+export const loadLastConversationId = (): string | null => {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return null;
+    const raw = window.localStorage.getItem(LAST_CONVERSATION_KEY);
+    return raw && raw.trim() ? raw : null;
+  } catch {
+    return null;
+  }
+};
+
+export const saveLastConversationId = (id: string): void => {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return;
+    if (id && id.trim()) window.localStorage.setItem(LAST_CONVERSATION_KEY, id);
+  } catch {
+    // ignore write errors — restore just won't happen next load
+  }
+};
+
+export const clearLastConversationId = (): void => {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return;
+    window.localStorage.removeItem(LAST_CONVERSATION_KEY);
+  } catch {
+    // ignore
+  }
+};
