@@ -117,18 +117,28 @@ export const initTheme = () => {
 
 // System theme listener for real-time OS mode sync
 if (typeof window !== "undefined" && window.matchMedia) {
-  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
-    try {
-      const cached = localStorage.getItem("theme_pref");
-      const scale = readCachedAppScale();
-      if (cached) {
-        const { theme, fontScale } = JSON.parse(cached);
-        if (theme === "SYSTEM") {
-          applyTheme("SYSTEM", fontScale, scale.appFontSize, scale.iconScale);
+  try {
+    const mql = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = () => {
+      try {
+        const cached = localStorage.getItem("theme_pref");
+        const scale = readCachedAppScale();
+        if (cached) {
+          const { theme, fontScale } = JSON.parse(cached);
+          if (theme === "SYSTEM") {
+            applyTheme("SYSTEM", fontScale, scale.appFontSize, scale.iconScale);
+          }
+        } else {
+          applyTheme("SYSTEM", "DEFAULT", scale.appFontSize, scale.iconScale);
         }
-      } else {
-        applyTheme("SYSTEM", "DEFAULT", scale.appFontSize, scale.iconScale);
-      }
-    } catch {}
-  });
+      } catch {}
+    };
+    // addEventListener throws on old Safari (only addListener exists) and
+    // would blank the app at import time, so feature-detect.
+    if (typeof mql.addEventListener === "function") {
+      mql.addEventListener("change", handler);
+    } else if (typeof (mql as unknown as { addListener?: unknown }).addListener === "function") {
+      (mql as unknown as { addListener: (cb: () => void) => void }).addListener(handler);
+    }
+  } catch {}
 }

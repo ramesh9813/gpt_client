@@ -1,9 +1,9 @@
-const CACHE_NAME = "chatgpt-pwa-v2";
+const CACHE_NAME = "chatgpt-pwa-v3";
 const STATIC_ASSETS = [
-  "/",
-  "/manifest.json",
-  "/icon-192.png",
-  "/icon-512.png"
+  "./",
+  "./manifest.json",
+  "./icon-192.png",
+  "./icon-512.png"
 ];
 
 self.addEventListener("install", (event) => {
@@ -41,6 +41,7 @@ self.addEventListener("fetch", (event) => {
         if (
           response.status === 200 &&
           (url.pathname === "/" ||
+            url.pathname.endsWith("/") ||
             url.pathname.endsWith(".js") ||
             url.pathname.endsWith(".css") ||
             url.pathname.endsWith(".png") ||
@@ -56,7 +57,7 @@ self.addEventListener("fetch", (event) => {
       .catch(() =>
         caches
           .match(event.request)
-          .then((res) => res || caches.match("/"))
+          .then((res) => res || caches.match("./"))
       )
   );
 });

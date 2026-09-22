@@ -8,7 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "../components/Button";
 import { Input } from "../components/Input";
 import { apiFetch } from "../lib/api";
-import { signInWithGoogle } from "../lib/firebase";
+import { isFirebaseConfigured, signInWithGoogle } from "../lib/firebase";
 
 const schema = z.object({
   email: z.string().email(),
@@ -95,10 +95,16 @@ const Login = () => {
             variant="outline"
             className="login-google-btn"
             onClick={onGoogleLogin}
-            disabled={googleLoading}
+            disabled={googleLoading || !isFirebaseConfigured}
+            title={isFirebaseConfigured ? undefined : "Google sign-in is not configured"}
           >
             {googleLoading ? "Connecting..." : "Continue with Google"}
           </Button>
+          {!isFirebaseConfigured ? (
+            <p className="login-subtitle" style={{ marginTop: 8 }}>
+              Google sign-in is disabled (missing Firebase config).
+            </p>
+          ) : null}
         </div>
         <p className="login-footer">
           No account?{" "}

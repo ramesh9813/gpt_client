@@ -42,7 +42,9 @@
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
-          navigator.serviceWorker.register("/sw.js").catch(() => {});
+          // Relative path so it works with vite `base: "./"` (subpath / Capacitor).
+          // Absolute "/sw.js" 404s off-root and leaves a stale broken bundle cached.
+          navigator.serviceWorker.register("./sw.js").catch(() => {});
         });
       }
     </script>

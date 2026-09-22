@@ -1,9 +1,10 @@
-import { env, pipeline } from "@xenova/transformers";
-
 // Offline transcription: Whisper runs fully in-browser via WebAssembly.
 // No Google service, no API key, no audio leaves the device. The model
 // downloads once (~150MB) and is cached by the browser afterwards.
-env.allowLocalModels = false;
+//
+// NOTE: @xenova/transformers is lazy-imported inside loadTranscriber so a
+// missing/failed WASM bundle never blanks the whole app at startup. The
+// ~1MB+ lib is split into its own chunk and only loads on first mic use.
 
 const MODEL_ID = "Xenova/whisper-tiny";
 
@@ -17,13 +18,17 @@ export const isTranscriberReady = () => transcriber !== null;
 export const loadTranscriber = (onProgress?: ProgressCallback): Promise<any> => {
   if (transcriber) return Promise.resolve(transcriber);
   if (!loading) {
-    loading = pipeline("automatic-speech-recognition", MODEL_ID, {
-      progress_callback: (p: any) => {
-        if (p?.status === "progress" && typeof p.progress === "number") {
-          onProgress?.(Math.round(p.progress));
-        }
-      },
-    })
+    loading = import("@xenova/transformers")
+      .then(({ env, pipeline }) => {
+        env.allowLocalModels = false;
+        return pipeline("automatic-speech-recognition", MODEL_ID, {
+          progress_callback: (p: any) => {
+            if (p?.status === "progress" && typeof p.progress === "number") {
+              onProgress?.(Math.round(p.progress));
+            }
+          },
+        });
+      })
       .then((t) => {
         transcriber = t;
         return t;
