@@ -1,4 +1,4 @@
-import { RefObject, memo, useMemo } from "react";
+import { RefObject, memo, useMemo, useState } from "react";
 import { DownloadMenu } from "../../../components/DownloadMenu";
 import type { ChatMessage, ModelOption, QuizRound, TurnKind } from "./types";
 import { GenerationStatus } from "./GenerationStatus";
@@ -54,6 +54,8 @@ export const AssistantMessage = memo(
         : [],
     [artifacts, message.id]
   );
+  // Deep-research thinking log: open while it streams, user-collapsible.
+  const [showReasoning, setShowReasoning] = useState(true);
 
   if (!message.content && !(message.images && message.images.length > 0) && !(message.videos && message.videos.length > 0) && !message.quiz && message.status !== "STREAMING" && messageArtifacts.length === 0) {
     return null;
@@ -110,6 +112,29 @@ export const AssistantMessage = memo(
         {showGenStatus && activeTurnKind && (
           <GenerationStatus kind={activeTurnKind} />
         )}
+        {message.reasoning ? (
+          <div className="msg-reasoning">
+            <button
+              type="button"
+              className="msg-reasoning-head"
+              onClick={() => setShowReasoning((prev) => !prev)}
+              aria-expanded={showReasoning}
+              aria-label={showReasoning ? "Hide research process" : "View research process"}
+              title={showReasoning ? "Hide" : "View steps"}
+            >
+              <span className="msg-reasoning-title">
+                <i className="bi bi-cpu msg-reasoning-icon" aria-hidden="true" />
+                <span>Research &amp; Reasoning Process</span>
+              </span>
+              <span className="msg-reasoning-toggle">
+                {showReasoning ? "Hide" : "View steps"}
+              </span>
+            </button>
+            {showReasoning && (
+              <div className="msg-reasoning-body">{message.reasoning}</div>
+            )}
+          </div>
+        ) : null}
         <MessageImages images={message.images} />
         <VideoBlock videos={message.videos} />
         {message.status === "STREAMING" && !displayContent && !message.quiz ? (

@@ -218,3 +218,60 @@
     animation: none;
   }
 }
+
+/* Deep-research thinking accordion: collapsible reasoning log above the answer. */
+.msg-reasoning {
+  margin-bottom: 0.5rem;
+  border-radius: 0.625rem;
+  border: 1px solid var(--border);
+  background-color: var(--panel);
+  overflow: hidden;
+}
+.msg-reasoning-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.msg-reasoning-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.msg-reasoning-icon {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.msg-reasoning-toggle {
+  flex-shrink: 0;
+  font-weight: 400;
+  color: var(--muted);
+}
+.msg-reasoning-head:hover .msg-reasoning-toggle {
+  color: var(--text);
+}
+.msg-reasoning-body {
+  max-height: 12rem;
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+  padding: 0.5rem 0.625rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

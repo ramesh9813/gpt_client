@@ -7,6 +7,25 @@ export interface StreamEventCtx {
   isCancelled: () => boolean;
 }
 
+/** Applies a `reasoning` delta (deep-research thinking stream). Never aborts. */
+export const applyReasoningEvent = (
+  ctx: StreamEventCtx,
+  parsed: unknown
+): boolean => {
+  if (ctx.isCancelled()) return true;
+  const delta = (parsed as { delta?: unknown }).delta;
+  if (typeof delta === "string" && delta.length > 0) {
+    ctx.setMessages((prev) =>
+      prev.map((m) =>
+        m.id === ctx.tempAssistantId
+          ? { ...m, reasoning: (m.reasoning || "") + delta }
+          : m
+      )
+    );
+  }
+  return false;
+};
+
 /** Applies a `followups` payload. Returns true when the caller should abort. */
 export const applyFollowupsEvent = (
   ctx: StreamEventCtx,

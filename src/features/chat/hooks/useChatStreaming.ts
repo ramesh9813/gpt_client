@@ -6,6 +6,7 @@ import {
   applyFollowupsEvent,
   applyImagesEvent,
   applyQuizEvent,
+  applyReasoningEvent,
   applyVideosEvent,
   type StreamEventCtx,
 } from "./streamEvents";
@@ -182,6 +183,9 @@ export const useChatStreaming = () => {
               const delta = parsed.delta as string;
               pendingText += delta;
               startFlush();
+            }
+            if (currentEvent === "reasoning") {
+              if (applyReasoningEvent(ctx, parsed)) return;
             }
             if (currentEvent === "followups") {
               if (applyFollowupsEvent(ctx, parsed)) return;
