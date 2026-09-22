@@ -9,11 +9,11 @@
 .msg-list-inner {
   margin-left: auto;
   margin-right: auto;
-  max-width: 48rem;
-  padding: 0.75rem 0.625rem;
+  max-width: var(--chat-col);
+  padding: 0.75rem var(--chat-pad);
 }
-@media (min-width: 640px) {
-  .msg-list-inner { padding: 1.5rem 1rem; }
+@media (min-width: 768px) {
+  .msg-list-inner { padding: 1.5rem var(--chat-pad); }
 }
 .msg-system {
   font-size: 0.75rem;

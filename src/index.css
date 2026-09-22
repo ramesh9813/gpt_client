@@ -104,6 +104,20 @@
   font-size: 20px;
 }
 
+/* ---- Single source of truth for the chat column ----
+   The thread (.msg-list-inner) and the prompt card dock (.composer-dock)
+   share --chat-col / --chat-pad, so the chat area is always exactly as
+   wide as the prompt card — independent of brand, sidebar, or font scale. */
+:root {
+  --chat-col: 48rem;
+  --chat-pad: 0.75rem;
+}
+@media (min-width: 768px) {
+  :root {
+    --chat-pad: 1rem;
+  }
+}
+
 /* ---- Global app font + icon scaling (sliders) ----
    --app-zoom scales all px/rem text+layout on body.
    --icon-scale multiplies icons on top (total = app-zoom x icon-scale). */

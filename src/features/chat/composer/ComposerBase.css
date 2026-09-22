@@ -6,17 +6,17 @@
   margin-right: auto;
   margin-bottom: 0;
   width: 100%;
-  max-width: 48rem;
-  padding-left: 0.75rem;
-  padding-right: 0.75rem;
+  max-width: var(--chat-col);
+  padding-left: var(--chat-pad);
+  padding-right: var(--chat-pad);
   padding-bottom: max(env(safe-area-inset-bottom, 0px), 6px);
 }
 
 @media (min-width: 768px) {
   .composer-dock {
     margin-bottom: 0;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding-left: var(--chat-pad);
+    padding-right: var(--chat-pad);
     padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
   }
 }
