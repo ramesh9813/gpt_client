@@ -3,7 +3,7 @@ export type FontScale = "XSMALL" | "SMALL" | "DEFAULT" | "LARGE" | "XLARGE";
 
 export const APP_FONT_MIN = 12;
 export const APP_FONT_MAX = 22;
-export const APP_FONT_DEFAULT = 16;
+export const APP_FONT_DEFAULT = 18;
 export const ICON_SCALE_MIN = 0.8;
 export const ICON_SCALE_MAX = 1.6;
 export const ICON_SCALE_DEFAULT = 1;
@@ -28,9 +28,9 @@ export const applyAppScale = (
   const root = document.documentElement;
   const fontPx = clampAppFontSize(appFontSize);
   const icon = clampIconScale(iconScale);
-  // Overall app zoom derived from px (16px = 100%). Scales all px/rem
+  // Overall app zoom derived from px (18px = 100%). Scales all px/rem
   // text + layout proportionally. Icons get an extra multiplier on top.
-  const appZoom = Math.round((fontPx / 16) * 1000) / 1000;
+  const appZoom = Math.round((fontPx / 18) * 1000) / 1000;
   root.style.setProperty("--app-zoom", String(appZoom));
   root.style.setProperty("--app-font-size", `${fontPx}px`);
   root.style.setProperty("--icon-scale", String(icon));

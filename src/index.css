@@ -93,7 +93,7 @@
 }
 
 [data-font-scale="DEFAULT"] {
-  font-size: 16px;
+  font-size: 18px;
 }
 
 [data-font-scale="LARGE"] {
@@ -109,13 +109,13 @@
    --icon-scale multiplies icons on top (total = app-zoom x icon-scale). */
 :root {
   --app-zoom: 1;
-  --app-font-size: 16px;
+  --app-font-size: 18px;
   --icon-scale: 1;
 }
 body {
   zoom: var(--app-zoom, 1);
-  /* Whole-app text defaults to 16px; the App font size slider moves it. */
-  font-size: var(--app-font-size, 16px);
+  /* Whole-app text defaults to 18px; the App font size slider moves it. */
+  font-size: var(--app-font-size, 18px);
 }
 i.bi,
 i[class*="bi-"],

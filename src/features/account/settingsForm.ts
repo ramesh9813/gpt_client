@@ -41,7 +41,7 @@ export const FONT_STEP_LABELS: Record<FontStep, string> = {
 export const FONT_STEP_SIZES: Record<FontStep, number> = {
   XSMALL: 13,
   SMALL: 14,
-  DEFAULT: 16,
+  DEFAULT: 18,
   LARGE: 18,
   XLARGE: 20,
 };
