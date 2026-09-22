@@ -23,6 +23,10 @@ export { isSupported };
 // screenshots. Handles persist in IndexedDB so later opens re-check
 // permission silently. Both folders feed time-ordered rows (newest first);
 // screenshot-like paths always land in the screenshots row.
+// Preloads silently in the background on app load (no tap needed) so the
+// rows are ready the moment the user opens the image card. Reads stay
+// strictly local (blob: URLs + name/order meta) — images are never
+// uploaded, never sent to the server, never written to the database.
 
 export type DeviceImage = { url: string; name: string; modified: number };
 export type DeviceStatus =
@@ -122,7 +126,10 @@ export const useDeviceImages = () => {
   }, [revokeUrls]);
 
   const scanFolder = useCallback(
-    async (kind: DeviceFolderKind, dir: DirHandle) => {
+    // LOCAL-ONLY: reads files from the granted directory into memory +
+    // blob: URLs for instant rows. Never uploads, never POSTs, never writes
+    // image bytes anywhere — only name/path/order meta goes to localStorage.
+    async (kind: DeviceFolderKind, dir: DirHandle, skipRebuild = false) => {
       const found: Found[] = [];
       await walkDir(dir, kind, "", found, { n: MAX_SCAN_FILES }, 0);
       sourcesRef.current[kind] = found;
@@ -141,7 +148,7 @@ export const useDeviceImages = () => {
           size: f.file.size,
         }))
       );
-      rebuildRows();
+      if (!skipRebuild) rebuildRows();
     },
     [rebuildRows]
   );
@@ -150,91 +157,106 @@ export const useDeviceImages = () => {
   // card open. When opened from a real tap (fromGesture), a dormant grant
   // may be re-confirmed via requestPermission without re-picking folders,
   // so every reload reopens straight into loaded rows.
+  // Background preload: both folders scan IN PARALLEL, latest-first, with a
+  // single row rebuild at the end — ready before the user taps the image
+  // icon. Purely local reads; nothing is uploaded or sent anywhere.
   const ensureDeviceImages = useCallback(
     async (fromGesture: boolean) => {
       if (!isSupported() || status === "ready" || status === "loading") return;
       setStatus("loading");
       try {
-        let loadedAny =
+        const kinds = ["photos", "screenshots"] as DeviceFolderKind[];
+        const results = await Promise.all(
+          kinds.map(async (kind) => {
+            const handle = await idbGetHandle(kind);
+            if (!handle) return false;
+            try {
+              // No queryPermission API = older grant model: the stored handle
+              // itself implies access, so try the scan.
+              let q =
+                typeof handle.queryPermission === "function"
+                  ? await handle.queryPermission({ mode: "read" })
+                  : "granted";
+              // Card opens from a tap: transient activation lets us
+              // re-confirm a dormant grant with just the permission chip —
+              // no folder re-pick needed.
+              if (
+                q !== "granted" &&
+                fromGesture &&
+                typeof handle.requestPermission === "function"
+              ) {
+                q = await handle.requestPermission({ mode: "read" });
+              }
+              if (q === "granted") {
+                await scanFolder(kind, handle, true);
+                return true;
+              }
+            } catch {
+              // ignore this handle
+            }
+            return false;
+          })
+        );
+        rebuildRows();
+        const loadedAny =
+          results.some(Boolean) ||
           sourcesRef.current.photos.length + sourcesRef.current.screenshots.length > 0;
-        for (const kind of ["photos", "screenshots"] as DeviceFolderKind[]) {
-          const handle = await idbGetHandle(kind);
-          if (!handle) continue;
-          try {
-            // No queryPermission API = older grant model: the stored handle
-            // itself implies access, so try the scan.
-            let q =
-              typeof handle.queryPermission === "function"
-                ? await handle.queryPermission({ mode: "read" })
-                : "granted";
-            // Card opens from a tap: transient activation lets us
-            // re-confirm a dormant grant with just the permission chip —
-            // no folder re-pick needed.
-            if (
-              q !== "granted" &&
-              fromGesture &&
-              typeof handle.requestPermission === "function"
-            ) {
-              q = await handle.requestPermission({ mode: "read" });
-            }
-            if (q === "granted") {
-              await scanFolder(kind, handle);
-              loadedAny = true;
-            }
-          } catch {
-            // ignore this handle
-          }
-        }
         setStatus(loadedAny ? "ready" : "idle");
       } catch {
         setStatus("idle");
       }
     },
-    [scanFolder, status]
+    [rebuildRows, scanFolder, status]
   );
 
   // Manual refresh from the per-row button: re-scans the already-granted
   // stored handles (camera + screenshots) without opening the folder
   // picker, so new captures appear immediately, latest first. Never
   // prompts for a new folder — missing handles are simply skipped.
+  // Local reads only; nothing is uploaded or sent anywhere.
   const refreshDeviceImages = useCallback(
     async (kind?: DeviceFolderKind) => {
       if (!isSupported()) return;
       setStatus("loading");
       try {
-        let loadedAny =
-          sourcesRef.current.photos.length + sourcesRef.current.screenshots.length > 0;
         const kinds = kind ? [kind] : (["photos", "screenshots"] as DeviceFolderKind[]);
-        for (const k of kinds) {
-          const handle = await idbGetHandle(k);
-          if (!handle) continue;
-          try {
-            let q =
-              typeof handle.queryPermission === "function"
-                ? await handle.queryPermission({ mode: "read" })
-                : "granted";
-            // Refresh comes from a tap: transient activation lets a dormant
-            // grant re-confirm via the permission chip — still no re-pick.
-            if (
-              q !== "granted" &&
-              typeof handle.requestPermission === "function"
-            ) {
-              q = await handle.requestPermission({ mode: "read" });
+        const results = await Promise.all(
+          kinds.map(async (k) => {
+            const handle = await idbGetHandle(k);
+            if (!handle) return false;
+            try {
+              let q =
+                typeof handle.queryPermission === "function"
+                  ? await handle.queryPermission({ mode: "read" })
+                  : "granted";
+              // Refresh comes from a tap: transient activation lets a dormant
+              // grant re-confirm via the permission chip — still no re-pick.
+              if (
+                q !== "granted" &&
+                typeof handle.requestPermission === "function"
+              ) {
+                q = await handle.requestPermission({ mode: "read" });
+              }
+              if (q === "granted") {
+                await scanFolder(k, handle, true);
+                return true;
+              }
+            } catch {
+              // ignore this handle
             }
-            if (q === "granted") {
-              await scanFolder(k, handle);
-              loadedAny = true;
-            }
-          } catch {
-            // ignore this handle
-          }
-        }
+            return false;
+          })
+        );
+        rebuildRows();
+        const loadedAny =
+          results.some(Boolean) ||
+          sourcesRef.current.photos.length + sourcesRef.current.screenshots.length > 0;
         setStatus(loadedAny ? "ready" : "idle");
       } catch {
         setStatus("idle");
       }
     },
-    [scanFolder]
+    [rebuildRows, scanFolder]
   );
 
   const pickFolder = useCallback(
