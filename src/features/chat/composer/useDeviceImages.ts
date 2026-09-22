@@ -13,6 +13,7 @@ import {
   walkDir,
   type Found,
 } from "./deviceScan";
+import { loadDeviceMeta, saveDeviceMeta } from "./deviceMeta";
 
 export type { DeviceFolderKind, DirHandle, Found };
 export { isSupported };
@@ -37,13 +38,31 @@ export const useDeviceImages = () => {
   );
   const [photos, setPhotos] = useState<DeviceImage[]>([]);
   const [screenshots, setScreenshots] = useState<DeviceImage[]>([]);
-  const [photoFolderName, setPhotoFolderName] = useState<string | null>(null);
-  const [shotsFolderName, setShotsFolderName] = useState<string | null>(null);
+  // Instant folder labels from the cached snapshot: rows show the saved
+  // folder (name + count) on first paint, before the background rescan
+  // finishes — no waiting, no repeated permission prompts.
+  const [photoFolderName, setPhotoFolderName] = useState<string | null>(
+    () => loadDeviceMeta("photos")?.folderName ?? null
+  );
+  const [shotsFolderName, setShotsFolderName] = useState<string | null>(
+    () => loadDeviceMeta("screenshots")?.folderName ?? null
+  );
   // Visible diagnostics: files scanned per folder, so an empty row explains
-  // itself instead of failing silently.
+  // itself instead of failing silently. Seeded from cache for instant paint.
   const [scanInfo, setScanInfo] = useState<
     Record<DeviceFolderKind, { folder: string; scanned: number } | null>
-  >({ photos: null, screenshots: null });
+  >(() => {
+    const photosMeta = loadDeviceMeta("photos");
+    const shotsMeta = loadDeviceMeta("screenshots");
+    return {
+      photos: photosMeta
+        ? { folder: photosMeta.folderName, scanned: photosMeta.scanned }
+        : null,
+      screenshots: shotsMeta
+        ? { folder: shotsMeta.folderName, scanned: shotsMeta.scanned }
+        : null,
+    };
+  });
   const urlsRef = useRef<string[]>([]);
   // Per-folder scan results so granting a second folder unions with the
   // first instead of replacing it.
@@ -69,7 +88,14 @@ export const useDeviceImages = () => {
 
   const rebuildRows = useCallback(() => {
     const all = [...sourcesRef.current.photos, ...sourcesRef.current.screenshots];
-    all.sort((a, b) => b.file.lastModified - a.file.lastModified);
+    // Latest first: newest lastModified at index 0. File names (camera /
+    // screenshot counters) break ties when timestamps are equal or missing,
+    // so the latest capture always leads the row.
+    all.sort(
+      (a, b) =>
+        b.file.lastModified - a.file.lastModified ||
+        (b.file.name > a.file.name ? 1 : b.file.name < a.file.name ? -1 : 0)
+    );
     const previous = urlsRef.current;
     urlsRef.current = [];
     const shots: DeviceImage[] = [];
@@ -104,6 +130,17 @@ export const useDeviceImages = () => {
       if (kind === "photos") setPhotoFolderName(dir.name ?? null);
       else setShotsFolderName(dir.name ?? null);
       setScanInfo((prev) => ({ ...prev, [kind]: { folder, scanned: found.length } }));
+      // Persist name + order for instant next-load paint.
+      saveDeviceMeta(
+        kind,
+        folder,
+        found.map((f) => ({
+          name: f.file.name,
+          path: f.path,
+          modified: f.file.lastModified,
+          size: f.file.size,
+        }))
+      );
       rebuildRows();
     },
     [rebuildRows]
@@ -154,6 +191,50 @@ export const useDeviceImages = () => {
       }
     },
     [scanFolder, status]
+  );
+
+  // Manual refresh from the per-row button: re-scans the already-granted
+  // stored handles (camera + screenshots) without opening the folder
+  // picker, so new captures appear immediately, latest first. Never
+  // prompts for a new folder — missing handles are simply skipped.
+  const refreshDeviceImages = useCallback(
+    async (kind?: DeviceFolderKind) => {
+      if (!isSupported()) return;
+      setStatus("loading");
+      try {
+        let loadedAny =
+          sourcesRef.current.photos.length + sourcesRef.current.screenshots.length > 0;
+        const kinds = kind ? [kind] : (["photos", "screenshots"] as DeviceFolderKind[]);
+        for (const k of kinds) {
+          const handle = await idbGetHandle(k);
+          if (!handle) continue;
+          try {
+            let q =
+              typeof handle.queryPermission === "function"
+                ? await handle.queryPermission({ mode: "read" })
+                : "granted";
+            // Refresh comes from a tap: transient activation lets a dormant
+            // grant re-confirm via the permission chip — still no re-pick.
+            if (
+              q !== "granted" &&
+              typeof handle.requestPermission === "function"
+            ) {
+              q = await handle.requestPermission({ mode: "read" });
+            }
+            if (q === "granted") {
+              await scanFolder(k, handle);
+              loadedAny = true;
+            }
+          } catch {
+            // ignore this handle
+          }
+        }
+        setStatus(loadedAny ? "ready" : "idle");
+      } catch {
+        setStatus("idle");
+      }
+    },
+    [scanFolder]
   );
 
   const pickFolder = useCallback(
@@ -208,6 +289,7 @@ export const useDeviceImages = () => {
     ensureSilent: ensureDeviceImages,
     ensureDeviceImages,
     pickFolder,
+    refreshDeviceImages,
   };
 };
 

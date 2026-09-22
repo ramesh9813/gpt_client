@@ -14,6 +14,9 @@ type RecentTrayProps = {
   shotsScan: { folder: string; scanned: number } | null;
   onPickPhotosFolder: () => void;
   onPickScreenshotsFolder: () => void;
+  onRefreshPhotos?: () => void;
+  onRefreshScreenshots?: () => void;
+  refreshing?: boolean;
   attached: string[];
   onPick: (src: string) => void;
   onBrowse: () => void;
@@ -29,6 +32,9 @@ const PhotoRow = ({
   folderName,
   chooseTitle,
   onChooseFolder,
+  onRefresh,
+  refreshing,
+  refreshTitle,
 }: {
   images: string[];
   attached: string[];
@@ -38,22 +44,44 @@ const PhotoRow = ({
   folderName: string | null;
   chooseTitle: string;
   onChooseFolder: () => void;
+  onRefresh?: () => void;
+  refreshing?: boolean;
+  refreshTitle?: string;
 }) => (
   <div className="composer-recents-section">
     <div className="composer-recents-label-row">
       <div className="composer-recents-label">{rowLabel}</div>
-      <button
-        type="button"
-        className="composer-recents-folder-btn"
-        onClick={onChooseFolder}
-        aria-label={chooseTitle}
-        title={folderName ? `${chooseTitle} (now: ${folderName})` : chooseTitle}
-      >
-        <i className="bi bi-folder2-open" aria-hidden="true" />
-        {folderName ? (
-          <span className="composer-recents-folder-name">{folderName}</span>
-        ) : null}
-      </button>
+      <div className="composer-recents-row-actions">
+        {onRefresh && (
+          <button
+            type="button"
+            className="composer-recents-refresh"
+            onClick={onRefresh}
+            disabled={refreshing}
+            aria-label={refreshTitle ?? `Reload ${rowLabel.toLowerCase()}`}
+            title={refreshTitle ?? `Reload ${rowLabel.toLowerCase()}`}
+          >
+            <i
+              className={`bi bi-arrow-clockwise composer-recents-refresh-icon${
+                refreshing ? " is-spinning" : ""
+              }`}
+              aria-hidden="true"
+            />
+          </button>
+        )}
+        <button
+          type="button"
+          className="composer-recents-folder-btn"
+          onClick={onChooseFolder}
+          aria-label={chooseTitle}
+          title={folderName ? `${chooseTitle} (now: ${folderName})` : chooseTitle}
+        >
+          <i className="bi bi-folder2-open" aria-hidden="true" />
+          {folderName ? (
+            <span className="composer-recents-folder-name">{folderName}</span>
+          ) : null}
+        </button>
+      </div>
     </div>
     {images.length > 0 ? (
       <div className="composer-recents-row">
@@ -109,6 +137,9 @@ export const RecentTray = ({
   shotsScan,
   onPickPhotosFolder,
   onPickScreenshotsFolder,
+  onRefreshPhotos,
+  onRefreshScreenshots,
+  refreshing,
   attached,
   onPick,
   onBrowse,
@@ -190,6 +221,9 @@ export const RecentTray = ({
         folderName={photoFolderName}
         chooseTitle="Choose camera folder"
         onChooseFolder={onPickPhotosFolder}
+        onRefresh={onRefreshPhotos}
+        refreshing={refreshing}
+        refreshTitle="Reload camera folder images"
       />
       <PhotoRow
         images={screenshots}
@@ -204,6 +238,9 @@ export const RecentTray = ({
         folderName={shotsFolderName}
         chooseTitle="Choose screenshots folder"
         onChooseFolder={onPickScreenshotsFolder}
+        onRefresh={onRefreshScreenshots}
+        refreshing={refreshing}
+        refreshTitle="Reload screenshots folder images"
       />
     </div>
   );

@@ -22,6 +22,7 @@
 }
 
 .composer-input-container {
+  position: relative;
   display: flex;
   width: 100%;
   flex-direction: column;
@@ -52,6 +53,39 @@
 
 .composer-input-container:focus-within {
   border-color: color-mix(in srgb, var(--muted) 40%, transparent);
+}
+
+/* Always-visible scroll pins floating just above the input card. The
+   container reserves no space for them, so thread layout is unchanged. */
+.composer-scroll-pin {
+  position: absolute;
+  top: -2.75rem;
+  right: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 25;
+}
+.composer-scroll-pin-btn {
+  display: flex;
+  height: 2.25rem;
+  width: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background-color: var(--panel);
+  color: var(--text);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition-property: all;
+  transition-duration: 150ms;
+}
+.composer-scroll-pin-btn:hover {
+  background-color: var(--sidebar);
+}
+.composer-scroll-pin-btn:active {
+  transform: scale(0.95);
 }
 
 .composer-image-strip {

@@ -9,6 +9,7 @@ import { ComposerStatus } from "./composer/ComposerStatus";
 import type { ModelOption, SortOption } from "./composer/ModelMenu";
 import { useComposerImages } from "./composer/useComposerImages";
 import { useDeviceImages } from "./composer/useDeviceImages";
+import { requestListScroll } from "./messagelist/scrollBus";
 import { useVoiceInput } from "./composer/useVoiceInput";
 import { useCameraCapture } from "./composer/useCameraCapture";
 import { useComposerArmed, useComposerText } from "./composer/useComposerText";
@@ -86,6 +87,7 @@ const Composer = ({
     scanInfo,
     ensureDeviceImages,
     pickFolder,
+    refreshDeviceImages,
   } = useDeviceImages();
 
   // Auto-load granted folders on every reload: silent attempt at mount, and
@@ -175,6 +177,27 @@ const Composer = ({
   return (
     <div className="composer-dock">
       <div className="composer-input-container">
+        {/* Always-visible scroll pins floating just above the input card. */}
+        <div className="composer-scroll-pin" role="toolbar" aria-label="Scroll chat">
+          <button
+            type="button"
+            className="composer-scroll-pin-btn"
+            onClick={() => requestListScroll("top")}
+            title="Scroll to top"
+            aria-label="Scroll to top"
+          >
+            <i className="bi bi-arrow-up" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="composer-scroll-pin-btn"
+            onClick={() => requestListScroll("bottom")}
+            title="Scroll to bottom"
+            aria-label="Scroll to bottom"
+          >
+            <i className="bi bi-arrow-down" aria-hidden="true" />
+          </button>
+        </div>
         {/* Image preview strip */}
         <ImageAttachments images={images} compressing={compressing} onRemove={removeImage} />
 
@@ -269,6 +292,9 @@ const Composer = ({
         shotsScan={scanInfo.screenshots}
         onPickPhotosFolder={() => pickFolder("photos")}
         onPickScreenshotsFolder={() => pickFolder("screenshots")}
+        onRefreshPhotos={() => void refreshDeviceImages("photos")}
+        onRefreshScreenshots={() => void refreshDeviceImages("screenshots")}
+        refreshing={deviceStatus === "loading"}
         attached={images}
         onPick={handlePickSrc}
         onBrowse={() => fileInputRef.current?.click()}

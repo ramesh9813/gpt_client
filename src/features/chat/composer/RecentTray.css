@@ -109,6 +109,50 @@
   text-transform: uppercase;
   color: var(--muted);
 }
+.composer-recents-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+.composer-recents-refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.5rem;
+  width: 1.5rem;
+  border-radius: 9999px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.composer-recents-refresh:hover:not(:disabled) {
+  color: var(--text);
+  background-color: var(--sidebar);
+}
+.composer-recents-refresh:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.composer-recents-refresh-icon {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+.composer-recents-refresh-icon.is-spinning {
+  animation: composer-recents-spin 0.9s linear infinite;
+}
+@keyframes composer-recents-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
 .composer-recents-folder-btn {
   display: inline-flex;
   align-items: center;
