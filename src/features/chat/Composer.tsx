@@ -177,25 +177,25 @@ const Composer = ({
   return (
     <div className="composer-dock">
       <div className="composer-input-container">
-        {/* Always-visible scroll pins floating just above the input card. */}
+        {/* Original scroll buttons, always pinned just above the input card. */}
         <div className="composer-scroll-pin" role="toolbar" aria-label="Scroll chat">
           <button
             type="button"
-            className="composer-scroll-pin-btn"
+            className="msg-jump-btn"
             onClick={() => requestListScroll("top")}
             title="Scroll to top"
             aria-label="Scroll to top"
           >
-            <i className="bi bi-arrow-up" aria-hidden="true" />
+            <i className="bi bi-arrow-up msg-jump-icon" aria-hidden="true" />
           </button>
           <button
             type="button"
-            className="composer-scroll-pin-btn"
+            className="msg-jump-btn"
             onClick={() => requestListScroll("bottom")}
             title="Scroll to bottom"
             aria-label="Scroll to bottom"
           >
-            <i className="bi bi-arrow-down" aria-hidden="true" />
+            <i className="bi bi-arrow-down msg-jump-icon" aria-hidden="true" />
           </button>
         </div>
         {/* Image preview strip */}

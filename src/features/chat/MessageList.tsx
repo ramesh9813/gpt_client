@@ -55,13 +55,12 @@ const MessageList = ({
   conversationKey,
   loading,
 }: MessageListProps) => {
-  const { listRef, atBottom, atTop, canScroll, jumpToBottom, scrollToTop } =
+  const { listRef, jumpToBottom, scrollToTop } =
     useMessageFollow({ messages, activeStreamId, conversationKey, onScrollDirection });
   const edit = useMessageEdit(onEditSubmit);
 
-  // Composer pin buttons (always visible above the input card) drive the
-  // same handlers through the scroll bus — existing floating buttons and
-  // auto-follow logic are untouched.
+  // The jump buttons live pinned above the input card (Composer) and drive
+  // the same handlers through the scroll bus — auto-follow logic untouched.
   const followRef = useRef({ scrollToTop, jumpToBottom });
   followRef.current = { scrollToTop, jumpToBottom };
   useEffect(() => {
@@ -94,13 +93,10 @@ const MessageList = ({
     <div className="msg-list scrollbar-thin" ref={listRef}>
       {messages.length === 0 ? (
         loading ? (
-          <div className="msg-list-inner msg-list-inner--empty" role="status" aria-label="Loading messages">
-            <span className="loading-dots loading-dots--inline" aria-hidden="true">
-              <span></span>
-              <span></span>
-              <span></span>
-            </span>
-          </div>
+          // Silent background fill: UI shell is already up, so messages
+          // load with no animation — suggestions appear only once the
+          // load finishes genuinely empty.
+          <div className="msg-list-inner msg-list-inner--empty" aria-hidden="true" />
         ) : (
         <div className="msg-list-inner msg-list-inner--empty">
           <EmptyChatSuggestions
@@ -169,32 +165,6 @@ const MessageList = ({
           );
         })}
       </div>
-      )}
-      {messages.length > 0 && canScroll && (!atTop || !atBottom) && (
-        <div className="msg-jump-wrap">
-          {!atTop && (
-            <button
-              className="msg-jump-btn"
-              onClick={scrollToTop}
-              title="Jump to top"
-              aria-label="Scroll to top"
-              type="button"
-            >
-              <i className="bi bi-arrow-up msg-jump-icon" aria-hidden="true"></i>
-            </button>
-          )}
-          {!atBottom && (
-            <button
-              className="msg-jump-btn"
-              onClick={() => jumpToBottom()}
-              title="Jump to bottom"
-              aria-label="Scroll to bottom"
-              type="button"
-            >
-              <i className="bi bi-arrow-down msg-jump-icon" aria-hidden="true"></i>
-            </button>
-          )}
-        </div>
       )}
     </div>
   );
