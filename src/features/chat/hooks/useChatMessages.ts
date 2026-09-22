@@ -27,7 +27,7 @@ export const useChatMessages = ({
     []
   );
 
-  const { data: messageData } = useQuery({
+  const { data: messageData, isPending: messagesPending } = useQuery({
     queryKey: ["messages", conversationId],
     queryFn: () =>
       apiFetch<ApiResponse<{ messages: ChatMessage[] }>>(
@@ -280,6 +280,9 @@ export const useChatMessages = ({
     composerError,
     setComposerError,
     messageData,
+    // True while the thread's first page is in flight: the shell (sidebar +
+    // composer) is already interactive, the thread shows a skeleton.
+    messagesLoading: !!conversationId && messagesPending,
     activeTurnKind,
     setActiveTurnKind,
     sendMessage,

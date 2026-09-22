@@ -31,6 +31,9 @@ type MessageListProps = {
   artifacts?: ArtifactBlock[];
   onScrollDirection?: (direction: "up" | "down") => void;
   conversationKey?: string;
+  // True while the thread's first page loads: show a skeleton so the shell
+  // (sidebar + composer) stays interactive instead of flashing empty state.
+  loading?: boolean;
 };
 
 const MessageList = ({
@@ -49,7 +52,8 @@ const MessageList = ({
   hasCanvasCode,
   artifacts,
   onScrollDirection,
-  conversationKey
+  conversationKey,
+  loading,
 }: MessageListProps) => {
   const { listRef, atBottom, atTop, canScroll, jumpToBottom, scrollToTop } =
     useMessageFollow({ messages, activeStreamId, conversationKey, onScrollDirection });
@@ -89,12 +93,22 @@ const MessageList = ({
   return (
     <div className="msg-list scrollbar-thin" ref={listRef}>
       {messages.length === 0 ? (
+        loading ? (
+          <div className="msg-list-inner msg-list-inner--empty" role="status" aria-label="Loading messages">
+            <span className="loading-dots loading-dots--inline" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+          </div>
+        ) : (
         <div className="msg-list-inner msg-list-inner--empty">
           <EmptyChatSuggestions
             conversationKey={conversationKey}
             onSelect={(q) => onFollowup?.(q)}
           />
         </div>
+        )
       ) : (
       <div className="msg-list-inner">
         {messages.map((message) => {

@@ -73,6 +73,7 @@ const Chat = () => {
     lastUserMessage,
     composerError,
     messageData,
+    messagesLoading,
     activeTurnKind,
     setActiveTurnKind,
     sendMessage,
@@ -236,6 +237,7 @@ const Chat = () => {
             <MessageList
               messages={messages}
               conversationKey={conversationId}
+              loading={messagesLoading}
               onEditSubmit={handleEditSubmit}
               editDisabled={streaming}
               modelOptions={modelOptions}
