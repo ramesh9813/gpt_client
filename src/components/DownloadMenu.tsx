@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { saveAs } from "file-saver";
 import { Dropdown } from "./Dropdown";
 import "./DownloadMenu.css";
@@ -8,6 +8,11 @@ import {
   createSingleCodeBlob,
   createCodeZipBlob,
 } from "./download/codeExport";
+import {
+  extractMarkdownTables,
+  createSingleTableCsvBlob,
+  createTablesZipBlob,
+} from "./download/tableExport";
 import { buildDocxBlob } from "./download/docxExport";
 import { saveChatElementAsPdf } from "./download/pdfExport";
 
@@ -47,6 +52,10 @@ export const DownloadMenu = ({ content, messages, chatContainerRef, chatName }: 
 
   const base = sanitizeChatFileBase(chatName);
   const chatFile = (ext: string) => `${base}.${ext}`;
+
+  // CSV appears only when the response actually contains markdown tables:
+  // 1 table -> that table as <chatname>.csv, N tables -> all as a .zip.
+  const tables = useMemo(() => extractMarkdownTables(content), [content]);
 
   const downloadText = () => {
     const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
@@ -107,6 +116,26 @@ export const DownloadMenu = ({ content, messages, chatContainerRef, chatName }: 
     setOpen(false);
   };
 
+  const downloadCsv = async () => {
+    if (tables.length === 0) {
+      alert("No tables found in this response.");
+      setOpen(false);
+      return;
+    }
+    try {
+      if (tables.length === 1) {
+        saveAs(createSingleTableCsvBlob(tables[0]), chatFile("csv"));
+      } else {
+        const blob = await createTablesZipBlob(tables, base);
+        saveAs(blob, `${base}-tables.zip`);
+      }
+    } catch (err) {
+      console.error("CSV generation failed:", err);
+      alert("Failed to generate CSV.");
+    }
+    setOpen(false);
+  };
+
   return (
     <div className="download-menu" ref={containerRef}>
       <button
@@ -150,6 +179,15 @@ export const DownloadMenu = ({ content, messages, chatContainerRef, chatName }: 
           >
             <i className="bi bi-file-code download-menu-item-icon download-menu-item-icon-code"></i> Code
           </button>
+          {tables.length > 0 && (
+            <button
+              onClick={downloadCsv}
+              className="download-menu-item"
+            >
+              <i className="bi bi-file-spreadsheet download-menu-item-icon download-menu-item-icon-muted"></i>
+              {tables.length === 1 ? "Table (.csv)" : `Tables (${tables.length}) (.zip)`}
+            </button>
+          )}
           {messages && messages.length > 0 && (
             <button
               onClick={downloadPdf}

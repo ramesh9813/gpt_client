@@ -48,7 +48,11 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
-      refetchOnWindowFocus: false
+      refetchOnWindowFocus: false,
+      // Two-step load: keep DB truth around so remounts paint from cache
+      // while background refetches refresh silently.
+      staleTime: 1000 * 30,
+      gcTime: 1000 * 60 * 10,
     }
   }
 });

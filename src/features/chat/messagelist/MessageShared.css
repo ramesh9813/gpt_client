@@ -13,7 +13,9 @@
   }
 }
 
-/* shared icon button (Copy/Share/Regenerate/Edit/Stop) */
+/* shared icon button (Copy/Share/Regenerate/Edit/Stop) — same visibility
+   as the model name below (.msg-model-label opacity 0.6); hover/focus
+   restores full strength. */
 .msg-icon-btn {
   display: inline-flex;
   height: 2rem;
@@ -27,11 +29,15 @@
   background: transparent;
   border: 0;
   cursor: pointer;
+  opacity: 0.6;
   transition-property: all;
   transition-duration: 150ms;
 }
-.msg-icon-btn:hover { color: var(--text); background-color: var(--panel); }
-.msg-icon-btn:active { transform: scale(0.95); }
+.msg-icon-btn:hover { color: var(--text); background-color: var(--panel); opacity: 1; }
+.msg-icon-btn:focus-visible { opacity: 1; }
+.msg-icon-btn:active { transform: scale(0.95); opacity: 1; }
+/* Success feedback (copied/shared check) always renders at full strength. */
+.msg-icon-btn:has(.msg-action-icon--accent) { opacity: 1; }
 .msg-action-icon { font-size: 0.875rem; }
 .msg-action-icon--accent { font-size: 0.875rem; color: var(--accent); }
 .msg-copy-label {
@@ -102,11 +108,13 @@
   background: transparent;
   border: 0;
   cursor: pointer;
+  opacity: 0.6;
 }
-.msg-codeblock-text-btn:hover { color: var(--text); }
+.msg-codeblock-text-btn:hover { color: var(--text); opacity: 1; }
+.msg-codeblock-text-btn:focus-visible { opacity: 1; }
 [data-theme="dark"] .msg-codeblock-text-btn { color: #d4d4d8; }
 [data-theme="dark"] .msg-codeblock-text-btn:hover { color: #fff; }
-.msg-codeblock-text-btn:disabled { opacity: 0.6; cursor: default; }
+.msg-codeblock-text-btn:disabled { opacity: 0.4; cursor: default; }
 .msg-codeblock-output {
   border-top: 1px solid var(--border);
   background-color: var(--panel);

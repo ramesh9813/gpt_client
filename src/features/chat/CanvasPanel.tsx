@@ -23,21 +23,37 @@ const CanvasPanel = ({
   closing?: boolean;
   onClose?: () => void;
 }) => {
-  const [activeId, setActiveId] = useState<string | null>(blocks[0]?.id ?? null);
+  const [activeId, setActiveId] = useState<string | null>(
+    blocks.length ? blocks[blocks.length - 1].id : null
+  );
   const [mode, setMode] = useState<"code" | "preview">("code");
   const [width, setWidth] = useState(380);
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const { runState, runBlock } = useCodeRunner();
   const isDark = useIsDark();
+  // Tracks the latest block signature so newly arrived code takes over the
+  // view, while manual browsing + in-place streaming growth stay put.
+  const lastSeenId = useRef<string | null>(
+    blocks.length ? blocks[blocks.length - 1].id : null
+  );
 
   useEffect(() => {
     if (!blocks.length) {
       setActiveId(null);
+      lastSeenId.current = null;
       return;
     }
+    const latestId = blocks[blocks.length - 1].id;
+    // New latest code arrived (new message / new fence) -> always show it.
+    if (lastSeenId.current !== latestId) {
+      lastSeenId.current = latestId;
+      setActiveId(latestId);
+      return;
+    }
+    // Selection vanished (e.g. conversation switch) -> fall back to latest.
     if (!activeId || !blocks.some((block) => block.id === activeId)) {
-      setActiveId(blocks[0].id);
+      setActiveId(latestId);
     }
   }, [blocks, activeId]);
 

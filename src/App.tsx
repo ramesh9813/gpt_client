@@ -1,9 +1,9 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiFetch, ApiResponse } from "./lib/api";
 import { type OpenRouterModel } from "./features/chat/hooks/modelCache";
-import { useMe, useSettings } from "./lib/hooks";
+import { getCachedMeForShell, useMe, useSettings } from "./lib/hooks";
 import { applyTheme, clampAppFontSize, clampIconScale } from "./lib/theme";
 import { applyBrand, isBrandId } from "./lib/brandTheme";
 import Login from "./pages/Login";
@@ -26,8 +26,20 @@ const RouteFallback = () => (
 );
 
 const RequireAuth = ({ children }: { children: JSX.Element }) => {
-  const { data, isLoading } = useMe();
+  const { data, isLoading, isError } = useMe();
   const location = useLocation();
+  // Step 1: instant shell from local cache while /api/me validates in bg.
+  const [cachedUser] = useState(() => getCachedMeForShell());
+
+  if (data?.data?.user) {
+    return children;
+  }
+
+  // Background validation: paint the cached shell immediately, don't block
+  // first paint on the network. A hard 401 (isError) still kicks to login.
+  if (isLoading && cachedUser && !isError) {
+    return children;
+  }
 
   if (isLoading) {
     return (

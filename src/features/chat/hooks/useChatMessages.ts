@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { apiFetch, ApiResponse } from "../../../lib/api";
 import { readWebSearchArmed } from "../sidebarState";
+import { readCachedMessages, writeCachedMessages } from "../chatCache";
 import type { ChatMessage, TurnKind } from "../message/types";
 import { detectRegenKind, detectTurnKind } from "./turnKind";
 import type { UseChatMessagesOptions } from "./turnKind";
@@ -17,7 +18,11 @@ export const useChatMessages = ({
   resolveModelForPrompt,
 }: UseChatMessagesOptions) => {
   const queryClient = useQueryClient();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // Step 1: instant paint from localStorage (synchronous, zero network).
+  // Step 2 (below): background DB fetch overwrites + re-caches.
+  const [messages, setMessages] = useState<ChatMessage[]>(() =>
+    readCachedMessages(conversationId) ?? []
+  );
   const [lastUserMessage, setLastUserMessage] = useState("");
   const [composerError, setComposerError] = useState<string | null>(null);
   // Live phase of the in-flight turn for the "what is happening" status.
@@ -34,13 +39,17 @@ export const useChatMessages = ({
         `/api/conversations/${conversationId}/messages`
       ),
     enabled: !!conversationId,
+    // Cache-first shell: DB is the source of truth but never blocks paint.
+    staleTime: 1000 * 30,
+    gcTime: 1000 * 60 * 10,
+    refetchOnMount: true,
   });
 
   useEffect(() => {
-    // Instant clear on conversation switch: prevents old chat flashing
-    // while the new conversation's messages load, and makes "New chat"
-    // feel immediate right after navigation (before the GET resolves).
-    setMessages([]);
+    // Instant switch: paint cached thread (or empty) immediately, then let
+    // the background query above fill in the DB truth. No flash of old chat.
+    const cached = readCachedMessages(conversationId);
+    setMessages(cached ?? []);
     setLastUserMessage("");
     setComposerError(null);
   }, [conversationId]);
@@ -48,8 +57,19 @@ export const useChatMessages = ({
   useEffect(() => {
     if (messageData?.data?.messages) {
       setMessages(messageData.data.messages);
+      // Step 2 complete: persist DB truth for the next instant paint.
+      writeCachedMessages(conversationId, messageData.data.messages);
     }
   }, [messageData, conversationId]);
+
+  // Persist settled turns too so a reload between refetches keeps them.
+  // Skipped while streaming (temp local-* ids + high-frequency token writes).
+  useEffect(() => {
+    if (!conversationId || messages.length === 0) return;
+    if (messages.some((m) => String(m.id || "").startsWith("local-"))) return;
+    if (messages.some((m) => m.status === "STREAMING")) return;
+    writeCachedMessages(conversationId, messages);
+  }, [conversationId, messages]);
 
   const sendMessage = async (text: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean }) => {
     if (!conversationId) return;
@@ -280,9 +300,10 @@ export const useChatMessages = ({
     composerError,
     setComposerError,
     messageData,
-    // True while the thread's first page is in flight: the shell (sidebar +
-    // composer) is already interactive, the thread shows a skeleton.
-    messagesLoading: !!conversationId && messagesPending,
+    // Two-step: only show skeleton when there is NOTHING cached to paint.
+    // Cached thread => loading=false, DB fills silently in the background.
+    // Shell (sidebar + composer) is always interactive regardless.
+    messagesLoading: !!conversationId && messagesPending && messages.length === 0,
     activeTurnKind,
     setActiveTurnKind,
     sendMessage,
