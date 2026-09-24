@@ -7,6 +7,7 @@ import { MessageImages } from "./MessageImages";
 import { VideoBlock } from "./VideoBlock";
 import { MarkdownContent } from "./MarkdownContent";
 import { CopyButton, ShareButton } from "./MessageButtons";
+import { useDoubleCopy } from "./useDoubleCopy";
 import { RegenerateMenu } from "./RegenerateMenu";
 import { QuizCard } from "./QuizCard";
 import { ArtifactCard } from "./ArtifactCard";
@@ -56,6 +57,10 @@ export const AssistantMessage = memo(
   );
   // Deep-research thinking log: open while it streams, user-collapsible.
   const [showReasoning, setShowReasoning] = useState(true);
+  // Double fast click / double tap on the answer copies it immediately.
+  const { copied, onDoubleClick, onTouchStart, onTouchEnd } = useDoubleCopy(
+    () => displayContent || message.content
+  );
 
   if (!message.content && !(message.images && message.images.length > 0) && !(message.videos && message.videos.length > 0) && !message.quiz && message.status !== "STREAMING" && messageArtifacts.length === 0) {
     return null;
@@ -107,7 +112,16 @@ export const AssistantMessage = memo(
   return (
     <div
       className="msg-assistant"
+      onDoubleClick={onDoubleClick}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+      title="Double-click to copy"
     >
+      {copied ? (
+        <span className="msg-copy-flash" aria-live="polite">
+          Copied
+        </span>
+      ) : null}
       <div className="markdown msg-assistant-body">
         {showGenStatus && activeTurnKind && (
           <GenerationStatus kind={activeTurnKind} />

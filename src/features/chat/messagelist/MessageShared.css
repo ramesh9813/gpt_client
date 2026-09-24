@@ -175,3 +175,28 @@
 }
 .msg-regen-option:hover { background-color: var(--sidebar); }
 
+/* double-click / double-tap instant copy */
+.msg-assistant,
+.msg-user-card {
+  position: relative;
+}
+.msg-copy-flash {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  z-index: 5;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background-color: var(--sidebar);
+  color: var(--text);
+  font-size: 0.6875rem;
+  line-height: 1;
+  padding: 0.3rem 0.6rem;
+  pointer-events: none;
+  animation: msg-copy-flash-in 150ms ease-out;
+}
+@keyframes msg-copy-flash-in {
+  from { transform: translateY(-4px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+

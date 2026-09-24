@@ -4,6 +4,7 @@ import type { ChatMessage } from "./types";
 import { MessageImages } from "./MessageImages";
 import { MarkdownContent } from "./MarkdownContent";
 import { CopyButton } from "./MessageButtons";
+import { useDoubleCopy } from "./useDoubleCopy";
 
 type UserMessageProps = {
   message: ChatMessage;
@@ -35,14 +36,33 @@ export const UserMessage = memo(
     cancelEdit,
     startEdit,
     onEditSubmit,
-    editDisabled
-  }: UserMessageProps) => {
+  editDisabled
+}: UserMessageProps) => {
+  // Double fast click / double tap on the bubble copies it immediately.
+  const { copied, onDoubleClick, onTouchStart, onTouchEnd } = useDoubleCopy(
+    () => message.content
+  );
   return (
     <div
       className={`msg-user-row ${isEditing ? "msg-user-row--editing" : ""}`}
     >
       <div className={`msg-user-col ${isEditing ? "msg-user-col--editing" : "msg-user-col--default"}`}>
-        <div className="user-message-card msg-user-card">
+        <div
+          className="user-message-card msg-user-card"
+          {...(!isEditing
+            ? {
+                onDoubleClick,
+                onTouchStart,
+                onTouchEnd,
+                title: "Double-click to copy",
+              }
+            : {})}
+        >
+          {copied && !isEditing ? (
+            <span className="msg-copy-flash" aria-live="polite">
+              Copied
+            </span>
+          ) : null}
           {isEditing ? (
             <div className="msg-user-edit-wrap">
               <MessageImages images={message.images} />
