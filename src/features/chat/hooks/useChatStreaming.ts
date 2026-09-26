@@ -56,10 +56,11 @@ export const useChatStreaming = () => {
     const ctx: StreamEventCtx = { setMessages, tempAssistantId, isCancelled };
 
     try {
-      // BYOK: user-configured provider key (Settings > Add-on provider). When
-      // active, headers steer the server's chat turn to that provider and any
-      // OpenRouter model selection in the body is moot — send neither.
-      const byokHeaders = getByokHeaders();
+      // BYOK: user-configured provider key (Settings > AI provider). When
+      // active, headers steer the server's chat turn to that provider; the
+      // composer's selected (provider) model travels in the header instead of
+      // the OpenRouter body field.
+      const byokHeaders = getByokHeaders(selectedModel);
       const byokActive = Object.keys(byokHeaders).length > 0;
       const response = await fetch(`${apiBase}/api/chat/stream`, {
         method: "POST",

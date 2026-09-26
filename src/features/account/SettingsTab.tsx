@@ -115,6 +115,11 @@ export const SettingsTab = () => {
 
   return (
     <div className="account-narrow">
+      {/* AI provider (add-on): provider/key/model picker stored in
+          localStorage only — intentionally outside the settings form (which
+          saves to the DB). Shown at the top since it also drives which model
+          list the chat composer displays. */}
+      <ByokCard />
       <form onSubmit={handleSubmit(onSubmit)} className="account-stack-lg">
         <div className="account-settings-head">
           <h2 className="account-section-title account-settings-title">Appearance</h2>
@@ -291,9 +296,6 @@ export const SettingsTab = () => {
           </div>
         </fieldset>
       </form>
-      {/* BYOK add-on: self-contained card, persisted to localStorage only —
-          intentionally outside the settings form (which saves to the DB). */}
-      <ByokCard />
     </div>
   );
 };

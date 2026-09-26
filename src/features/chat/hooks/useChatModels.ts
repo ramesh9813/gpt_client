@@ -9,6 +9,15 @@ import {
 } from "./modelCache";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, ApiResponse } from "../../../lib/api";
+import {
+  fetchByokModels,
+  getActiveByok,
+  getByokConfig,
+  getByokProvider,
+  saveByokConfig,
+  subscribeByok,
+  type ByokConfig,
+} from "../../../lib/byok";
 import { useMe, useSettings } from "../../../lib/hooks";
 import { formatUpdatedAgo } from "../utils/formatUpdatedAgo";
 import {
@@ -83,6 +92,84 @@ export const useChatModels = () => {
     },
     [persistModel]
   );
+
+  // ── BYOK (Settings > AI provider) ────────────────────────────────────────
+  // When the user has an add-on provider configured (provider + well-formed
+  // key + model, all in localStorage), the model menu, active model label and
+  // selection persistence all come from THAT provider instead of the
+  // OpenRouter catalog below. Nothing else changes.
+  const [byokCfg, setByokCfg] = useState<ByokConfig | null>(() =>
+    getActiveByok()
+  );
+  useEffect(
+    () => subscribeByok(() => setByokCfg(getActiveByok())),
+    []
+  );
+  const byokActive = !!byokCfg;
+  const byokProvider = byokCfg ? getByokProvider(byokCfg.provider) : null;
+
+  const byokList = useMemo(() => {
+    if (!byokCfg || !byokProvider) return [];
+    const live = byokCfg.models?.[byokProvider.id];
+    return live && live.length > 0 ? live : byokProvider.models;
+  }, [byokCfg, byokProvider]);
+
+  const byokOptions: ModelOption[] = useMemo(
+    () =>
+      [...byokList]
+        .sort((a, b) => a.localeCompare(b))
+        .map((id) => ({ label: id, value: id })),
+    [byokList]
+  );
+
+  const [byokFetching, setByokFetching] = useState(false);
+  const refreshByokModels = useCallback(async () => {
+    if (!byokCfg || !byokProvider) return;
+    setByokFetching(true);
+    try {
+      const list = await fetchByokModels(byokProvider.id, byokCfg.apiKey);
+      if (list.length > 0) {
+        saveByokConfig({
+          ...byokCfg,
+          models: { ...(byokCfg.models ?? {}), [byokProvider.id]: list },
+        });
+      }
+    } catch {
+      // keep current list
+    } finally {
+      setByokFetching(false);
+    }
+  }, [byokCfg, byokProvider]);
+
+  // Fetch the provider catalog once per provider+key when none is cached.
+  const byokFetchedFor = useRef<string>("");
+  useEffect(() => {
+    if (!byokCfg || !byokProvider) return;
+    if ((byokCfg.models?.[byokProvider.id]?.length ?? 0) > 0) return;
+    const key = `${byokProvider.id}:${byokCfg.apiKey.slice(-8)}`;
+    if (byokFetchedFor.current === key) return;
+    byokFetchedFor.current = key;
+    void refreshByokModels();
+  }, [byokCfg, byokProvider, refreshByokModels]);
+
+  // Keep the stored BYOK model inside the current provider list.
+  useEffect(() => {
+    if (!byokCfg || !byokProvider || byokOptions.length === 0) return;
+    if (!byokOptions.some((o) => o.value === byokCfg.model)) {
+      saveByokConfig({ ...byokCfg, model: byokOptions[0].value });
+    }
+  }, [byokCfg, byokProvider, byokOptions]);
+
+  const setByokModel = useCallback((next: string) => {
+    const cfg = getByokConfig();
+    saveByokConfig({
+      provider: cfg?.provider ?? null,
+      model: next,
+      apiKey: cfg?.apiKey ?? "",
+      models: cfg?.models,
+    });
+  }, []);
+  // ── end BYOK ─────────────────────────────────────────────────────────────
 
   const {
     data: modelsData,
@@ -201,6 +288,7 @@ export const useChatModels = () => {
   }, [dynamicModelOptions, isFreeRole]);
 
   useEffect(() => {
+    if (byokActive) return; // BYOK selections live in localStorage, not here
     if (model === "default") return;
     if (modelsLoading) return; // don't reset while list still loading
     const allowed = modelOptions.some((option) => option.value === model);
@@ -214,7 +302,7 @@ export const useChatModels = () => {
         `"${missing}" is no longer available — reset to default.`
       );
     }
-  }, [model, modelOptions, modelsLoading, persistModel]);
+  }, [model, modelOptions, modelsLoading, persistModel, byokActive]);
 
   // Per-purpose defaults from Settings. "default" (or unset) means no
   // override — the composer's chat model is used for every turn.
@@ -243,7 +331,7 @@ export const useChatModels = () => {
     [model, imageModel, videoModel]
   );
 
-  return {
+  const base = {
     model,
     setModel,
     imageModel,
@@ -266,6 +354,30 @@ export const useChatModels = () => {
     // Re-export for callers that want the raw refetch:
     refetchModels: refetch,
   };
+
+  // BYOK override: the composer "+" → Model menu lists the user's provider
+  // models, the input card shows the selected provider model, and selections
+  // persist to localStorage (never the DB). resolveModelForPrompt collapses to
+  // the BYOK model — media prompts stay plain chat on the provider.
+  if (byokActive && byokCfg && byokProvider) {
+    const byokModel = byokCfg.model || byokOptions[0]?.value || "";
+    return {
+      ...base,
+      model: byokModel,
+      setModel: setByokModel,
+      resolveModelForPrompt: () => byokModel,
+      modelOptions: byokOptions,
+      modelsLoading: byokFetching && byokOptions.length === 0,
+      modelsTotal: byokOptions.length,
+      modelsUpdatedAt: null,
+      modelsStale: { offline: false, updatedAgo: "live from provider" },
+      modelResetNotice: null,
+      refreshModels: refreshByokModels,
+      modelsRefreshing: byokFetching,
+    };
+  }
+
+  return base;
 };
 
 export type ChatModelsApi = ReturnType<typeof useChatModels>;
