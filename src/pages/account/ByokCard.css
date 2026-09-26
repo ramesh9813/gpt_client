@@ -1,5 +1,19 @@
 .byok-card {
-  margin-top: 1.25rem;
+  margin-top: 0;
+  margin-bottom: 1.25rem;
+}
+
+/* Slightly stronger, always-visible borders on the AI provider card fields */
+.byok-card .account-select,
+.byok-card .input {
+  border: 1.5px solid var(--border);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+.byok-card .account-select:focus,
+.byok-card .input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 
 .byok-key-status {

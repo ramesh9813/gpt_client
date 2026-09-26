@@ -223,13 +223,6 @@ export const ByokCard = () => {
   return (
     <div className="account-card byok-card">
       <h3 className="account-card-title">AI provider</h3>
-      <p className="account-card-desc">
-        Chat using your own API key — OpenRouter, OpenAI, Google, Grok, Meta,
-        NVIDIA and more. Keys are stored only in this browser&apos;s local
-        storage (use &quot;Save key&quot; to keep one per provider) and are sent
-        with chat requests, never saved in the app&apos;s database. Pick
-        &quot;Default&quot; to use the built-in models instead.
-      </p>
       <div className="account-fields">
         <div>
           <label className="account-field-label" htmlFor="byok-provider">
@@ -377,11 +370,6 @@ export const ByokCard = () => {
                   </span>
                 ) : null}
               </div>
-              <span className="account-check-hint">
-                Chat, quiz (mcq), artifacts and Thinking mode run on your
-                provider; image/video/web-search tools stay on the built-in
-                models.
-              </span>
             </div>
           </>
         ) : null}

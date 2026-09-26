@@ -32,6 +32,8 @@ type ModelMenuProps = {
   onArtifactSelect?: () => void;
   researchArmed?: boolean;
   artifactArmed?: boolean;
+  onResearchDisarm?: () => void;
+  onArtifactDisarm?: () => void;
   // Toggleable composer modes shown ONLY here when disabled; once armed, the
   // matching icon appears on the input toolbar instead.
   webSearchArmed?: boolean;
@@ -65,6 +67,8 @@ export const ModelMenu = ({
   onArtifactSelect,
   researchArmed,
   artifactArmed,
+  onResearchDisarm,
+  onArtifactDisarm,
   webSearchArmed,
   onWebSearchToggle,
   mcqArmed,
@@ -136,26 +140,26 @@ export const ModelMenu = ({
           <button
             type="button"
             className="composer-option-btn"
-            onClick={openResearchList}
+            onClick={researchArmed ? onResearchDisarm : openResearchList}
             aria-pressed={researchArmed}
           >
             <i className="bi bi-compass composer-icon-blue"></i>
             <span>Deep Research</span>
             {researchArmed ? (
-              <span className="composer-option-badge">Armed</span>
+              <span className="composer-option-badge">On — tap to off</span>
             ) : null}
           </button>
           <button
             type="button"
             className="composer-option-btn"
-            onClick={selectArtifact}
+            onClick={artifactArmed ? onArtifactDisarm : selectArtifact}
             aria-pressed={artifactArmed}
             title="Generate an interactive artifact preview"
           >
             <i className="bi bi-window-stack composer-icon-orange"></i>
             <span>Artifact / Simulation</span>
             {artifactArmed ? (
-              <span className="composer-option-badge">Armed</span>
+              <span className="composer-option-badge">On — tap to off</span>
             ) : null}
           </button>
           <button

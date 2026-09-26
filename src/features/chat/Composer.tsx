@@ -230,17 +230,6 @@ const Composer = ({
         <ImageAttachments images={images} compressing={compressing} onRemove={removeImage} />
 
         <ComposerStatus
-          researchArmed={researchArmed}
-          currentModelLabel={currentModelLabel}
-          onClearResearch={() => setResearchArmed(false)}
-          artifactArmed={artifactArmed}
-          onClearArtifact={() => setArtifactArmed(false)}
-          webSearchArmed={webSearchArmed}
-          onClearWebSearch={() => setWebSearchArmed(false)}
-          mcqArmed={mcqArmed}
-          onClearMcq={() => setMcqArmed(false)}
-          thinkingArmed={thinkingArmed}
-          onClearThinking={() => setThinkingArmed(false)}
           listening={listening}
           error={error}
           listenError={listenError}
@@ -285,6 +274,8 @@ const Composer = ({
             onArtifactSelect={() => setArtifactArmed(true)}
             researchArmed={researchArmed}
             artifactArmed={artifactArmed}
+            onResearchDisarm={() => setResearchArmed(false)}
+            onArtifactDisarm={() => setArtifactArmed(false)}
             webSearchArmed={webSearchArmed}
             onWebSearchToggle={() => setWebSearchArmed((prev) => !prev)}
             thinkingArmed={thinkingArmed}

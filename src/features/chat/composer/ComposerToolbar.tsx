@@ -27,6 +27,8 @@ export interface ComposerToolbarProps {
   onArtifactSelect: () => void;
   researchArmed?: boolean;
   artifactArmed?: boolean;
+  onResearchDisarm?: () => void;
+  onArtifactDisarm?: () => void;
   webSearchArmed?: boolean;
   onWebSearchToggle: () => void;
   thinkingArmed?: boolean;
@@ -79,6 +81,8 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
     onArtifactSelect,
     researchArmed,
     artifactArmed,
+    onResearchDisarm,
+    onArtifactDisarm,
     webSearchArmed,
     onWebSearchToggle,
     thinkingArmed,
@@ -140,6 +144,8 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
           onArtifactSelect={onArtifactSelect}
           researchArmed={researchArmed}
           artifactArmed={artifactArmed}
+          onResearchDisarm={onResearchDisarm}
+          onArtifactDisarm={onArtifactDisarm}
           webSearchArmed={webSearchArmed}
           onWebSearchToggle={onWebSearchToggle}
           mcqArmed={mcqArmed}

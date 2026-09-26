@@ -115,21 +115,27 @@ export const SettingsTab = () => {
 
   return (
     <div className="account-narrow">
+      {/* Save control stays at the very top of Settings — above the AI
+          provider card — so it's always the first thing on screen. */}
+      <div className="account-settings-head">
+        <h2 className="account-section-title account-settings-title">Settings</h2>
+        <div className="account-settings-save">
+          {status ? <span className="account-status">{status}</span> : null}
+          <Button
+            type="button"
+            onClick={handleSubmit(onSubmit)}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Saving..." : "Save settings"}
+          </Button>
+        </div>
+      </div>
       {/* AI provider (add-on): provider/key/model picker stored in
           localStorage only — intentionally outside the settings form (which
-          saves to the DB). Shown at the top since it also drives which model
-          list the chat composer displays. */}
+          saves to the DB). Shown right under the header since it also drives
+          which model list the chat composer displays. */}
       <ByokCard />
       <form onSubmit={handleSubmit(onSubmit)} className="account-stack-lg">
-        <div className="account-settings-head">
-          <h2 className="account-section-title account-settings-title">Appearance</h2>
-          <div className="account-settings-save">
-            {status ? <span className="account-status">{status}</span> : null}
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : "Save settings"}
-            </Button>
-          </div>
-        </div>
         <div>
           <label className="account-field-label">Theme</label>
           <select
