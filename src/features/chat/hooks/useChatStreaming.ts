@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { getCsrfToken } from "../../../lib/api";
+import { getByokHeaders } from "../../../lib/byok";
 import type { ChatMessage } from "../MessageList";
 import {
   applyFollowupsEvent,
@@ -55,11 +56,17 @@ export const useChatStreaming = () => {
     const ctx: StreamEventCtx = { setMessages, tempAssistantId, isCancelled };
 
     try {
+      // BYOK: user-configured provider key (Settings > Add-on provider). When
+      // active, headers steer the server's chat turn to that provider and any
+      // OpenRouter model selection in the body is moot — send neither.
+      const byokHeaders = getByokHeaders();
+      const byokActive = Object.keys(byokHeaders).length > 0;
       const response = await fetch(`${apiBase}/api/chat/stream`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "x-csrf-token": getCsrfToken(),
+          ...byokHeaders,
         },
         credentials: "include",
         body: JSON.stringify({
@@ -68,7 +75,7 @@ export const useChatStreaming = () => {
           ...(images && images.length > 0 ? { images } : {}),
           existingUserMessageId,
           model:
-            selectedModel && selectedModel !== "default"
+            !byokActive && selectedModel && selectedModel !== "default"
               ? selectedModel
               : undefined,
           ...(research ? { research: true } : {}),

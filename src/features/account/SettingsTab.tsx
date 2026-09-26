@@ -29,6 +29,7 @@ import {
 } from "./settingsForm";
 import { useSettingsModels } from "./useSettingsModels";
 import { SettingsModelsFields } from "./SettingsModelsFields";
+import { ByokCard } from "./ByokCard";
 
 export type { SettingsFormValues } from "./settingsForm";
 
@@ -290,6 +291,9 @@ export const SettingsTab = () => {
           </div>
         </fieldset>
       </form>
+      {/* BYOK add-on: self-contained card, persisted to localStorage only —
+          intentionally outside the settings form (which saves to the DB). */}
+      <ByokCard />
     </div>
   );
 };

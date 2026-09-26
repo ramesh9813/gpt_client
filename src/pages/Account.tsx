@@ -8,6 +8,7 @@ import { apiFetch, clearAuthStorage } from "../lib/api";
 import { useMe } from "../lib/hooks";
 import { SettingsTab } from "../features/account/SettingsTab";
 import { UsageTab } from "../features/account/UsageTab";
+import ConnectedAppsTab from "../features/account/ConnectedAppsTab";
 
 export type Tab = "profile" | "settings" | "security" | "data_controls" | "payment" | "usage" | "connectapp";
 
@@ -17,7 +18,16 @@ const Account = () => {
   const { data: meData } = useMe();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<Tab>("profile");
+  // OAuth landing (?connector=canva) opens the Connected Apps tab directly.
+  const [activeTab, setActiveTab] = useState<Tab>(() => {
+    try {
+      return new URLSearchParams(window.location.search).get("connector")
+        ? "connectapp"
+        : "profile";
+    } catch {
+      return "profile";
+    }
+  });
   const [loading, setLoading] = useState(false);
 
   const logout = async () => {
@@ -149,15 +159,7 @@ const Account = () => {
       case "usage":
         return <UsageTab />;
       case "connectapp":
-        return (
-          <div className="account-narrow">
-            <h2 className="account-section-title">Connected Apps</h2>
-            <div className="account-empty-card">
-               <i className="bi bi-grid account-empty-icon"></i>
-              <p>You haven't connected any external applications.</p>
-            </div>
-          </div>
-        );
+        return <ConnectedAppsTab />;
       default:
         return null;
     }

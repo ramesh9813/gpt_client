@@ -1,0 +1,38 @@
+.byok-card {
+  margin-top: 1.25rem;
+}
+
+.byok-key-status {
+  display: inline-block;
+  margin-top: 0.4rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.byok-key-status--ok {
+  color: #16a34a;
+}
+
+.byok-key-status--bad {
+  color: #dc2626;
+}
+
+[data-theme="dark"] .byok-key-status--ok {
+  color: #4ade80;
+}
+
+[data-theme="dark"] .byok-key-status--bad {
+  color: #f87171;
+}
+
+.byok-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.byok-actions .byok-key-status {
+  margin-top: 0;
+}

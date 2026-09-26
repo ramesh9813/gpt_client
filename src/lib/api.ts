@@ -1,5 +1,9 @@
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
+// Base URL of the API server ("" = same origin). Exported for flows that
+// need a real top-level navigation (OAuth authorize) rather than fetch.
+export const getApiBase = () => API_BASE;
+
 let refreshPromise: Promise<boolean> | null = null;
 
 export const getStoredAccessToken = () =>
