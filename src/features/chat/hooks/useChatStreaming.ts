@@ -6,8 +6,10 @@ import type { ChatMessage } from "../MessageList";
 import {
   applyFollowupsEvent,
   applyImagesEvent,
+  applyNoticeEvent,
   applyQuizEvent,
   applyReasoningEvent,
+  applySourcesEvent,
   applyVideosEvent,
   type StreamEventCtx,
 } from "./streamEvents";
@@ -209,6 +211,12 @@ export const useChatStreaming = () => {
             }
             if (currentEvent === "videos") {
               if (applyVideosEvent(ctx, parsed)) return;
+            }
+            if (currentEvent === "sources") {
+              if (applySourcesEvent(ctx, parsed)) return;
+            }
+            if (currentEvent === "notice") {
+              if (applyNoticeEvent(ctx, parsed)) return;
             }
             if (currentEvent === "error") {
               if (isCancelled()) return;

@@ -1,0 +1,29 @@
+.admin-user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.admin-user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.admin-user-info {
+  min-width: 0;
+}
+
+.admin-user-role-pill {
+  flex-shrink: 0;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  background: var(--surface-hover, rgba(127, 127, 127, 0.15));
+  border: 1px solid var(--border);
+}
+
+.admin-user-role-select {
+  max-width: 8rem;
+}

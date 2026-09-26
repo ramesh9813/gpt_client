@@ -18,6 +18,19 @@
   margin-bottom: 0.5rem;
 }
 
+/* Score / progress lives at the BOTTOM of the card (with Next round). */
+.quiz-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.quiz-card-foot .quiz-card-next {
+  margin-top: 0;
+}
+
 .quiz-card-title {
   display: flex;
   align-items: center;

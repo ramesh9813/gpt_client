@@ -54,12 +54,6 @@ export const QuizCard = ({
             {quiz.topic ? ` • ${quiz.topic}` : ""}
           </span>
         </div>
-        <div
-          className={isRevealed ? "quiz-card-score" : "quiz-card-progress"}
-          aria-live="polite"
-        >
-          {isRevealed ? `${score}/${total}` : `${answeredCount}/${total} answered`}
-        </div>
       </div>
 
       <ol className="quiz-card-list">
@@ -135,17 +129,25 @@ export const QuizCard = ({
         })}
       </ol>
 
-      {isRevealed ? (
-        <button
-          type="button"
-          className="quiz-card-next"
-          onClick={onNextRound}
-          disabled={isDisabled}
-          aria-label={`Next round of ${quiz.topic || "quiz"}`}
+      <div className="quiz-card-foot">
+        <div
+          className={isRevealed ? "quiz-card-score" : "quiz-card-progress"}
+          aria-live="polite"
         >
-          Next round <span aria-hidden="true">→</span>
-        </button>
-      ) : null}
+          {isRevealed ? `Score ${score}/${total}` : `${answeredCount}/${total} answered`}
+        </div>
+        {isRevealed ? (
+          <button
+            type="button"
+            className="quiz-card-next"
+            onClick={onNextRound}
+            disabled={isDisabled}
+            aria-label={`Next round of ${quiz.topic || "quiz"}`}
+          >
+            Next round <span aria-hidden="true">→</span>
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 };

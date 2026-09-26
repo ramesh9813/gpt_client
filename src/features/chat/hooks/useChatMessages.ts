@@ -3,6 +3,16 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { apiFetch, ApiResponse } from "../../../lib/api";
 import { readWebSearchArmed } from "../sidebarState";
+
+// Thinking mode mirrors webSearch: sticky localStorage flag honored by
+// edits and regenerations too, not just fresh sends.
+export const readThinkingArmed = (): boolean => {
+  try {
+    return window.localStorage.getItem("chatapp.think.armed") === "true";
+  } catch {
+    return false;
+  }
+};
 import { readCachedMessages, writeCachedMessages } from "../chatCache";
 import type { ChatMessage, TurnKind } from "../message/types";
 import { detectRegenKind, detectTurnKind } from "./turnKind";
@@ -204,6 +214,7 @@ export const useChatMessages = ({
         existingUserMessageId: messageId,
         selectedModel: editModel,
         webSearch: readWebSearchArmed(),
+        think: readThinkingArmed(),
       });
     } catch (err: any) {
       if (cancelRef.current) {
@@ -270,6 +281,7 @@ export const useChatMessages = ({
         existingUserMessageId: userMessage.id,
         selectedModel: newModel,
         webSearch: readWebSearchArmed(),
+        think: readThinkingArmed(),
       });
     } catch (err: any) {
       if (cancelRef.current) {

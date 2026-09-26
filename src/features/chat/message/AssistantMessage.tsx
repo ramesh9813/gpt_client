@@ -69,6 +69,10 @@ export const AssistantMessage = memo(
       setShowReasoning(false);
     }
   }, [displayContent, showReasoning]);
+  // Web-search sources panel: collapsed by default; user expands to review.
+  const [showSources, setShowSources] = useState(false);
+  // Transient system notice banner (e.g. "search unavailable"): dismissible.
+  const [noticeDismissed, setNoticeDismissed] = useState(false);
   // Double fast click / double tap on the answer copies it immediately.
   const { copied, onDoubleClick, onTouchStart, onTouchEnd } = useDoubleCopy(
     () => displayContent || message.content
@@ -162,6 +166,21 @@ export const AssistantMessage = memo(
             )}
           </div>
         ) : null}
+        {message.notice && !noticeDismissed ? (
+          <div className="msg-notice" role="status">
+            <i className="bi bi-info-circle msg-notice-icon" aria-hidden="true" />
+            <span className="msg-notice-text">{message.notice}</span>
+            <button
+              type="button"
+              className="msg-notice-dismiss"
+              onClick={() => setNoticeDismissed(true)}
+              aria-label="Dismiss notice"
+              title="Dismiss"
+            >
+              <i className="bi bi-x" aria-hidden="true" />
+            </button>
+          </div>
+        ) : null}
         <MessageImages images={message.images} />
         <VideoBlock videos={message.videos} />
         {message.status === "STREAMING" && !displayContent && !message.quiz ? (
@@ -196,6 +215,50 @@ export const AssistantMessage = memo(
             onSelect={handleQuizSelect}
             onNextRound={handleNextRound}
           />
+        ) : null}
+        {message.sources && message.sources.length > 0 && message.status === "COMPLETE" ? (
+          <div className="msg-sources">
+            <button
+              type="button"
+              className="msg-sources-head"
+              onClick={() => setShowSources((prev) => !prev)}
+              aria-expanded={showSources}
+            >
+              <span className="msg-sources-title">
+                <i className="bi bi-globe msg-sources-icon" aria-hidden="true" />
+                <span>Sources ({message.sources.length})</span>
+              </span>
+              <i
+                className={`bi ${showSources ? "bi-chevron-up" : "bi-chevron-down"} msg-sources-toggle`}
+                aria-hidden="true"
+              />
+            </button>
+            {showSources && (
+              <ul className="msg-sources-list">
+                {message.sources.map((s, i) => (
+                  <li key={`${s.url}-${i}`} className="msg-sources-item">
+                    <a
+                      href={s.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="msg-sources-link"
+                    >
+                      <span className="msg-sources-title-text">{s.title}</span>
+                      <span className="msg-sources-domain">
+                        {(() => {
+                          try {
+                            return new URL(s.url).hostname.replace(/^www\./, "");
+                          } catch {
+                            return s.url;
+                          }
+                        })()}
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         ) : null}
         {message.followups && message.followups.length > 0 && message.status === "COMPLETE" ? (
           <div className="msg-followups">

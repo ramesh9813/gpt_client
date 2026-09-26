@@ -50,6 +50,54 @@ export const applyFollowupsEvent = (
   return false;
 };
 
+/** Applies a `sources` payload (web-search citations). Never aborts. */
+export const applySourcesEvent = (
+  ctx: StreamEventCtx,
+  parsed: unknown
+): boolean => {
+  if (ctx.isCancelled()) return true;
+  const items = (parsed as any).sources;
+  if (Array.isArray(items)) {
+    const cleaned = items
+      .filter(
+        (v): v is { title: string; url: string } =>
+          !!v && typeof v.url === "string" && v.url.length > 0
+      )
+      .map((v) => ({
+        url: v.url,
+        title:
+          typeof v.title === "string" && v.title.trim() ? v.title : v.url,
+      }));
+    if (cleaned.length > 0) {
+      ctx.setMessages((prev) =>
+        prev.map((m) =>
+          m.id === ctx.tempAssistantId
+            ? { ...m, sources: cleaned, usedSearch: true }
+            : m
+        )
+      );
+    }
+  }
+  return false;
+};
+
+/** Applies a `notice` payload (system banner, e.g. search unavailable). */
+export const applyNoticeEvent = (
+  ctx: StreamEventCtx,
+  parsed: unknown
+): boolean => {
+  if (ctx.isCancelled()) return true;
+  const message = (parsed as any).message;
+  if (typeof message === "string" && message.length > 0) {
+    ctx.setMessages((prev) =>
+      prev.map((m) =>
+        m.id === ctx.tempAssistantId ? { ...m, notice: message } : m
+      )
+    );
+  }
+  return false;
+};
+
 /** Applies a `quiz` payload. Returns true when the caller should abort. */
 export const applyQuizEvent = (
   ctx: StreamEventCtx,

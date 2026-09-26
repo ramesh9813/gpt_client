@@ -32,6 +32,14 @@ type ModelMenuProps = {
   onArtifactSelect?: () => void;
   researchArmed?: boolean;
   artifactArmed?: boolean;
+  // Toggleable composer modes shown ONLY here when disabled; once armed, the
+  // matching icon appears on the input toolbar instead.
+  webSearchArmed?: boolean;
+  onWebSearchToggle?: () => void;
+  mcqArmed?: boolean;
+  onMcqToggle?: () => void;
+  thinkingArmed?: boolean;
+  onThinkingToggle?: () => void;
   // Catalog freshness footer (from useChatModels):
   modelsTotal?: number;
   modelsUpdatedAt?: string | null;
@@ -57,6 +65,12 @@ export const ModelMenu = ({
   onArtifactSelect,
   researchArmed,
   artifactArmed,
+  webSearchArmed,
+  onWebSearchToggle,
+  mcqArmed,
+  onMcqToggle,
+  thinkingArmed,
+  onThinkingToggle,
   modelsTotal,
   modelsUpdatedAt,
   modelsStale,
@@ -147,10 +161,47 @@ export const ModelMenu = ({
           <button
             type="button"
             className="composer-option-btn"
-            onClick={onCloseMenu}
+            aria-pressed={webSearchArmed === true}
+            onClick={() => {
+              onWebSearchToggle?.();
+              if (!webSearchArmed) onCloseMenu();
+            }}
           >
-            <i className="bi bi-globe composer-icon-green"></i>
+            <i className={`bi ${webSearchArmed ? "bi-globe-americas" : "bi-globe"} composer-icon-green`}></i>
             <span>Web Search</span>
+            {webSearchArmed ? (
+              <span className="composer-option-badge">On</span>
+            ) : null}
+          </button>
+          <button
+            type="button"
+            className="composer-option-btn"
+            aria-pressed={mcqArmed === true}
+            onClick={() => {
+              onMcqToggle?.();
+              if (!mcqArmed) onCloseMenu();
+            }}
+          >
+            <i className="bi bi-patch-question composer-icon-purple"></i>
+            <span>Quiz (MCQ)</span>
+            {mcqArmed ? (
+              <span className="composer-option-badge">On</span>
+            ) : null}
+          </button>
+          <button
+            type="button"
+            className="composer-option-btn"
+            aria-pressed={thinkingArmed === true}
+            onClick={() => {
+              onThinkingToggle?.();
+              if (!thinkingArmed) onCloseMenu();
+            }}
+          >
+            <i className={`bi ${thinkingArmed ? "bi-lightbulb-fill" : "bi-lightbulb"} composer-icon-orange`}></i>
+            <span>Thinking</span>
+            {thinkingArmed ? (
+              <span className="composer-option-badge">On</span>
+            ) : null}
           </button>
           <button
             type="button"

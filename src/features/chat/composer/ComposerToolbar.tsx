@@ -140,6 +140,12 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
           onArtifactSelect={onArtifactSelect}
           researchArmed={researchArmed}
           artifactArmed={artifactArmed}
+          webSearchArmed={webSearchArmed}
+          onWebSearchToggle={onWebSearchToggle}
+          mcqArmed={mcqArmed}
+          onMcqToggle={onQuizClick}
+          thinkingArmed={thinkingArmed}
+          onThinkingToggle={onThinkingToggle}
         />
       )}
     </div>
@@ -182,54 +188,51 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
       <i className={`bi ${cameraOpen ? "bi-camera-fill" : "bi-camera"} composer-upload-icon`} aria-hidden="true" />
     </Button>
 
-    {/* MCQ quiz toggle — sticky quiz mode until explicitly cleared */}
-    <Button
-      variant="ghost"
-      className={`composer-upload-btn ${
-        mcqArmed ? "composer-upload-btn--armed" : ""
-      }`}
-      disabled={disabled || compressing}
-      aria-label={mcqArmed ? "Turn quiz mode off" : "Turn quiz mode on"}
-      aria-pressed={!!mcqArmed}
-      title={mcqArmed ? "Quiz mode on" : "Quiz mode off"}
-      onClick={onQuizClick}
-      type="button"
-    >
-      <i className="bi bi-patch-question composer-upload-icon" aria-hidden="true" />
-    </Button>
-
-    {/* Web search toggle — arms the OpenRouter web_search tool for this turn */}
-    <Button
-      variant="ghost"
-      className={`composer-upload-btn ${
-        webSearchArmed ? "composer-upload-btn--armed" : ""
-      }`}
-      disabled={disabled || compressing}
-      aria-label={webSearchArmed ? "Turn web search off" : "Turn web search on"}
-      aria-pressed={!!webSearchArmed}
-      title={webSearchArmed ? "Web search on" : "Web search off"}
-      onClick={onWebSearchToggle}
-      type="button"
-    >
-      <i className={`bi ${webSearchArmed ? "bi-globe-americas" : "bi-globe"} composer-upload-icon`} aria-hidden="true" />
-    </Button>
-
-    {/* Thinking toggle — asks reasoning-capable models to stream a thinking
-        trace (shown in the collapsible Thinking block above the answer) */}
-    {onThinkingToggle && (
+    {/* Armed-mode icons: MCQ / Web Search / Thinking live in the '+' menu by
+        default; each shows up here only while it is enabled (tap to turn
+        off). Nothing is rendered for disabled modes. */}
+    {mcqArmed && (
       <Button
         variant="ghost"
-        className={`composer-upload-btn ${
-          thinkingArmed ? "composer-upload-btn--armed" : ""
-        }`}
+        className="composer-upload-btn composer-upload-btn--armed"
         disabled={disabled || compressing}
-        aria-label={thinkingArmed ? "Turn thinking mode off" : "Turn thinking mode on"}
-        aria-pressed={!!thinkingArmed}
-        title={thinkingArmed ? "Thinking mode on" : "Thinking mode off"}
+        aria-label="Turn quiz mode off"
+        aria-pressed="true"
+        title="Quiz mode on"
+        onClick={onQuizClick}
+        type="button"
+      >
+        <i className="bi bi-patch-question composer-upload-icon" aria-hidden="true" />
+      </Button>
+    )}
+
+    {webSearchArmed && (
+      <Button
+        variant="ghost"
+        className="composer-upload-btn composer-upload-btn--armed"
+        disabled={disabled || compressing}
+        aria-label="Turn web search off"
+        aria-pressed="true"
+        title="Web search on"
+        onClick={onWebSearchToggle}
+        type="button"
+      >
+        <i className="bi bi-globe-americas composer-upload-icon" aria-hidden="true" />
+      </Button>
+    )}
+
+    {thinkingArmed && onThinkingToggle && (
+      <Button
+        variant="ghost"
+        className="composer-upload-btn composer-upload-btn--armed"
+        disabled={disabled || compressing}
+        aria-label="Turn thinking mode off"
+        aria-pressed="true"
+        title="Thinking mode on"
         onClick={onThinkingToggle}
         type="button"
       >
-        <i className={`bi ${thinkingArmed ? "bi-lightbulb-fill" : "bi-lightbulb"} composer-upload-icon`} aria-hidden="true" />
+        <i className="bi bi-lightbulb-fill composer-upload-icon" aria-hidden="true" />
       </Button>
     )}
 

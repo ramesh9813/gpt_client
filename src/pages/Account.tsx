@@ -9,8 +9,9 @@ import { useMe } from "../lib/hooks";
 import { SettingsTab } from "../features/account/SettingsTab";
 import { UsageTab } from "../features/account/UsageTab";
 import ConnectedAppsTab from "../features/account/ConnectedAppsTab";
+import AdminUsersTab from "../features/account/AdminUsersTab";
 
-export type Tab = "profile" | "settings" | "security" | "data_controls" | "payment" | "usage" | "connectapp";
+export type Tab = "profile" | "settings" | "security" | "data_controls" | "payment" | "usage" | "connectapp" | "users";
 
 export type AccountTab = Tab;
 
@@ -44,6 +45,7 @@ const Account = () => {
     }
   };
 
+  const isOwner = meData?.data?.user?.role === "owner";
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: "profile", label: "Profile", icon: "bi-person" },
     { id: "settings", label: "Settings", icon: "bi-gear" },
@@ -52,6 +54,8 @@ const Account = () => {
     { id: "payment", label: "Payment", icon: "bi-credit-card" },
     { id: "usage", label: "Usage", icon: "bi-graph-up" },
     { id: "connectapp", label: "Connected Apps", icon: "bi-grid" },
+    // Owner-only console: promote/demote users.
+    ...(isOwner ? [{ id: "users" as Tab, label: "Users", icon: "bi-people" }] : []),
   ];
 
   const renderContent = () => {
@@ -160,6 +164,8 @@ const Account = () => {
         return <UsageTab />;
       case "connectapp":
         return <ConnectedAppsTab />;
+      case "users":
+        return <AdminUsersTab selfId={meData?.data?.user?.id} />;
       default:
         return null;
     }
