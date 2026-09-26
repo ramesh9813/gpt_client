@@ -47,6 +47,7 @@ export const ByokCard = () => {
   const [apiKey, setApiKey] = useState<string>(stored?.apiKey ?? "");
   const [showKey, setShowKey] = useState(false);
   const [keySavedAt, setKeySavedAt] = useState<number | null>(null);
+  const [loadNote, setLoadNote] = useState<string | null>(null);
   const [modelsByProvider, setModelsByProvider] = useState<
     Partial<Record<ByokProviderId, string[]>>
   >(stored?.models ?? {});
@@ -134,6 +135,7 @@ export const ByokCard = () => {
     setProviderId(nextId);
     setVerifyState(null);
     setKeySavedAt(null);
+    setLoadNote(null);
     setShowKey(false);
     // Auto-load this provider's previously saved key (if the user saved one).
     setApiKey(nextId ? (savedKeys[nextId] ?? "") : "");
@@ -143,6 +145,24 @@ export const ByokCard = () => {
             nextProvider.models[0] ??
             "")
         : ""
+    );
+  };
+
+  // "Load saved": re-read localStorage (source of truth, survives reloads and
+  // other tabs) and drop this provider's saved key back into the field.
+  const loadKey = () => {
+    if (!provider) return;
+    const storedNow = getByokConfig();
+    const fromStore = storedNow?.apiKeys?.[provider.id] ?? "";
+    const known =
+      fromStore || savedKeys[provider.id] || "";
+    setApiKey(known);
+    setVerifyState(null);
+    setKeySavedAt(null);
+    setLoadNote(
+      known
+        ? "Loaded the locally saved key."
+        : "No saved key for this provider on this device."
     );
   };
 
@@ -280,6 +300,7 @@ export const ByokCard = () => {
                     setApiKey(e.target.value);
                     setVerifyState(null);
                     setKeySavedAt(null);
+                    setLoadNote(null);
                   }}
                 />
                 <button
@@ -326,6 +347,14 @@ export const ByokCard = () => {
                 <Button
                   type="button"
                   variant="outline"
+                  onClick={loadKey}
+                  disabled={!provider}
+                >
+                  Load saved
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={verify}
                   disabled={!keySupported || verifying}
                 >
@@ -340,6 +369,11 @@ export const ByokCard = () => {
                     }`}
                   >
                     {verifyState.message}
+                  </span>
+                ) : null}
+                {!verifyState && loadNote ? (
+                  <span className="byok-key-status byok-key-status--ok">
+                    {loadNote}
                   </span>
                 ) : null}
               </div>
