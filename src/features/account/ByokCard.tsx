@@ -80,8 +80,10 @@ export const ByokCard = () => {
     });
   }, [providerId, model, savedKeys, modelsByProvider]);
 
-  // Live model catalog: fetch on provider select (keyless providers), and
-  // again whenever a SAVED key is well-formed. Newest request wins.
+  // Live model catalog: fetched IMMEDIATELY on provider select — keyless
+  // providers (OpenRouter/NVIDIA) need nothing; keyed providers fetch as soon
+  // as the typed or saved key passes the format check (typing is enough — no
+  // save needed just to populate the list). Newest request wins.
   useEffect(() => {
     if (!provider) {
       setModelsLoading(false);
@@ -91,12 +93,12 @@ export const ByokCard = () => {
     const withKey =
       savedKey && isByokKeyFormatSupported(provider, savedKey)
         ? savedKey.trim()
-        : undefined;
+        : keySupported
+          ? apiKey.trim()
+          : undefined;
     if (!provider.modelsPublic && !withKey) {
       setModelsNote(
-        savedKeys[provider.id] === undefined
-          ? `Enter and save your ${provider.name} API key to load its live model list.`
-          : "Saved key format changed — save again to refresh the live model list."
+        `Enter your ${provider.name} API key (format is checked live) to load its live model list.`
       );
       return;
     }
@@ -124,7 +126,7 @@ export const ByokCard = () => {
         );
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [providerId, savedKey]);
+  }, [providerId, savedKey, keySupported, apiKey]);
 
   const onProviderChange = (next: string) => {
     const nextProvider = getByokProvider(next || null);
@@ -256,7 +258,7 @@ export const ByokCard = () => {
               </select>
               <span className="account-check-hint">
                 {modelsNote ??
-                  "Live list from the provider; refreshes automatically once your key is saved."}
+                  "Live list from the provider; refreshes as soon as a valid key is entered."}
               </span>
             </div>
             <div>
