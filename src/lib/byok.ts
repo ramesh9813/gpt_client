@@ -15,7 +15,13 @@ export type ByokProviderId =
   | "google"
   | "grok"
   | "meta"
-  | "nvidia";
+  | "nvidia"
+  | "deepseek"
+  | "qwen"
+  | "moonshot"
+  | "groq"
+  | "mistral"
+  | "anthropic";
 
 export type ByokProviderInfo = {
   id: ByokProviderId;
@@ -108,6 +114,76 @@ export const BYOK_PROVIDERS: ByokProviderInfo[] = [
       "mistralai/mistral-large-2-instruct",
       "qwen/qwen3-235b-a22b",
     ],
+  },
+  {
+    id: "deepseek",
+    name: "DeepSeek",
+    keyHint: "sk-...",
+    keyPattern: /^sk-[A-Za-z0-9]{20,}$/,
+    modelsPublic: false,
+    models: ["deepseek-chat", "deepseek-reasoner"],
+  },
+  {
+    id: "qwen",
+    name: "Qwen (Alibaba)",
+    keyHint: "sk-...",
+    keyPattern: /^sk-[A-Za-z0-9]{20,}$/,
+    modelsPublic: false,
+    models: [
+      "qwen-max",
+      "qwen-plus",
+      "qwen-turbo",
+      "qwen3-235b-a22b",
+      "qwen3-30b-a3b",
+    ],
+  },
+  {
+    id: "moonshot",
+    name: "Moonshot (Kimi)",
+    keyHint: "sk-...",
+    keyPattern: /^sk-[A-Za-z0-9]{20,}$/,
+    modelsPublic: false,
+    models: [
+      "kimi-k2-0711-preview",
+      "kimi-latest",
+      "moonshot-v1-8k",
+      "moonshot-v1-32k",
+      "moonshot-v1-128k",
+    ],
+  },
+  {
+    id: "groq",
+    name: "Groq",
+    keyHint: "gsk_...",
+    keyPattern: /^gsk_[A-Za-z0-9]{20,}$/,
+    modelsPublic: false,
+    models: [
+      "llama-3.3-70b-versatile",
+      "llama-3.1-8b-instant",
+      "qwen-qwq-32b",
+      "deepseek-r1-distill-llama-70b",
+    ],
+  },
+  {
+    id: "mistral",
+    name: "Mistral AI",
+    keyHint: "30+ character token",
+    keyPattern: /^[A-Za-z0-9]{30,}$/,
+    modelsPublic: false,
+    models: [
+      "mistral-large-latest",
+      "mistral-medium-latest",
+      "mistral-small-latest",
+      "codestral-latest",
+    ],
+  },
+  {
+    id: "anthropic",
+    name: "Anthropic (Claude)",
+    keyHint: "sk-ant-...",
+    keyPattern: /^sk-ant-[A-Za-z0-9_-]{20,}$/,
+    modelsPublic: false,
+    models: ["claude-sonnet-4-5", "claude-opus-4-1", "claude-haiku-4-5"],
   },
 ];
 
