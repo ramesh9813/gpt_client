@@ -340,6 +340,10 @@ export const useChatModels = () => {
     sortBy,
     setSortBy,
     modelOptions,
+    // Role gates: general users must chat via their own BYOK provider key.
+    currentUserRole: currentRole,
+    isGeneralUser: currentRole === "user",
+    byokActive: false,
     modelsLoading,
     modelsData,
     // Catalog freshness footer data:
@@ -361,21 +365,22 @@ export const useChatModels = () => {
   // the BYOK model — media prompts stay plain chat on the provider.
   if (byokActive && byokCfg && byokProvider) {
     const byokModel = byokCfg.model || byokOptions[0]?.value || "";
-    return {
-      ...base,
-      model: byokModel,
-      setModel: setByokModel,
-      resolveModelForPrompt: () => byokModel,
-      modelOptions: byokOptions,
-      modelsLoading: byokFetching && byokOptions.length === 0,
-      modelsTotal: byokOptions.length,
-      modelsUpdatedAt: null,
-      modelsStale: { offline: false, updatedAgo: "live from provider" },
-      modelResetNotice: null,
-      refreshModels: refreshByokModels,
-      modelsRefreshing: byokFetching,
-    };
-  }
+      return {
+        ...base,
+        model: byokModel,
+        setModel: setByokModel,
+        resolveModelForPrompt: () => byokModel,
+        modelOptions: byokOptions,
+        byokActive: true,
+        modelsLoading: byokFetching && byokOptions.length === 0,
+        modelsTotal: byokOptions.length,
+        modelsUpdatedAt: null,
+        modelsStale: { offline: false, updatedAgo: "live from provider" },
+        modelResetNotice: null,
+        refreshModels: refreshByokModels,
+        modelsRefreshing: byokFetching,
+      };
+    }
 
   return base;
 };
