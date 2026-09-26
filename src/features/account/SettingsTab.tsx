@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "../../components/Button";
 import { apiFetch } from "../../lib/api";
-import { useSettings } from "../../lib/hooks";
+import { useMe, useSettings } from "../../lib/hooks";
 import {
   applyTheme,
   APP_FONT_MIN,
@@ -35,6 +35,10 @@ export type { SettingsFormValues } from "./settingsForm";
 
 export const SettingsTab = () => {
   const { data } = useSettings();
+  const { data: meData } = useMe();
+  // General users pick a model in the AI provider card (their own key);
+  // the built-in model dropdowns are owner/admin only.
+  const isGeneralUser = meData?.data?.user?.role === "user";
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<string | null>(null);
   const {
@@ -136,112 +140,121 @@ export const SettingsTab = () => {
           which model list the chat composer displays. */}
       <ByokCard />
       <form onSubmit={handleSubmit(onSubmit)} className="account-stack-lg">
-        <div>
-          <label className="account-field-label">Theme</label>
-          <select
-            className="account-select"
-            {...register("theme")}
-          >
-            <option value="SYSTEM">System</option>
-            <option value="DARK">Dark</option>
-            <option value="LIGHT">Light</option>
-          </select>
-        </div>
-        <div>
-          <label className="account-field-label" htmlFor="chat-font-size">
-            Chat font size{" "}
-            <span className="account-font-size-value">
-              {FONT_STEP_SIZES[toFontStep(watch("fontScale"))]}px ·{" "}
-              {FONT_STEP_LABELS[toFontStep(watch("fontScale"))]}
-            </span>
-          </label>
-          <input
-            id="chat-font-size"
-            type="range"
-            min={0}
-            max={FONT_STEPS.length - 1}
-            step={1}
-            value={FONT_STEPS.indexOf(toFontStep(watch("fontScale")))}
-            onChange={(e) =>
-              setValue("fontScale", FONT_STEPS[Number(e.target.value)], {
-                shouldDirty: true,
-                shouldValidate: true,
-              })
-            }
-            className="account-range"
-            aria-valuetext={`${FONT_STEP_LABELS[toFontStep(watch("fontScale"))]} ${FONT_STEP_SIZES[toFontStep(watch("fontScale"))]} pixels`}
-          />
-          <div className="account-range-ends" aria-hidden="true">
-            <span className="account-range-end-small">A</span>
-            <span className="account-range-end-large">A</span>
+        <div className="account-card">
+          <h3 className="account-card-title">Appearance</h3>
+          <div className="account-fields">
+            <div>
+              <label className="account-field-label">Theme</label>
+              <select
+                className="account-select"
+                {...register("theme")}
+              >
+                <option value="SYSTEM">System</option>
+                <option value="DARK">Dark</option>
+                <option value="LIGHT">Light</option>
+              </select>
+            </div>
+            <div>
+              <label className="account-field-label" htmlFor="chat-font-size">
+                Chat font size{" "}
+                <span className="account-font-size-value">
+                  {FONT_STEP_SIZES[toFontStep(watch("fontScale"))]}px ·{" "}
+                  {FONT_STEP_LABELS[toFontStep(watch("fontScale"))]}
+                </span>
+              </label>
+              <input
+                id="chat-font-size"
+                type="range"
+                min={0}
+                max={FONT_STEPS.length - 1}
+                step={1}
+                value={FONT_STEPS.indexOf(toFontStep(watch("fontScale")))}
+                onChange={(e) =>
+                  setValue("fontScale", FONT_STEPS[Number(e.target.value)], {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+                className="account-range"
+                aria-valuetext={`${FONT_STEP_LABELS[toFontStep(watch("fontScale"))]} ${FONT_STEP_SIZES[toFontStep(watch("fontScale"))]} pixels`}
+              />
+              <div className="account-range-ends" aria-hidden="true">
+                <span className="account-range-end-small">A</span>
+                <span className="account-range-end-large">A</span>
+              </div>
+            </div>
+            <div>
+              <label className="account-field-label" htmlFor="app-font-size">
+                App font size{" "}
+                <span className="account-font-size-value">
+                  {clampAppFontSize(watch("appFontSize"))}px
+                </span>
+              </label>
+              <input
+                id="app-font-size"
+                type="range"
+                min={APP_FONT_MIN}
+                max={APP_FONT_MAX}
+                step={1}
+                value={clampAppFontSize(watch("appFontSize"))}
+                onChange={(e) =>
+                  setValue("appFontSize", Number(e.target.value), {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+                className="account-range"
+                aria-valuetext={`${clampAppFontSize(watch("appFontSize"))} pixels overall app font`}
+              />
+              <div className="account-range-ends" aria-hidden="true">
+                <span className="account-range-end-small">A</span>
+                <span className="account-range-end-large">A</span>
+              </div>
+            </div>
+            <div>
+              <label className="account-field-label" htmlFor="icon-size">
+                Icon size{" "}
+                <span className="account-font-size-value">
+                  {Math.round(clampIconScale(watch("iconScale")) * 100)}%
+                </span>
+              </label>
+              <input
+                id="icon-size"
+                type="range"
+                min={ICON_SCALE_MIN}
+                max={ICON_SCALE_MAX}
+                step={0.05}
+                value={clampIconScale(watch("iconScale"))}
+                onChange={(e) =>
+                  setValue("iconScale", Math.round(Number(e.target.value) * 100) / 100, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+                className="account-range"
+                aria-valuetext={`${Math.round(clampIconScale(watch("iconScale")) * 100)} percent icon size`}
+              />
+              <div className="account-range-ends" aria-hidden="true">
+                <span className="account-range-end-small">
+                  <i className="bi bi-emoji-smile" aria-hidden="true" />
+                </span>
+                <span className="account-range-end-large">
+                  <i className="bi bi-emoji-smile" aria-hidden="true" />
+                </span>
+              </div>
+            </div>
           </div>
         </div>
-        <div>
-          <label className="account-field-label" htmlFor="app-font-size">
-            App font size{" "}
-            <span className="account-font-size-value">
-              {clampAppFontSize(watch("appFontSize"))}px
-            </span>
-          </label>
-          <input
-            id="app-font-size"
-            type="range"
-            min={APP_FONT_MIN}
-            max={APP_FONT_MAX}
-            step={1}
-            value={clampAppFontSize(watch("appFontSize"))}
-            onChange={(e) =>
-              setValue("appFontSize", Number(e.target.value), {
-                shouldDirty: true,
-                shouldValidate: true,
-              })
-            }
-            className="account-range"
-            aria-valuetext={`${clampAppFontSize(watch("appFontSize"))} pixels overall app font`}
-          />
-          <div className="account-range-ends" aria-hidden="true">
-            <span className="account-range-end-small">A</span>
-            <span className="account-range-end-large">A</span>
+        {!isGeneralUser ? (
+          <div className="account-card">
+            <SettingsModelsFields
+              register={register}
+              chatModelOptions={chatModelOptions}
+              imageModelOptions={imageModelOptions}
+              videoModelOptions={videoModelOptions}
+            />
           </div>
-        </div>
-        <div>
-          <label className="account-field-label" htmlFor="icon-size">
-            Icon size{" "}
-            <span className="account-font-size-value">
-              {Math.round(clampIconScale(watch("iconScale")) * 100)}%
-            </span>
-          </label>
-          <input
-            id="icon-size"
-            type="range"
-            min={ICON_SCALE_MIN}
-            max={ICON_SCALE_MAX}
-            step={0.05}
-            value={clampIconScale(watch("iconScale"))}
-            onChange={(e) =>
-              setValue("iconScale", Math.round(Number(e.target.value) * 100) / 100, {
-                shouldDirty: true,
-                shouldValidate: true,
-              })
-            }
-            className="account-range"
-            aria-valuetext={`${Math.round(clampIconScale(watch("iconScale")) * 100)} percent icon size`}
-          />
-          <div className="account-range-ends" aria-hidden="true">
-            <span className="account-range-end-small">
-              <i className="bi bi-emoji-smile" aria-hidden="true" />
-            </span>
-            <span className="account-range-end-large">
-              <i className="bi bi-emoji-smile" aria-hidden="true" />
-            </span>
-          </div>
-        </div>
-        <SettingsModelsFields
-          register={register}
-          chatModelOptions={chatModelOptions}
-          imageModelOptions={imageModelOptions}
-          videoModelOptions={videoModelOptions}
-        />
+        ) : null}
         <div>
           <label className="account-check-row">
             <input

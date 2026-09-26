@@ -16,8 +16,8 @@ export const SettingsModelsFields = ({
   videoModelOptions,
 }: SettingsModelsFieldsProps) => {
   return (
-    <fieldset>
-      <legend className="account-field-label">Models</legend>
+    <fieldset className="account-card-fieldset">
+      <legend className="account-card-title">Default models</legend>
       <div className="account-fields">
         <div>
           <label className="account-field-label" htmlFor="settings-chat-model">

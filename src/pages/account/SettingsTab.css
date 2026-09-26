@@ -26,6 +26,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+  margin-bottom: 1.25rem;
 }
 .account-settings-title {
   margin-bottom: 0;
@@ -267,6 +268,19 @@
 .account-range-end-large {
   font-size: 1.125rem;
   line-height: 1.75rem;
+}
+
+/* Card-embedded fieldset (Default models): strip native fieldset chrome
+   so the card padding is the only container. Legend renders as card title. */
+.account-card-fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.account-card-fieldset > legend.account-card-title {
+  padding: 0;
+  margin-bottom: 1rem;
 }
 
 /* Form actions: flex items-center gap-3 pt-2 */
