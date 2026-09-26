@@ -70,8 +70,10 @@ export const BYOK_PROVIDERS: ByokProviderInfo[] = [
   {
     id: "google",
     name: "Google Gemini",
-    keyHint: "AIza...",
-    keyPattern: /^AIza[A-Za-z0-9_-]{30,}$/,
+    // Legacy keys start "AIza"; newer AI Studio keys look like "AQ.…"
+    // (dot-containing). Accept both formats.
+    keyHint: "AIza... or AQ....",
+    keyPattern: /^(AIza[A-Za-z0-9_-]{20,}|[A-Za-z0-9][A-Za-z0-9_.-]{24,})$/,
     modelsPublic: false,
     models: [
       "gemini-2.5-flash",
