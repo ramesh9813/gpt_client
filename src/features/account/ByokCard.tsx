@@ -21,17 +21,32 @@ type ValidateResult = {
 
 type VerifyState = { ok: boolean; message: string } | null;
 
-// Add-on provider card (top of the Settings tab): pick a provider, paste your
-// own API key, pick one of its live models — chats then run on that provider
-// with that key. Everything is persisted to localStorage only; the key never
-// touches the app's database.
+// AI provider card (top of the Settings tab): pick a provider, save your own
+// API key for it (per-provider, localStorage only), pick one of its live
+// models — chats then run on that provider with that key. The key is never
+// saved in the app's database; it only travels as a header on chat requests.
 export const ByokCard = () => {
   const stored = getByokConfig();
   const [providerId, setProviderId] = useState<ByokProviderId | "">(
     stored?.provider ?? ""
   );
   const [model, setModel] = useState<string>(stored?.model ?? "");
+  // Saved keys per provider (persisted) + the in-flight edit for the current
+  // provider. Chat only uses SAVED keys; typing alone changes nothing.
+  const [savedKeys, setSavedKeys] = useState<
+    Partial<Record<ByokProviderId, string>>
+  >(() => {
+    const map = { ...(stored?.apiKeys ?? {}) };
+    // Migrate pre-per-provider-key configs: a top-level apiKey on the active
+    // provider becomes that provider's saved key instead of getting wiped.
+    if (stored?.provider && stored.apiKey && !map[stored.provider]) {
+      map[stored.provider] = stored.apiKey;
+    }
+    return map;
+  });
   const [apiKey, setApiKey] = useState<string>(stored?.apiKey ?? "");
+  const [showKey, setShowKey] = useState(false);
+  const [keySavedAt, setKeySavedAt] = useState<number | null>(null);
   const [modelsByProvider, setModelsByProvider] = useState<
     Partial<Record<ByokProviderId, string[]>>
   >(stored?.models ?? {});
@@ -47,32 +62,41 @@ export const ByokCard = () => {
   const modelOptions =
     liveList && liveList.length > 0 ? liveList : (provider?.models ?? []);
 
+  const savedKey = provider ? (savedKeys[provider.id] ?? "") : "";
   const keySupported = provider
     ? isByokKeyFormatSupported(provider, apiKey)
     : false;
+  const keyIsSaved = keySupported && apiKey.trim() === savedKey.trim() && savedKey.length > 0;
 
-  // Persist every change straight to localStorage (no server round-trip).
+  // Persist provider/model + saved-keys map to localStorage (per-key saves are
+  // explicit via "Save key"; typing alone never activates a draft key).
   useEffect(() => {
     saveByokConfig({
       provider: providerId || null,
       model,
-      apiKey,
+      apiKey: providerId ? (savedKeys[providerId] ?? "") : "",
+      apiKeys: savedKeys,
       models: modelsByProvider,
     });
-  }, [providerId, model, apiKey, modelsByProvider]);
+  }, [providerId, model, savedKeys, modelsByProvider]);
 
   // Live model catalog: fetch on provider select (keyless providers), and
-  // again whenever the key becomes well-formed. Newest request wins.
+  // again whenever a SAVED key is well-formed. Newest request wins.
   useEffect(() => {
     if (!provider) {
       setModelsLoading(false);
       setModelsNote(null);
       return;
     }
-    const withKey = keySupported ? apiKey.trim() : undefined;
+    const withKey =
+      savedKey && isByokKeyFormatSupported(provider, savedKey)
+        ? savedKey.trim()
+        : undefined;
     if (!provider.modelsPublic && !withKey) {
       setModelsNote(
-        `Enter your ${provider.name} API key to load its live model list.`
+        savedKeys[provider.id] === undefined
+          ? `Enter and save your ${provider.name} API key to load its live model list.`
+          : "Saved key format changed — save again to refresh the live model list."
       );
       return;
     }
@@ -99,15 +123,41 @@ export const ByokCard = () => {
           "Could not load the live list — showing a built-in shortlist."
         );
       });
-  }, [provider, keySupported, apiKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [providerId, savedKey]);
 
   const onProviderChange = (next: string) => {
     const nextProvider = getByokProvider(next || null);
-    setProviderId((nextProvider?.id ?? "") as ByokProviderId | "");
+    const nextId = (nextProvider?.id ?? "") as ByokProviderId | "";
+    setProviderId(nextId);
     setVerifyState(null);
-    // A provider switch invalidates the previous key/model selection.
-    setApiKey("");
-    setModel(nextProvider ? (modelsByProvider[nextProvider.id]?.[0] ?? nextProvider.models[0] ?? "") : "");
+    setKeySavedAt(null);
+    setShowKey(false);
+    // Auto-load this provider's previously saved key (if the user saved one).
+    setApiKey(nextId ? (savedKeys[nextId] ?? "") : "");
+    setModel(
+      nextProvider
+        ? (modelsByProvider[nextProvider.id]?.[0] ??
+            nextProvider.models[0] ??
+            "")
+        : ""
+    );
+  };
+
+  const saveKey = () => {
+    if (!provider) return;
+    const trimmed = apiKey.trim();
+    const next = { ...savedKeys };
+    if (trimmed) next[provider.id] = trimmed;
+    else delete next[provider.id];
+    setSavedKeys(next);
+    setKeySavedAt(Date.now());
+    if (trimmed && !verifyState) {
+      setVerifyState({
+        ok: true,
+        message: "Key saved locally — chats now use it with the selected model.",
+      });
+    }
   };
 
   const verify = async () => {
@@ -128,10 +178,16 @@ export const ByokCard = () => {
         setModelsByProvider((prev) => ({ ...prev, [provider.id]: d.models }));
         if (!d.models.includes(model)) setModel(d.models[0]);
       }
+      const ok = Boolean(d?.supported);
       setVerifyState({
-        ok: Boolean(d?.supported),
+        ok,
         message: d?.message || "",
       });
+      // A verified key is clearly intended for use — persist it locally.
+      if (ok) {
+        setSavedKeys((prev) => ({ ...prev, [provider.id]: apiKey.trim() }));
+        setKeySavedAt(Date.now());
+      }
     } catch {
       setVerifyState({
         ok: false,
@@ -146,10 +202,11 @@ export const ByokCard = () => {
     <div className="account-card byok-card">
       <h3 className="account-card-title">AI provider</h3>
       <p className="account-card-desc">
-        Chat using your own API key — OpenRouter, OpenAI, Google, Grok, Meta or
-        NVIDIA. The key is stored only in this browser&apos;s local storage and
-        is sent with chat requests, never saved in the app&apos;s database.
-        Pick &quot;Default&quot; to use the built-in models instead.
+        Chat using your own API key — OpenRouter, OpenAI, Google, Grok, Meta,
+        NVIDIA and more. Keys are stored only in this browser&apos;s local
+        storage (use &quot;Save key&quot; to keep one per provider) and are sent
+        with chat requests, never saved in the app&apos;s database. Pick
+        &quot;Default&quot; to use the built-in models instead.
       </p>
       <div className="account-fields">
         <div>
@@ -199,7 +256,7 @@ export const ByokCard = () => {
               </select>
               <span className="account-check-hint">
                 {modelsNote ??
-                  "Live list from the provider; updates automatically once your key is entered."}
+                  "Live list from the provider; refreshes automatically once your key is saved."}
               </span>
             </div>
             <div>
@@ -209,18 +266,33 @@ export const ByokCard = () => {
                   {provider.keyHint}
                 </span>
               </label>
-              <Input
-                id="byok-key"
-                type="password"
-                autoComplete="off"
-                spellCheck={false}
-                placeholder={`Enter your ${provider.name} API key`}
-                value={apiKey}
-                onChange={(e) => {
-                  setApiKey(e.target.value);
-                  setVerifyState(null);
-                }}
-              />
+              <div className="byok-key-wrap">
+                <Input
+                  id="byok-key"
+                  type={showKey ? "text" : "password"}
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder={`Enter your ${provider.name} API key`}
+                  value={apiKey}
+                  onChange={(e) => {
+                    setApiKey(e.target.value);
+                    setVerifyState(null);
+                    setKeySavedAt(null);
+                  }}
+                />
+                <button
+                  type="button"
+                  className="byok-key-eye"
+                  onClick={() => setShowKey((s) => !s)}
+                  aria-label={showKey ? "Hide API key" : "Show API key"}
+                  title={showKey ? "Hide API key" : "Show API key"}
+                >
+                  <i
+                    className={`bi ${showKey ? "bi-eye-slash" : "bi-eye"}`}
+                    aria-hidden="true"
+                  />
+                </button>
+              </div>
               {apiKey.trim().length > 0 ? (
                 <span
                   className={`byok-key-status ${
@@ -230,11 +302,25 @@ export const ByokCard = () => {
                   }`}
                 >
                   {keySupported
-                    ? "Supported — your chats now use this key with the selected model."
+                    ? keyIsSaved
+                      ? "Supported & saved — your chats use this key."
+                      : "Supported format — press Save key to use it."
                     : `This doesn't look like a ${provider.name} key (expected ${provider.keyHint}).`}
+                </span>
+              ) : savedKey ? (
+                <span className="byok-key-status byok-key-status--ok">
+                  Saved key in use.{" "}
                 </span>
               ) : null}
               <div className="byok-actions">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={saveKey}
+                  disabled={!provider || (apiKey.trim().length > 0 && !keySupported)}
+                >
+                  {keySavedAt ? "Saved ✓" : "Save key"}
+                </Button>
                 <Button
                   type="button"
                   variant="outline"
@@ -256,8 +342,9 @@ export const ByokCard = () => {
                 ) : null}
               </div>
               <span className="account-check-hint">
-                Image/video/quiz tools always use the built-in models; your key
-                is used for plain text chats.
+                Chat, quiz (mcq), artifacts and Thinking mode run on your
+                provider; image/video/web-search tools stay on the built-in
+                models.
               </span>
             </div>
           </>

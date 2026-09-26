@@ -36,6 +36,8 @@ export type ChatMessage = {
   videos?: string[];
   followups?: string[];
   quiz?: QuizRound;
+  // Wall-clock time the assistant turn took (ms), set when the turn settles.
+  durationMs?: number | null;
 };
 
 export type ModelOption = { label: string; value: string };

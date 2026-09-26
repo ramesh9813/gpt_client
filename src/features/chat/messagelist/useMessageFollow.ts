@@ -6,6 +6,12 @@ type UseMessageFollowOptions = {
   activeStreamId?: string | null;
   conversationKey?: string;
   onScrollDirection?: (direction: "up" | "down") => void;
+  onScrollState?: (state: {
+    atBottom: boolean;
+    atTop: boolean;
+    canScroll: boolean;
+    lastDir: "up" | "down";
+  }) => void;
 };
 
 export const useMessageFollow = ({
@@ -13,14 +19,18 @@ export const useMessageFollow = ({
   activeStreamId,
   conversationKey,
   onScrollDirection,
+  onScrollState,
 }: UseMessageFollowOptions) => {
   const listRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
   const [atTop, setAtTop] = useState(true);
   const [canScroll, setCanScroll] = useState(false);
   const lastScrollTop = useRef(0);
+  const lastScrollDir = useRef<"up" | "down">("down");
   const onScrollDirectionRef = useRef(onScrollDirection);
   onScrollDirectionRef.current = onScrollDirection;
+  const onScrollStateRef = useRef(onScrollState);
+  onScrollStateRef.current = onScrollState;
 
   // Set when the user deliberately scrolls away from the live edge: auto-follow
   // must yield until they return to the bottom (or tap jump-to-bottom).
@@ -155,12 +165,22 @@ export const useMessageFollow = ({
       if (cb) {
         if (curr < 64) {
           cb("up");
+          lastScrollDir.current = "up";
         } else if (curr - prev > 4) {
           cb("down");
+          lastScrollDir.current = "down";
         } else if (prev - curr > 4) {
           cb("up");
+          lastScrollDir.current = "up";
         }
       }
+      // Composer's single smart jump button mirrors this state.
+      onScrollStateRef.current?.({
+        atBottom: distance < 120,
+        atTop: el.scrollTop < 100,
+        canScroll: el.scrollHeight > el.clientHeight + 10,
+        lastDir: lastScrollDir.current,
+      });
     };
     update();
     // rAF-throttle: coalesce burst scroll events into one state update per

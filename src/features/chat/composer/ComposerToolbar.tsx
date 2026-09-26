@@ -29,6 +29,8 @@ export interface ComposerToolbarProps {
   artifactArmed?: boolean;
   webSearchArmed?: boolean;
   onWebSearchToggle: () => void;
+  thinkingArmed?: boolean;
+  onThinkingToggle?: () => void;
   mcqArmed?: boolean;
   disabled?: boolean;
   compressing?: boolean;
@@ -79,6 +81,8 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
     artifactArmed,
     webSearchArmed,
     onWebSearchToggle,
+    thinkingArmed,
+    onThinkingToggle,
     mcqArmed,
     disabled,
     compressing,
@@ -209,6 +213,25 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
     >
       <i className={`bi ${webSearchArmed ? "bi-globe-americas" : "bi-globe"} composer-upload-icon`} aria-hidden="true" />
     </Button>
+
+    {/* Thinking toggle — asks reasoning-capable models to stream a thinking
+        trace (shown in the collapsible Thinking block above the answer) */}
+    {onThinkingToggle && (
+      <Button
+        variant="ghost"
+        className={`composer-upload-btn ${
+          thinkingArmed ? "composer-upload-btn--armed" : ""
+        }`}
+        disabled={disabled || compressing}
+        aria-label={thinkingArmed ? "Turn thinking mode off" : "Turn thinking mode on"}
+        aria-pressed={!!thinkingArmed}
+        title={thinkingArmed ? "Thinking mode on" : "Thinking mode off"}
+        onClick={onThinkingToggle}
+        type="button"
+      >
+        <i className={`bi ${thinkingArmed ? "bi-lightbulb-fill" : "bi-lightbulb"} composer-upload-icon`} aria-hidden="true" />
+      </Button>
+    )}
 
     {/* Read-only selected-model label — change via the '+' menu instead. */}
     <span

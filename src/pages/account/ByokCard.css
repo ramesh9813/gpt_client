@@ -36,3 +36,32 @@
 .byok-actions .byok-key-status {
   margin-top: 0;
 }
+
+.byok-key-wrap {
+  position: relative;
+}
+
+.byok-key-wrap .input {
+  padding-right: 2.5rem;
+}
+
+.byok-key-eye {
+  position: absolute;
+  right: 0.4rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary, #8e8ea0);
+  cursor: pointer;
+}
+
+.byok-key-eye:hover {
+  background: var(--surface-hover, rgba(127, 127, 127, 0.12));
+}

@@ -8,6 +8,8 @@ export interface ComposerStatusProps {
   onClearWebSearch?: () => void;
   mcqArmed?: boolean;
   onClearMcq?: () => void;
+  thinkingArmed?: boolean;
+  onClearThinking?: () => void;
   listening: boolean;
   error?: string | null;
   listenError?: string | null;
@@ -28,6 +30,8 @@ export const ComposerStatus = ({
   onClearWebSearch,
   mcqArmed,
   onClearMcq,
+  thinkingArmed,
+  onClearThinking,
   listening,
   error,
   listenError,
@@ -100,6 +104,24 @@ export const ComposerStatus = ({
             onClick={onClearMcq}
             aria-label="Cancel quiz mode"
             title="Cancel quiz mode"
+          >
+            <i className="bi bi-x" aria-hidden="true"></i>
+          </button>
+        </div>
+      )}
+
+      {thinkingArmed && (
+        <div className="composer-websearch-chip">
+          <i className="bi bi-lightbulb composer-websearch-icon" aria-hidden="true"></i>
+          <span className="composer-websearch-label" title="Reasoning-capable models will show a Thinking trace">
+            Thinking • trace on
+          </span>
+          <button
+            type="button"
+            className="composer-websearch-clear"
+            onClick={onClearThinking}
+            aria-label="Turn thinking mode off"
+            title="Turn thinking mode off"
           >
             <i className="bi bi-x" aria-hidden="true"></i>
           </button>

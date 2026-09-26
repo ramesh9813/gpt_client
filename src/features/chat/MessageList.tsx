@@ -7,7 +7,7 @@ import type { ChatMessage, ModelOption, QuizRound, TurnKind } from "./message/ty
 import type { ArtifactBlock } from "./artifact";
 import { useMessageEdit } from "./message/useMessageEdit";
 import { useMessageFollow } from "./messagelist/useMessageFollow";
-import { LIST_SCROLL_EVENT, type ListScrollEdge } from "./messagelist/scrollBus";
+import { LIST_SCROLL_EVENT, publishListScrollState, type ListScrollEdge } from "./messagelist/scrollBus";
 import { UserMessage } from "./message/UserMessage";
 import { AssistantMessage } from "./message/AssistantMessage";
 import EmptyChatSuggestions from "./EmptyChatSuggestions";
@@ -56,7 +56,14 @@ const MessageList = ({
   loading,
 }: MessageListProps) => {
   const { listRef, jumpToBottom, scrollToTop } =
-    useMessageFollow({ messages, activeStreamId, conversationKey, onScrollDirection });
+    useMessageFollow({
+      messages,
+      activeStreamId,
+      conversationKey,
+      onScrollDirection,
+      // Feeds the composer's single smart jump button (scroll bus back-channel).
+      onScrollState: publishListScrollState,
+    });
   const edit = useMessageEdit(onEditSubmit);
 
   // The jump buttons live pinned above the input card (Composer) and drive

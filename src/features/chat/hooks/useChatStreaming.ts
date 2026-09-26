@@ -24,6 +24,7 @@ export type StreamAssistantArgs = {
   research?: boolean;
   artifact?: boolean;
   webSearch?: boolean;
+  think?: boolean;
 };
 
 export const useChatStreaming = () => {
@@ -45,6 +46,7 @@ export const useChatStreaming = () => {
       research,
       artifact,
       webSearch,
+      think,
     }: StreamAssistantArgs
   ) => {
     cancelRef.current = false;
@@ -83,6 +85,7 @@ export const useChatStreaming = () => {
           ...(artifact ? { artifact: true } : {}),
           // Always explicit: an explicit OFF must beat the default-ON.
           ...(webSearch === undefined ? {} : { webSearch }),
+          ...(think ? { think: true } : {}),
         }),
         signal: controller.signal,
       });

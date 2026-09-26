@@ -197,6 +197,9 @@ export type ByokConfig = {
   provider: ByokProviderId | null;
   model: string;
   apiKey: string;
+  // Saved API keys per provider — "Save key" in Settings writes the key here
+  // so switching providers auto-loads each provider's saved key.
+  apiKeys?: Partial<Record<ByokProviderId, string>>;
   // Live model lists fetched per provider id (keyed lists survive reloads).
   models?: Partial<Record<ByokProviderId, string[]>>;
 };
@@ -211,10 +214,18 @@ export const getByokConfig = (): ByokConfig | null => {
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return null;
     const provider = getByokProvider(parsed.provider)?.id ?? null;
+    const rawKeys =
+      parsed.apiKeys && typeof parsed.apiKeys === "object" ? parsed.apiKeys : {};
+    const apiKeys: Partial<Record<ByokProviderId, string>> = {};
+    for (const [k, v] of Object.entries(rawKeys)) {
+      const pid = getByokProvider(k)?.id;
+      if (pid && typeof v === "string" && v.length > 0) apiKeys[pid] = v;
+    }
     return {
       provider,
       model: typeof parsed.model === "string" ? parsed.model : "",
       apiKey: typeof parsed.apiKey === "string" ? parsed.apiKey : "",
+      apiKeys,
       models:
         parsed.models && typeof parsed.models === "object"
           ? parsed.models
@@ -263,16 +274,43 @@ export const isByokKeyFormatSupported = (
   apiKey: string
 ): boolean => provider.keyPattern.test(apiKey.trim());
 
-// BYOK is active the moment a provider is chosen with a well-formed key and a
-// model — no separate toggle. Choosing "Default (built-in OpenRouter)" (or a
-// blank key) returns the app to the server-configured models.
-export const getActiveByok = (): (ByokConfig & { provider: ByokProviderId }) | null => {
+// The key a provider should use: its saved entry wins; the loose apiKey field
+// remains as a back-compat fallback for configs written before per-provider
+// key storage existed.
+export const resolveByokApiKey = (cfg: ByokConfig): string => {
+  if (!cfg.provider) return "";
+  const fromMap = cfg.apiKeys?.[cfg.provider];
+  return (typeof fromMap === "string" && fromMap.trim()) || cfg.apiKey || "";
+};
+
+export const saveByokApiKey = (providerId: ByokProviderId, key: string) => {
+  const cfg = getByokConfig() ?? { provider: null, model: "", apiKey: "" };
+  const nextKeys = { ...(cfg.apiKeys ?? {}) };
+  const trimmed = key.trim();
+  if (trimmed) nextKeys[providerId] = trimmed;
+  else delete nextKeys[providerId];
+  saveByokConfig({
+    ...cfg,
+    apiKeys: nextKeys,
+    apiKey: cfg.provider === providerId ? trimmed : cfg.apiKey,
+  });
+};
+
+// BYOK is active the moment a provider is chosen with a well-formed (saved)
+// key and a model — no separate toggle. Choosing "Default (built-in
+// OpenRouter)" (or a missing key) returns the app to the server models.
+export const getActiveByok = (): (ByokConfig &
+  { provider: ByokProviderId; apiKey: string }) | null => {
   const cfg = getByokConfig();
   if (!cfg || !cfg.provider) return null;
   const provider = getByokProvider(cfg.provider);
-  if (!provider || !isByokKeyFormatSupported(provider, cfg.apiKey)) return null;
+  const apiKey = resolveByokApiKey(cfg);
+  if (!provider || !isByokKeyFormatSupported(provider, apiKey)) return null;
   if (!cfg.model.trim()) return null;
-  return cfg as ByokConfig & { provider: ByokProviderId };
+  return { ...cfg, apiKey } as ByokConfig & {
+    provider: ByokProviderId;
+    apiKey: string;
+  };
 };
 
 // Headers for /api/chat/stream when BYOK is active. Empty object otherwise so

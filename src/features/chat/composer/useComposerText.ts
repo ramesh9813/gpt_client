@@ -17,6 +17,15 @@ export const useComposerArmed = () => {
       return false;
     }
   });
+  // Thinking (extended reasoning) mode: sticky like quiz; streams a thinking
+  // trace from reasoning-capable models into the collapsible block.
+  const [thinkingArmed, setThinkingArmed] = useState(() => {
+    try {
+      return window.localStorage.getItem("chatapp.think.armed") === "true";
+    } catch {
+      return false;
+    }
+  });
   useEffect(() => {
     try {
       window.localStorage.setItem(WEBSEARCH_ARMED_KEY, String(webSearchArmed));
@@ -27,6 +36,11 @@ export const useComposerArmed = () => {
       window.localStorage.setItem("chatapp.mcq.armed", String(mcqArmed));
     } catch {}
   }, [mcqArmed]);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("chatapp.think.armed", String(thinkingArmed));
+    } catch {}
+  }, [thinkingArmed]);
 
   return {
     researchArmed,
@@ -37,6 +51,8 @@ export const useComposerArmed = () => {
     setWebSearchArmed,
     mcqArmed,
     setMcqArmed,
+    thinkingArmed,
+    setThinkingArmed,
   };
 };
 
@@ -56,7 +72,7 @@ export const adjustTextareaHeight = (el: HTMLTextAreaElement) => {
   el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
 };
 
-type SendOpts = { research?: boolean; artifact?: boolean; webSearch?: boolean };
+type SendOpts = { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean };
 
 type UseComposerTextOptions = {
   value: string;
@@ -67,6 +83,7 @@ type UseComposerTextOptions = {
   researchArmed: boolean;
   artifactArmed: boolean;
   webSearchArmed: boolean;
+  thinkingArmed: boolean;
   disabled?: boolean;
   streaming?: boolean;
   lastUserMessage?: string;
@@ -90,6 +107,7 @@ export const useComposerText = ({
   researchArmed,
   artifactArmed,
   webSearchArmed,
+  thinkingArmed,
   disabled,
   streaming,
   lastUserMessage,
@@ -118,14 +136,12 @@ export const useComposerText = ({
       mcqArmed && trimmed && !MCQ_PREFIX.test(trimmed) ? `mcq ${trimmed}` : trimmed;
     // webSearch is always explicit (true/false) so an explicit OFF beats
     // the pipeline default-ON; research/artifact stay one-shot opt-ins.
-    const opts =
-      researchArmed || artifactArmed
-        ? {
-            ...(researchArmed ? { research: true as const } : {}),
-            ...(artifactArmed ? { artifact: true as const } : {}),
-            webSearch: webSearchArmed,
-          }
-        : { webSearch: webSearchArmed };
+    const opts = {
+      ...(researchArmed ? { research: true as const } : {}),
+      ...(artifactArmed ? { artifact: true as const } : {}),
+      webSearch: webSearchArmed,
+      ...(thinkingArmed ? { think: true as const } : {}),
+    };
     onSend(routed, images.length > 0 ? [...images] : undefined, opts);
     setValue("");
     setShowRecents(false);

@@ -71,7 +71,7 @@ export const useChatMessages = ({
     writeCachedMessages(conversationId, messages);
   }, [conversationId, messages]);
 
-  const sendMessage = async (text: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean }) => {
+  const sendMessage = async (text: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean }) => {
     if (!conversationId) return;
     const trimmed = text.trim();
     const hasImages = !!images && images.length > 0;
@@ -127,6 +127,7 @@ export const useChatMessages = ({
         selectedModel: turnModel,
         ...(opts?.research ? { research: true as const } : {}),
         ...(opts?.artifact ? { artifact: true as const } : {}),
+        ...(opts?.think ? { think: true as const } : {}),
         webSearch: searchOn,
       });
     } catch (err: any) {

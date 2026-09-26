@@ -9,7 +9,7 @@ import { ComposerStatus } from "./composer/ComposerStatus";
 import type { ModelOption, SortOption } from "./composer/ModelMenu";
 import { useComposerImages } from "./composer/useComposerImages";
 import { useDeviceImages } from "./composer/useDeviceImages";
-import { requestListScroll } from "./messagelist/scrollBus";
+import { requestListScroll, subscribeListScrollState, type ListScrollState } from "./messagelist/scrollBus";
 import { useVoiceInput } from "./composer/useVoiceInput";
 import { useCameraCapture } from "./composer/useCameraCapture";
 import { useComposerArmed, useComposerText } from "./composer/useComposerText";
@@ -19,7 +19,7 @@ export type { ModelOption, SortOption };
 
 export type ComposerProps = {
   // images?:string[] is optional → backward compat with (value: string) => void
-  onSend: (value: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean }) => void;
+  onSend: (value: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean }) => void;
   onStop?: () => void;
   disabled?: boolean;
   streaming?: boolean;
@@ -63,6 +63,16 @@ const Composer = ({
 }: ComposerProps) => {
   const [value, setValue] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  // Single smart jump button: state pushed by the message list. Hidden while
+  // parked at the bottom of the chat; arrow follows scroll intent (up when the
+  // user is scrolling up, down otherwise / from the top edge).
+  const [scrollState, setScrollState] = useState<ListScrollState>({
+    atBottom: true,
+    atTop: true,
+    canScroll: false,
+    lastDir: "down",
+  });
+  useEffect(() => subscribeListScrollState(setScrollState), []);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const {
     researchArmed,
@@ -73,6 +83,8 @@ const Composer = ({
     setWebSearchArmed,
     mcqArmed,
     setMcqArmed,
+    thinkingArmed,
+    setThinkingArmed,
   } = useComposerArmed();
   const menuRef = useRef<HTMLDivElement>(null);
   const [showRecents, setShowRecents] = useState(false);
@@ -151,6 +163,7 @@ const Composer = ({
     researchArmed,
     artifactArmed,
     webSearchArmed,
+    thinkingArmed,
     disabled,
     streaming,
     lastUserMessage,
@@ -177,27 +190,42 @@ const Composer = ({
   return (
     <div className="composer-dock">
       <div className="composer-input-container">
-        {/* Original scroll buttons, always pinned just above the input card. */}
-        <div className="composer-scroll-pin" role="toolbar" aria-label="Scroll chat">
-          <button
-            type="button"
-            className="msg-jump-btn"
-            onClick={() => requestListScroll("top")}
-            title="Scroll to top"
-            aria-label="Scroll to top"
-          >
-            <i className="bi bi-arrow-up msg-jump-icon" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="msg-jump-btn"
-            onClick={() => requestListScroll("bottom")}
-            title="Scroll to bottom"
-            aria-label="Scroll to bottom"
-          >
-            <i className="bi bi-arrow-down msg-jump-icon" aria-hidden="true" />
-          </button>
-        </div>
+        {/* Single smart jump button, pinned above the input card: hidden when
+            already parked at the bottom; direction follows scroll intent. */}
+        {scrollState.canScroll && !scrollState.atBottom && (
+          <div className="composer-scroll-pin" role="toolbar" aria-label="Scroll chat">
+            <button
+              type="button"
+              className="msg-jump-btn"
+              onClick={() =>
+                requestListScroll(
+                  !scrollState.atTop && scrollState.lastDir === "up"
+                    ? "top"
+                    : "bottom"
+                )
+              }
+              title={
+                !scrollState.atTop && scrollState.lastDir === "up"
+                  ? "Scroll to top"
+                  : "Scroll to bottom"
+              }
+              aria-label={
+                !scrollState.atTop && scrollState.lastDir === "up"
+                  ? "Scroll to top"
+                  : "Scroll to bottom"
+              }
+            >
+              <i
+                className={`bi ${
+                  !scrollState.atTop && scrollState.lastDir === "up"
+                    ? "bi-arrow-up"
+                    : "bi-arrow-down"
+                } msg-jump-icon`}
+                aria-hidden="true"
+              />
+            </button>
+          </div>
+        )}
         {/* Image preview strip */}
         <ImageAttachments images={images} compressing={compressing} onRemove={removeImage} />
 
@@ -211,6 +239,8 @@ const Composer = ({
           onClearWebSearch={() => setWebSearchArmed(false)}
           mcqArmed={mcqArmed}
           onClearMcq={() => setMcqArmed(false)}
+          thinkingArmed={thinkingArmed}
+          onClearThinking={() => setThinkingArmed(false)}
           listening={listening}
           error={error}
           listenError={listenError}
@@ -257,6 +287,8 @@ const Composer = ({
             artifactArmed={artifactArmed}
             webSearchArmed={webSearchArmed}
             onWebSearchToggle={() => setWebSearchArmed((prev) => !prev)}
+            thinkingArmed={thinkingArmed}
+            onThinkingToggle={() => setThinkingArmed((prev) => !prev)}
             disabled={disabled}
             compressing={compressing}
             hasRecents={recentPhotos.length + recentScreenshots.length > 0}

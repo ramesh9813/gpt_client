@@ -1,4 +1,4 @@
-import { RefObject, memo, useMemo, useState } from "react";
+import { RefObject, memo, useEffect, useMemo, useRef, useState } from "react";
 import { DownloadMenu } from "../../../components/DownloadMenu";
 import type { ChatMessage, ModelOption, QuizRound, TurnKind } from "./types";
 import { GenerationStatus } from "./GenerationStatus";
@@ -55,8 +55,20 @@ export const AssistantMessage = memo(
         : [],
     [artifacts, message.id]
   );
-  // Deep-research thinking log: open while it streams, user-collapsible.
+  // Thinking/reasoning trace: open while it streams, auto-collapses the
+  // moment the final answer starts arriving, user can re-expand anytime.
   const [showReasoning, setShowReasoning] = useState(true);
+  const autoCollapsedReasoning = useRef(false);
+  useEffect(() => {
+    if (
+      !autoCollapsedReasoning.current &&
+      showReasoning &&
+      displayContent.trim().length > 0
+    ) {
+      autoCollapsedReasoning.current = true;
+      setShowReasoning(false);
+    }
+  }, [displayContent, showReasoning]);
   // Double fast click / double tap on the answer copies it immediately.
   const { copied, onDoubleClick, onTouchStart, onTouchEnd } = useDoubleCopy(
     () => displayContent || message.content
@@ -133,16 +145,17 @@ export const AssistantMessage = memo(
               className="msg-reasoning-head"
               onClick={() => setShowReasoning((prev) => !prev)}
               aria-expanded={showReasoning}
-              aria-label={showReasoning ? "Hide research process" : "View research process"}
-              title={showReasoning ? "Hide" : "View steps"}
+              aria-label={showReasoning ? "Hide thinking" : "Show thinking"}
+              title={showReasoning ? "Hide thinking" : "Show thinking"}
             >
               <span className="msg-reasoning-title">
-                <i className="bi bi-cpu msg-reasoning-icon" aria-hidden="true" />
-                <span>Research &amp; Reasoning Process</span>
+                <i className="bi bi-lightbulb msg-reasoning-icon" aria-hidden="true" />
+                <span>Thinking</span>
               </span>
-              <span className="msg-reasoning-toggle">
-                {showReasoning ? "Hide" : "View steps"}
-              </span>
+              <i
+                className={`bi ${showReasoning ? "bi-chevron-up" : "bi-chevron-down"} msg-reasoning-toggle`}
+                aria-hidden="true"
+              />
             </button>
             {showReasoning && (
               <div className="msg-reasoning-body">{message.reasoning}</div>
@@ -205,6 +218,14 @@ export const AssistantMessage = memo(
               {message.model.split('/').pop()}
             </div>
           )}
+          {typeof message.durationMs === "number" && message.durationMs > 0 ? (
+            <div
+              className="msg-model-label msg-duration-label"
+              title="Response time"
+            >
+              {(message.durationMs / 1000).toFixed(1)}s
+            </div>
+          ) : null}
           {message.status === "STREAMING" ? (
             <>
               {onStopStreaming && activeStreamId === message.id ? (
