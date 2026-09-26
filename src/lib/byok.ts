@@ -21,7 +21,11 @@ export type ByokProviderId =
   | "moonshot"
   | "groq"
   | "mistral"
-  | "anthropic";
+  | "anthropic"
+  | "cleanapis"
+  | "infron"
+  | "apinex"
+  | "codecraft";
 
 export type ByokProviderInfo = {
   id: ByokProviderId;
@@ -186,6 +190,38 @@ export const BYOK_PROVIDERS: ByokProviderInfo[] = [
     keyPattern: /^sk-ant-[A-Za-z0-9_-]{20,}$/,
     modelsPublic: false,
     models: ["claude-sonnet-4-5", "claude-opus-4-1", "claude-haiku-4-5"],
+  },
+  {
+    id: "cleanapis",
+    name: "CleanAPIs",
+    keyHint: "cc_...",
+    keyPattern: /^cc_[A-Za-z0-9_-]{16,}$/,
+    modelsPublic: false,
+    models: [],
+  },
+  {
+    id: "infron",
+    name: "Infron",
+    keyHint: "your API key",
+    keyPattern: /^[A-Za-z0-9][A-Za-z0-9_.-]{15,}$/,
+    modelsPublic: true,
+    models: [],
+  },
+  {
+    id: "apinex",
+    name: "APInex",
+    keyHint: "your API key",
+    keyPattern: /^[A-Za-z0-9][A-Za-z0-9_.-]{15,}$/,
+    modelsPublic: false,
+    models: [],
+  },
+  {
+    id: "codecraft",
+    name: "CodeCraft API",
+    keyHint: "cc_...",
+    keyPattern: /^cc_[A-Za-z0-9_-]{16,}$/,
+    modelsPublic: false,
+    models: [],
   },
 ];
 

@@ -35,6 +35,7 @@ export type ComposerProps = {
   onRefreshModels?: () => void;
   modelsRefreshing?: boolean;
   onModelChange: (value: string) => void;
+  isGeneralUser?: boolean;
   inputRef?: MutableRefObject<HTMLTextAreaElement | null>;
   sort?: SortOption;
   onSortChange?: (sort: SortOption) => void;
@@ -57,6 +58,7 @@ const Composer = ({
   onRefreshModels,
   modelsRefreshing,
   onModelChange,
+  isGeneralUser,
   inputRef,
   sort = "name",
   onSortChange
@@ -259,6 +261,7 @@ const Composer = ({
             menuRef={menuRef}
             model={model}
             modelOptions={modelOptions}
+            isGeneralUser={isGeneralUser}
             modelsLoading={modelsLoading}
             modelsTotal={modelsTotal}
             modelsUpdatedAt={modelsUpdatedAt}

@@ -65,6 +65,8 @@ const Chat = () => {
     modelResetNotice,
     refreshModels,
     modelsRefreshing,
+    isGeneralUser,
+    byokActive,
   } = useChatModels();
 
   const {
@@ -241,7 +243,11 @@ const Chat = () => {
               onEditSubmit={handleEditSubmit}
               editDisabled={streaming}
               modelOptions={modelOptions}
-              onRegenerate={handleRegenerate}
+              // General users without a provider key can't use built-in
+              // models (incl. per-message regenerate alternatives).
+              onRegenerate={
+                isGeneralUser && !byokActive ? undefined : handleRegenerate
+              }
               onStopStreaming={handleStopStreaming}
               onFollowup={(q) => void sendMessage(q)}
               onQuizSelect={handleQuizSelect}
@@ -258,6 +264,7 @@ const Chat = () => {
               onSend={sendMessage}
               disabled={streaming}
               error={composerError}
+              isGeneralUser={isGeneralUser}
               lastUserMessage={lastUserMessage}
               model={model}
               modelOptions={modelOptions}

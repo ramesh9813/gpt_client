@@ -3,6 +3,7 @@ import { ModelMenuFooter } from "./ModelMenuFooter";
 import { ModelSortMenu } from "./ModelSortMenu";
 import { useModelMenuList } from "./useModelMenuList";
 import { formatUpdatedAgo } from "../utils/formatUpdatedAgo";
+import { getActiveByok } from "../../../lib/byok";
 import "./ModelMenu.css";
 
 export type ModelOption = {
@@ -34,6 +35,9 @@ type ModelMenuProps = {
   artifactArmed?: boolean;
   onResearchDisarm?: () => void;
   onArtifactDisarm?: () => void;
+  // General users run on their own provider key; built-in model/media/
+  // research pickers are hidden for them.
+  isGeneralUser?: boolean;
   // Toggleable composer modes shown ONLY here when disabled; once armed, the
   // matching icon appears on the input toolbar instead.
   webSearchArmed?: boolean;
@@ -69,6 +73,7 @@ export const ModelMenu = ({
   artifactArmed,
   onResearchDisarm,
   onArtifactDisarm,
+  isGeneralUser,
   webSearchArmed,
   onWebSearchToggle,
   mcqArmed,
@@ -114,29 +119,39 @@ export const ModelMenu = ({
     typeof modelsTotal === "number" ? modelsTotal : modelOptions.length;
   const showFooter = modelMenuOpen;
 
+  // Built-in (server-key) features are owner/admin only: the model picker is
+  // hidden for general users without an active provider key, and the built-in
+  // research/image rows are hidden for general users entirely.
+  const byokActive = getActiveByok() !== null;
+  const showModelRow = !isGeneralUser || byokActive;
+  const showBuiltinFeatures = !isGeneralUser;
+
   if (!menuOpen) return null;
 
   return (
     <div className="composer-popover">
       {!modelMenuOpen ? (
         <div className="composer-options-list">
-          <button
-            type="button"
-            className="composer-option-model-btn"
-            onClick={openModelList}
-          >
-            <div className="composer-option-label">
-              <i className="bi bi-cpu composer-option-icon-accent"></i>
-              <span className="composer-ellipsis">Model</span>
-            </div>
-            <div className="composer-option-meta">
-              <span className="composer-option-current">
-                {currentModelLabel}
-              </span>
-              <i className="bi bi-chevron-right composer-chevron-icon"></i>
-            </div>
-          </button>
+          {showModelRow && (
+            <button
+              type="button"
+              className="composer-option-model-btn"
+              onClick={openModelList}
+            >
+              <div className="composer-option-label">
+                <i className="bi bi-cpu composer-option-icon-accent"></i>
+                <span className="composer-ellipsis">Model</span>
+              </div>
+              <div className="composer-option-meta">
+                <span className="composer-option-current">
+                  {currentModelLabel}
+                </span>
+                <i className="bi bi-chevron-right composer-chevron-icon"></i>
+              </div>
+            </button>
+          )}
 
+          {showBuiltinFeatures && (
           <button
             type="button"
             className="composer-option-btn"
@@ -149,6 +164,7 @@ export const ModelMenu = ({
               <span className="composer-option-badge">On — tap to off</span>
             ) : null}
           </button>
+          )}
           <button
             type="button"
             className="composer-option-btn"
@@ -207,6 +223,7 @@ export const ModelMenu = ({
               <span className="composer-option-badge">On</span>
             ) : null}
           </button>
+          {showBuiltinFeatures && (
           <button
             type="button"
             className="composer-option-btn"
@@ -215,6 +232,7 @@ export const ModelMenu = ({
             <i className="bi bi-image composer-icon-purple"></i>
             <span>Image Generation</span>
           </button>
+          )}
         </div>
       ) : (
         <div className="composer-model-sublist">
