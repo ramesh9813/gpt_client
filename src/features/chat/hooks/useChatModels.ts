@@ -111,7 +111,16 @@ export const useChatModels = () => {
   const byokList = useMemo(() => {
     if (!byokCfg || !byokProvider) return [];
     const live = byokCfg.models?.[byokProvider.id];
-    return live && live.length > 0 ? live : byokProvider.models;
+    const base = live && live.length > 0 ? live : byokProvider.models;
+    // "Free models only" filter: applies everywhere the BYOK list renders
+    // (composer menu + settings dropdown).
+    if (byokCfg.freeOnly) {
+      if (byokProvider.allModelsFree) return base;
+      const free = byokCfg.freeModels?.[byokProvider.id] ?? [];
+      const filtered = base.filter((id) => free.includes(id));
+      return filtered.length > 0 ? filtered : base;
+    }
+    return base;
   }, [byokCfg, byokProvider]);
 
   const byokOptions: ModelOption[] = useMemo(
@@ -127,11 +136,15 @@ export const useChatModels = () => {
     if (!byokCfg || !byokProvider) return;
     setByokFetching(true);
     try {
-      const list = await fetchByokModels(byokProvider.id, byokCfg.apiKey);
+      const { models: list, freeIds } = await fetchByokModels(
+        byokProvider.id,
+        byokCfg.apiKey
+      );
       if (list.length > 0) {
         saveByokConfig({
           ...byokCfg,
           models: { ...(byokCfg.models ?? {}), [byokProvider.id]: list },
+          freeModels: { ...(byokCfg.freeModels ?? {}), [byokProvider.id]: freeIds },
         });
       }
     } catch {

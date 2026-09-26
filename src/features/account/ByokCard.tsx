@@ -16,6 +16,7 @@ type ValidateResult = {
   supported: boolean;
   verified: boolean;
   models: string[];
+  freeIds?: string[];
   message: string;
 };
 
@@ -51,6 +52,10 @@ export const ByokCard = () => {
   const [modelsByProvider, setModelsByProvider] = useState<
     Partial<Record<ByokProviderId, string[]>>
   >(stored?.models ?? {});
+  const [freeModelsByProvider, setFreeModelsByProvider] = useState<
+    Partial<Record<ByokProviderId, string[]>>
+  >(stored?.freeModels ?? {});
+  const [freeOnly, setFreeOnly] = useState<boolean>(stored?.freeOnly === true);
   const [verifyState, setVerifyState] = useState<VerifyState>(null);
   const [verifying, setVerifying] = useState(false);
   const [modelsLoading, setModelsLoading] = useState(false);
@@ -60,8 +65,18 @@ export const ByokCard = () => {
   const provider = getByokProvider(providerId || null);
 
   const liveList = provider ? modelsByProvider[provider.id] : undefined;
-  const modelOptions =
+  const baseOptions =
     liveList && liveList.length > 0 ? liveList : (provider?.models ?? []);
+  // "Free models only": keep ids the provider reports as free-tier (Groq and
+  // NVIDIA list everything; OpenRouter uses zero-priced / ":free" entries). If
+  // a provider reports nothing, the full list stays visible.
+  const freeIds = provider ? (freeModelsByProvider[provider.id] ?? []) : [];
+  const modelOptions =
+    freeOnly && provider && (freeIds.length > 0 || provider.allModelsFree)
+      ? provider.allModelsFree
+        ? baseOptions
+        : baseOptions.filter((m) => freeIds.includes(m))
+      : baseOptions;
 
   const savedKey = provider ? (savedKeys[provider.id] ?? "") : "";
   const keySupported = provider
@@ -78,8 +93,10 @@ export const ByokCard = () => {
       apiKey: providerId ? (savedKeys[providerId] ?? "") : "",
       apiKeys: savedKeys,
       models: modelsByProvider,
+      freeModels: freeModelsByProvider,
+      freeOnly,
     });
-  }, [providerId, model, savedKeys, modelsByProvider]);
+  }, [providerId, model, savedKeys, modelsByProvider, freeModelsByProvider, freeOnly]);
 
   // Live model catalog: fetched IMMEDIATELY on provider select — keyless
   // providers (OpenRouter/NVIDIA) need nothing; keyed providers fetch as soon
@@ -107,11 +124,15 @@ export const ByokCard = () => {
     setModelsLoading(true);
     setModelsNote(null);
     void fetchByokModels(provider.id, withKey)
-      .then((models) => {
+      .then(({ models, freeIds: fetchedFree }) => {
         if (fetchSeq.current !== seq) return;
         setModelsLoading(false);
         if (models.length > 0) {
           setModelsByProvider((prev) => ({ ...prev, [provider.id]: models }));
+          setFreeModelsByProvider((prev) => ({
+            ...prev,
+            [provider.id]: fetchedFree,
+          }));
           setModel((prev) => (models.includes(prev) ? prev : models[0]));
         } else {
           setModelsNote(
@@ -198,6 +219,10 @@ export const ByokCard = () => {
       const d = res?.data;
       if (d?.verified && Array.isArray(d.models) && d.models.length > 0) {
         setModelsByProvider((prev) => ({ ...prev, [provider.id]: d.models }));
+        setFreeModelsByProvider((prev) => ({
+          ...prev,
+          [provider.id]: Array.isArray(d.freeIds) ? d.freeIds : [],
+        }));
         if (!d.models.includes(model)) setModel(d.models[0]);
       }
       const ok = Boolean(d?.supported);
@@ -273,6 +298,23 @@ export const ByokCard = () => {
                 {modelsNote ??
                   "Live list from the provider; refreshes as soon as a valid key is entered."}
               </span>
+              <label className="account-check-row byok-free-only">
+                <input
+                  type="checkbox"
+                  className="account-check-input"
+                  checked={freeOnly}
+                  onChange={(e) => setFreeOnly(e.target.checked)}
+                />
+                <span className="account-check-body">
+                  <span className="account-field-label account-check-label">
+                    Free models only
+                  </span>
+                  <span className="account-check-hint">
+                    Show just the provider's free-tier models when that info is
+                    available.
+                  </span>
+                </span>
+              </label>
             </div>
             <div>
               <label className="account-field-label" htmlFor="byok-key">

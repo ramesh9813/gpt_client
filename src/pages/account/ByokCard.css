@@ -59,6 +59,10 @@
   padding-right: 2.5rem;
 }
 
+.byok-free-only {
+  margin-top: 0.5rem;
+}
+
 .byok-key-eye {
   position: absolute;
   right: 0.4rem;

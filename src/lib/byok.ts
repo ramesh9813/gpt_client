@@ -35,6 +35,9 @@ export type ByokProviderInfo = {
   keyPattern: RegExp;
   // True when the provider's catalog can be listed WITHOUT a key.
   modelsPublic: boolean;
+  // True when every model on the provider sits under a free tier
+  // (Groq / NVIDIA dev tiers) — "Free only" keeps the whole list.
+  allModelsFree?: boolean;
   // Offline/last-resort fallback list (live catalog replaces it).
   models: string[];
 };
@@ -113,6 +116,7 @@ export const BYOK_PROVIDERS: ByokProviderInfo[] = [
     keyHint: "nvapi-...",
     keyPattern: /^nvapi-[A-Za-z0-9_-]{20,}$/,
     modelsPublic: true,
+    allModelsFree: true,
     models: [
       "meta/llama-3.3-70b-instruct",
       "nvidia/llama-3.1-nemotron-70b-instruct",
@@ -163,6 +167,7 @@ export const BYOK_PROVIDERS: ByokProviderInfo[] = [
     keyHint: "gsk_...",
     keyPattern: /^gsk_[A-Za-z0-9]{20,}$/,
     modelsPublic: false,
+    allModelsFree: true,
     models: [
       "llama-3.3-70b-versatile",
       "llama-3.1-8b-instant",
@@ -238,6 +243,11 @@ export type ByokConfig = {
   apiKeys?: Partial<Record<ByokProviderId, string>>;
   // Live model lists fetched per provider id (keyed lists survive reloads).
   models?: Partial<Record<ByokProviderId, string[]>>;
+  // Free-tier model ids per provider, reported by the catalog endpoint.
+  freeModels?: Partial<Record<ByokProviderId, string[]>>;
+  // When true, model dropdowns show only free models where the provider
+  // reports a free tier.
+  freeOnly?: boolean;
 };
 
 const STORAGE_KEY = "byokConfig";
@@ -262,12 +272,17 @@ export const getByokConfig = (): ByokConfig | null => {
       model: typeof parsed.model === "string" ? parsed.model : "",
       apiKey: typeof parsed.apiKey === "string" ? parsed.apiKey : "",
       apiKeys,
+      freeOnly: parsed.freeOnly === true,
       models:
         parsed.models && typeof parsed.models === "object"
           ? parsed.models
           : parsed.verifiedModels && typeof parsed.verifiedModels === "object"
             ? parsed.verifiedModels
             : undefined,
+      freeModels:
+        parsed.freeModels && typeof parsed.freeModels === "object"
+          ? parsed.freeModels
+          : undefined,
     };
   } catch {
     return null;
@@ -369,21 +384,24 @@ export const getByokHeaders = (modelOverride?: string): Record<string, string> =
 
 // Live model catalog via the server proxy (never hits the provider directly
 // from the browser, so no CORS surprises and the key leaves this device only
-// as a request header to our own API).
+// as a request header to our own API). freeIds is populated when the provider
+// reports free tiers (OpenRouter pricing / ":free" ids / all-free providers).
 export const fetchByokModels = async (
   providerId: ByokProviderId,
   apiKey?: string
-): Promise<string[]> => {
-  const res = await apiFetch<ApiResponse<{ models: string[] }>>(
-    "/api/byok/models",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        provider: providerId,
-        ...(apiKey && apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
-      }),
-    }
-  );
-  return Array.isArray(res?.data?.models) ? res.data.models : [];
+): Promise<{ models: string[]; freeIds: string[] }> => {
+  const res = await apiFetch<
+    ApiResponse<{ models: string[]; freeIds?: string[] }>
+  >("/api/byok/models", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      provider: providerId,
+      ...(apiKey && apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
+    }),
+  });
+  return {
+    models: Array.isArray(res?.data?.models) ? res.data.models : [],
+    freeIds: Array.isArray(res?.data?.freeIds) ? res.data.freeIds! : [],
+  };
 };
