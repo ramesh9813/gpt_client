@@ -50,7 +50,10 @@
 }
 @media (min-width: 1024px) {
   .conv-side--expanded { width: 300px; }
-  .conv-side--collapsed { width: 3.5rem; }
+  /* Laptop: collapsed fully hides history so chat gets full width — no
+     56px rail step. Keeps the type for compat but visually = hidden.
+     Scoped to desktop only so Android drawer is untouched. */
+  .conv-side--collapsed,
   .conv-side--hidden {
     width: 0;
     border-right: 0;
@@ -210,12 +213,11 @@
 }
 
 @media (min-width: 1024px) {
-  /* Collapsed: rail only (56px). Panel is removed so .chat-main flexes
-     and the chat area grows. Aside width still animates 300px -> 56px. */
-  .conv-side--collapsed .conv-side-panel {
-    display: none !important;
-  }
-  /* Hidden: nothing visible (0px). Chat gets full width. */
+  /* Laptop: both collapsed and hidden are 0px full-screen chat.
+     Rail is never shown on laptop (fully hidden), Android drawer is
+     unaffected since this block is lg-only. */
+  .conv-side--collapsed .conv-side-panel,
+  .conv-side--collapsed .sb-rail,
   .conv-side--hidden .conv-side-panel,
   .conv-side--hidden .sb-rail {
     display: none !important;

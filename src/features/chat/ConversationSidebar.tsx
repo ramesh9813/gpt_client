@@ -151,6 +151,8 @@ const ConversationSidebar = ({
   };
 
   const showBackdrop = isMobile && drawerOpen;
+  // Laptop rail is hidden by CSS (collapsed = hidden = 0px full-screen chat).
+  // Kept for Android parity only — never renders on desktop due to lg-only CSS.
   const isCollapsedDesktop = !isMobile && sidebarState === "collapsed";
 
   const asideClasses = cn(
