@@ -3,11 +3,19 @@ import remarkGfm from "remark-gfm";
 import { CodeBlockWithRun } from "./CodeBlockWithRun";
 
 const ALLOWED_HREF = /^(https?:\/\/|mailto:|#|\/)/i;
+const ALLOWED_IMG_SRC = /^(https?:\/\/|data:image\/(png|jpeg|jpg|gif|webp);base64,|\/)/i;
 
 const sanitizeHref = (href?: string): string | undefined => {
   if (!href) return undefined;
   const trimmed = href.trim();
   if (ALLOWED_HREF.test(trimmed)) return trimmed;
+  return undefined;
+};
+
+const sanitizeImgSrc = (src?: string): string | undefined => {
+  if (!src) return undefined;
+  const trimmed = src.trim();
+  if (ALLOWED_IMG_SRC.test(trimmed)) return trimmed;
   return undefined;
 };
 
@@ -34,6 +42,12 @@ export const MarkdownContent = ({ content }: { content: string }) => {
               {children}
             </a>
           );
+        },
+        img(props) {
+          const safeSrc = sanitizeImgSrc(props.src as string | undefined);
+          if (!safeSrc) return null;
+          const alt = typeof props.alt === "string" ? props.alt : "";
+          return <img src={safeSrc} alt={alt} loading="lazy" referrerPolicy="no-referrer" />;
         },
         pre(props) {
           return <div className="msg-md-pre">{props.children}</div>;
