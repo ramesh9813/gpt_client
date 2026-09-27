@@ -40,7 +40,14 @@ export const useCameraCapture = ({ onFiles }: CameraCaptureOptions) => {
             throw new Error("unsupported");
           }
           const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode },
+            // Request a high-resolution stream: browsers default to a low
+            // capture size (often 640x480) when no resolution is asked for,
+            // which caps photo quality no matter what the encoder does.
+            video: {
+              facingMode,
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+            },
             audio: false,
           });
           if (cancelled) {
@@ -124,6 +131,8 @@ export const useCameraCapture = ({ onFiles }: CameraCaptureOptions) => {
       // affect drawImage, so the canvas filter does it explicitly).
       try {
         ctx.filter = `brightness(${brightnessRef.current})`;
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
       } catch {
         // older canvas implementations ignore filter — capture unfiltered
       }
@@ -139,7 +148,7 @@ export const useCameraCapture = ({ onFiles }: CameraCaptureOptions) => {
           void onFilesRef.current(dt.files);
         },
         "image/jpeg",
-        0.92
+        0.95
       );
     };
 

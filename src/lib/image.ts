@@ -4,8 +4,8 @@
  * Returns a JPEG dataURL capped at `maxDim` (long edge) with `quality`.
  */
 
-export const MAX_IMAGE_DIM = 1280;
-export const IMAGE_QUALITY = 0.8;
+export const MAX_IMAGE_DIM = 1920;
+export const IMAGE_QUALITY = 0.85;
 export const MAX_IMAGES_PER_MESSAGE = 3;
 
 export function isImageFile(file: File): boolean {
@@ -70,6 +70,12 @@ export async function compressImageFile(
   // JPEG has no transparency → fill white first
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, targetW, targetH);
+  try {
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+  } catch {
+    // older canvas implementations ignore smoothing quality
+  }
   ctx.drawImage(img, 0, 0, targetW, targetH);
 
   // Revoke nothing here (object URLs not used); help GC

@@ -82,7 +82,7 @@ export const useComposerImages = () => {
       const room = Math.max(0, MAX_IMAGES_PER_MESSAGE - images.length);
       const slice = picked.slice(0, room);
       const compressed = await Promise.all(
-        slice.map((f) => compressImageFile(f, 1280, 0.8))
+        slice.map((f) => compressImageFile(f))
       );
       setImages((prev) => [...prev, ...compressed].slice(0, MAX_IMAGES_PER_MESSAGE));
       if (kind === "screenshot") {
