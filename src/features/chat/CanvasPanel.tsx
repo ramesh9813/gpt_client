@@ -150,6 +150,7 @@ const CanvasPanel = ({
             title="Canvas preview"
             sandbox="allow-scripts"
             referrerPolicy="no-referrer"
+            {...({ csp: "default-src 'self' 'unsafe-inline' data: https:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https: blob:; font-src 'self' data: https:; connect-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'" } as any)}
             className="canvas-preview-frame"
             srcDoc={buildPreviewDoc(activeBlock)}
           />

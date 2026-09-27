@@ -6,34 +6,37 @@ export const getApiBase = () => API_BASE;
 
 let refreshPromise: Promise<boolean> | null = null;
 
-export const getStoredAccessToken = () =>
-  localStorage.getItem("accessToken") || "";
-export const setStoredAccessToken = (token: string) =>
-  localStorage.setItem("accessToken", token);
-export const getStoredRefreshToken = () =>
-  localStorage.getItem("refreshToken") || "";
-export const setStoredRefreshToken = (token: string) =>
-  localStorage.setItem("refreshToken", token);
-export const getStoredCsrfToken = () =>
-  localStorage.getItem("csrfToken") || "";
-export const setStoredCsrfToken = (token: string) =>
-  localStorage.setItem("csrfToken", token);
+// In-memory bearer cache (never localStorage): seeded from httpOnly cookies
+// conceptually, but we keep it only for the Authorization header fallback
+// when a request needs it before a refresh. Cleared on logout/refresh failure.
+let inMemoryAccessToken = "";
 
-export const clearAuthStorage = () => {
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
-  localStorage.removeItem("csrfToken");
+export const getInMemoryAccessToken = () => inMemoryAccessToken;
+export const setInMemoryAccessToken = (token: string) => {
+  inMemoryAccessToken = token;
 };
 
+// Back-compat shims: old code may import these names. They are now no-ops
+// or in-memory only — tokens never touch localStorage.
+export const getStoredAccessToken = () => inMemoryAccessToken;
+export const setStoredAccessToken = (token: string) => {
+  inMemoryAccessToken = token;
+};
+export const getStoredRefreshToken = () => "";
+export const setStoredRefreshToken = (_token: string) => {};
+export const getStoredCsrfToken = () => "";
+export const setStoredCsrfToken = (_token: string) => {};
+export const clearAuthStorage = () => {
+  inMemoryAccessToken = "";
+};
 export const saveAuthTokens = (tokens?: {
   accessToken?: string;
   refreshToken?: string;
   csrfToken?: string;
 }) => {
   if (!tokens) return;
-  if (tokens.accessToken) setStoredAccessToken(tokens.accessToken);
-  if (tokens.refreshToken) setStoredRefreshToken(tokens.refreshToken);
-  if (tokens.csrfToken) setStoredCsrfToken(tokens.csrfToken);
+  if (tokens.accessToken) inMemoryAccessToken = tokens.accessToken;
+  // refreshToken/csrfToken are httpOnly cookies — not stored in JS
 };
 
 export const getCsrfToken = () => {
@@ -41,7 +44,7 @@ export const getCsrfToken = () => {
     .split(";")
     .map((c) => c.trim())
     .find((c) => c.startsWith("csrfToken="));
-  return (match ? match.split("=")[1] : "") || getStoredCsrfToken();
+  return match ? match.split("=")[1] : "";
 };
 
 const shouldSendCsrf = (method?: string) => {
@@ -51,14 +54,13 @@ const shouldSendCsrf = (method?: string) => {
 
 const refreshSession = async () => {
   if (!refreshPromise) {
-    const refreshToken = getStoredRefreshToken();
     refreshPromise = fetch(`${API_BASE}/api/auth/refresh`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify({ refreshToken }),
-      credentials: "include"
+      // no body — refresh uses httpOnly cookie
+      credentials: "include",
     })
       .then(async (res) => {
         if (!res.ok) {
@@ -67,8 +69,8 @@ const refreshSession = async () => {
         }
         const text = await res.text();
         const json = safeJsonParse(text);
-        if (json?.data?.tokens) {
-          saveAuthTokens(json.data.tokens);
+        if (json?.data?.tokens?.accessToken) {
+          setInMemoryAccessToken(json.data.tokens.accessToken);
         }
         return true;
       })
@@ -93,9 +95,8 @@ export const apiFetch = async <T>(
   init: RequestInit = {}
 ): Promise<T> => {
   const headers = new Headers(init.headers || {});
-  const token = getStoredAccessToken();
-  if (token && !headers.has("Authorization")) {
-    headers.set("Authorization", `Bearer ${token}`);
+  if (inMemoryAccessToken && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${inMemoryAccessToken}`);
   }
 
   if (shouldSendCsrf(init.method)) {
@@ -110,14 +111,14 @@ export const apiFetch = async <T>(
     response = await fetch(`${API_BASE}${path}`, {
       ...init,
       headers,
-      credentials: "include"
+      credentials: "include",
     });
   } catch {
     throw {
       error: {
         message:
-          "Network error. Check that the server is running and CORS is allowed."
-      }
+          "Network error. Check that the server is running and CORS is allowed.",
+      },
     };
   }
 
@@ -127,9 +128,8 @@ export const apiFetch = async <T>(
     const refreshed = await refreshSession();
     if (refreshed) {
       const retryHeaders = new Headers(init.headers || {});
-      const newToken = getStoredAccessToken();
-      if (newToken && !retryHeaders.has("Authorization")) {
-        retryHeaders.set("Authorization", `Bearer ${newToken}`);
+      if (inMemoryAccessToken && !retryHeaders.has("Authorization")) {
+        retryHeaders.set("Authorization", `Bearer ${inMemoryAccessToken}`);
       }
       if (shouldSendCsrf(init.method)) {
         const csrf = getCsrfToken();
@@ -138,18 +138,18 @@ export const apiFetch = async <T>(
       const retry = await fetch(`${API_BASE}${path}`, {
         ...init,
         headers: retryHeaders,
-        credentials: "include"
+        credentials: "include",
       });
       const retryText = await retry.text();
       const retryJson = safeJsonParse(retryText);
       if (!retry.ok) {
         throw (
           retryJson || {
-            error: { message: retryText || retry.statusText }
+            error: { message: retryText || retry.statusText },
           }
         );
       }
-      if (retryJson?.data?.tokens) {
+      if (retryJson?.data?.tokens?.accessToken) {
         saveAuthTokens(retryJson.data.tokens);
       }
       return (retryJson || ({} as T)) as T;
@@ -162,12 +162,12 @@ export const apiFetch = async <T>(
   if (!response.ok) {
     throw (
       json || {
-        error: { message: text || response.statusText }
+        error: { message: text || response.statusText },
       }
     );
   }
 
-  if (json?.data?.tokens) {
+  if (json?.data?.tokens?.accessToken) {
     saveAuthTokens(json.data.tokens);
   }
 

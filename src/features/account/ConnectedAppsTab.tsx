@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiFetch, ApiResponse, getApiBase, getStoredAccessToken } from "../../lib/api";
+import { apiFetch, ApiResponse, getApiBase } from "../../lib/api";
 import { Button } from "../../components/Button";
 
 type ConnectorStatus = {
@@ -78,15 +78,8 @@ export const ConnectedAppsTab = () => {
   const canva = data?.data?.providers?.find((p) => p.provider === "canva");
 
   const connect = () => {
-    // Full navigation (not fetch): OAuth needs a real top-level redirect.
-    // Top-level navigation cannot send the Authorization header and cookies
-    // are often missing cross-origin, so pass the stored access token as
-    // ?token=. Server verifies it, else redirects to /login.
-    const token = getStoredAccessToken();
-    const target = token
-      ? `${getApiBase()}/api/connectors/canva/authorize?token=${encodeURIComponent(token)}`
-      : `${getApiBase()}/api/connectors/canva/authorize`;
-    window.location.href = target;
+    // OAuth authorize relies on httpOnly cookies; no token in query string.
+    window.location.href = `${getApiBase()}/api/connectors/canva/authorize`;
   };
 
   const disconnect = async () => {
