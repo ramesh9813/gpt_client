@@ -233,6 +233,7 @@
   width: 24px !important;
   border: 0 !important;
   border-radius: 8px !important;
+  background-color: transparent !important;
   color: var(--muted) !important;
   opacity: 1;
 }
@@ -242,10 +243,33 @@
   color: var(--text) !important;
 }
 
+.conv-side-folder-add-btn:active {
+  transform: scale(0.92);
+}
+
 .conv-side-folder-add-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
   opacity: 1;
+}
+
+/* Highlighted (open or empty) folder: boxed "+" matching the adjacent
+   "···" button — neutral border/background, same 24px tap target.
+   Stays visible (no hover-reveal) so the empty-folder action is findable. */
+.conv-side-folder-add-btn.conv-side-folder-add-btn--boxed {
+  border: 1px solid var(--border) !important;
+  background-color: var(--panel) !important;
+  color: var(--muted) !important;
+  opacity: 1;
+}
+
+.conv-side-folder-add-btn.conv-side-folder-add-btn--boxed:hover {
+  background-color: var(--sidebar) !important;
+  color: var(--text) !important;
+}
+
+.conv-side-folder-add-btn.conv-side-folder-add-btn--boxed:active {
+  transform: scale(0.92);
 }
 
 @media (min-width: 768px) {

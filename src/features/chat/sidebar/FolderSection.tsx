@@ -106,22 +106,29 @@ export function FolderSection({
 
       {categoriesOpen && (
       <div className="conv-side-folder-list">
-        {folders.map((folder) => (
+        {folders.map((folder) => {
+          const chatCount = folder._count?.conversations || 0;
+          const isOpen = expandedFolders.has(folder.id);
+          // Highlighted (open or empty) folders get the boxed "+" matching
+          // the "···" button; folders with chats keep the subtle frameless "+".
+          const highlighted = isOpen || chatCount === 0;
+          return (
           <div key={folder.id} className="conv-side-folder-group">
-            <div className="conv-side-folder-row" data-expanded={expandedFolders.has(folder.id) ? "true" : "false"}>
+            <div className="conv-side-folder-row" data-expanded={isOpen ? "true" : "false"}>
               <div className="conv-side-folder-main" onClick={() => onToggleFolder(folder.id)} title={folder.name}>
-                <i className={`bi bi-folder${expandedFolders.has(folder.id) ? "-fill" : ""} conv-side-folder-icon`}></i>
+                <i className={`bi bi-folder${isOpen ? "-fill" : ""} conv-side-folder-icon`}></i>
                 <span className="conv-side-folder-name">{folder.name}</span>
-                {(folder._count?.conversations || 0) > 0 && (
+                {chatCount > 0 && (
                   <span className="conv-side-folder-count">
-                    {folder._count?.conversations}
+                    {chatCount}
                   </span>
                 )}
               </div>
               <IconButton
-                className="conv-side-folder-add-btn"
+                className={`conv-side-folder-add-btn${highlighted ? " conv-side-folder-add-btn--boxed" : ""}`}
                 onClick={() => onCreateInFolder(folder.id)}
                 title="New Chat in Folder"
+                aria-label={`New chat in ${folder.name}`}
               >
                 <i className="bi bi-plus-lg conv-side-folder-add-icon"></i>
               </IconButton>
@@ -145,7 +152,7 @@ export function FolderSection({
                 </Dropdown>
               </div>
             </div>
-            {expandedFolders.has(folder.id) && (
+            {isOpen && (
               <div className="conv-side-folder-children">
                 {groupedConversations[folder.id]?.map(renderConversation)}
                 {(!groupedConversations[folder.id] || groupedConversations[folder.id].length === 0) && (
@@ -154,7 +161,8 @@ export function FolderSection({
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
       )}
     </div>
