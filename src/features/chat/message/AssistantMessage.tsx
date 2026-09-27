@@ -219,6 +219,7 @@ export const AssistantMessage = memo(
                   <ArtifactCard
                     key={artifact.id}
                     artifact={artifact}
+                    startOpen={message.status === "COMPLETE"}
                   />
                 ))}
               </div>

@@ -5,6 +5,9 @@ import type { ArtifactBlock } from "../artifact";
 
 type ArtifactCardProps = {
   artifact: ArtifactBlock;
+  // Auto-open once the turn settles: collapsed while STREAMING (avoids
+  // iframe thrash per token), open as soon as the message is COMPLETE.
+  startOpen?: boolean;
 };
 
 /**
@@ -12,19 +15,19 @@ type ArtifactCardProps = {
  * Open expands the SAME card in place to a full-height (90vh) simulation.
  * Input area is never hidden.
  */
-export const ArtifactCard = ({ artifact }: ArtifactCardProps) => {
+export const ArtifactCard = ({ artifact, startOpen }: ArtifactCardProps) => {
   const title = artifact.title?.trim() || "Interactive Simulation";
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(!!startOpen);
   const [mode, setMode] = useState<"preview" | "code">("preview");
   const [copied, setCopied] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
-    setOpen(false);
+    setOpen(!!startOpen);
     setMode("preview");
     setCopied(false);
     setExpanded(false);
-  }, [artifact.id, artifact.code]);
+  }, [artifact.id, artifact.code, startOpen]);
 
   useEffect(() => {
     if (!expanded) return;
@@ -186,6 +189,10 @@ export const ArtifactCard = ({ artifact }: ArtifactCardProps) => {
                 title={title}
                 sandbox="allow-scripts"
                 referrerPolicy="no-referrer"
+                // Block LLM-supplied HTML from navigating top, opening popups,
+                // or loading same-origin resources. csp further locks it down.
+                // allow-same-origin deliberately omitted.
+                {...({ csp: "default-src 'self' 'unsafe-inline' data: https:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https: blob:; font-src 'self' data: https:; connect-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'" } as any)}
                 className="artifact-fullpage-frame"
                 srcDoc={artifact.code}
               />
@@ -208,6 +215,7 @@ export const ArtifactCard = ({ artifact }: ArtifactCardProps) => {
             title={title}
             sandbox="allow-scripts"
             referrerPolicy="no-referrer"
+            {...({ csp: "default-src 'self' 'unsafe-inline' data: https:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https: blob:; font-src 'self' data: https:; connect-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'" } as any)}
             className="artifact-card-frame"
             srcDoc={artifact.code}
           />

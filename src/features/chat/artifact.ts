@@ -25,6 +25,22 @@ type BasicMessage = {
  */
 export const ARTIFACT_FENCE_REGEX = /```html:artifact[ \t]*\r?\n([\s\S]*?)```/g;
 
+/**
+ * Fallback: models often drop the non-standard ":artifact" suffix and emit a
+ * plain ```html fence instead (renders as a dead code block otherwise). A
+ * plain html fence is claimed as a simulation ONLY when its body is a
+ * complete standalone document — doctype (or <html>) plus closing </html>.
+ * Snippets/partials stay code (and stay canvas-owned).
+ */
+export const PLAIN_HTML_FENCE_REGEX = /```html[ \t]*\r?\n([\s\S]*?)```/g;
+
+export const isStandaloneHtmlDocument = (code: string): boolean => {
+  if (!code) return false;
+  const hasRoot = /<!doctype\s+html|<html[\s>]/i.test(code);
+  const hasClose = /<\/html\s*>/i.test(code);
+  return hasRoot && hasClose;
+};
+
 const TITLE_TAG_REGEX = /<title[^>]*>([\s\S]*?)<\/title>/i;
 
 export const ARTIFACT_FALLBACK_TITLE = "Interactive Simulation";
@@ -112,13 +128,7 @@ export const buildArtifactData = (
     let stripped = "";
     let hasArtifact = false;
 
-    ARTIFACT_FENCE_REGEX.lastIndex = 0;
-    while ((match = ARTIFACT_FENCE_REGEX.exec(content))) {
-      const full = match[0];
-      const code = match[1] ?? "";
-      stripped += content.slice(lastIndex, match.index);
-      lastIndex = match.index + full.length;
-      hasArtifact = true;
+    const claimBlock = (code: string) => {
       const cleaned = code.trimEnd();
       const block: ArtifactBlock = {
         id: `${message.id}-${blockIndex}`,
@@ -131,6 +141,43 @@ export const buildArtifactData = (
       blocks.push(block);
       byId[block.id] = block;
       blockIndex += 1;
+    };
+
+    // Both fence kinds merged in document order. The ":artifact" pass is
+    // exact; the fallback pass claims plain ```html fences ONLY when the
+    // body is a complete standalone document (doctype/<html> … </html>),
+    // and never inside an already-claimed range.
+    type Span = {
+      start: number;
+      end: number;
+      code: string;
+    };
+    const spans: Span[] = [];
+    ARTIFACT_FENCE_REGEX.lastIndex = 0;
+    while ((match = ARTIFACT_FENCE_REGEX.exec(content))) {
+      spans.push({
+        start: match.index,
+        end: match.index + match[0].length,
+        code: match[1] ?? "",
+      });
+    }
+    const overlapsClaimed = (start: number, end: number): boolean =>
+      spans.some((s) => start < s.end && end > s.start);
+    PLAIN_HTML_FENCE_REGEX.lastIndex = 0;
+    while ((match = PLAIN_HTML_FENCE_REGEX.exec(content))) {
+      const start = match.index;
+      const end = start + match[0].length;
+      if (overlapsClaimed(start, end)) continue;
+      const code = match[1] ?? "";
+      if (!isStandaloneHtmlDocument(code)) continue;
+      spans.push({ start, end, code });
+    }
+    spans.sort((a, b) => a.start - b.start);
+    for (const span of spans) {
+      stripped += content.slice(lastIndex, span.start);
+      lastIndex = span.end;
+      hasArtifact = true;
+      claimBlock(span.code);
     }
 
     if (hasArtifact) {

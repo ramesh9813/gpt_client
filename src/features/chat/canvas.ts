@@ -6,6 +6,8 @@ export type CanvasBlock = {
   sourceIndex: number;
 };
 
+import { isStandaloneHtmlDocument } from "./artifact";
+
 type BasicMessage = {
   id: string;
   role: "USER" | "ASSISTANT" | "SYSTEM";
@@ -18,7 +20,6 @@ type BasicMessage = {
 // never steal artifact blocks. A defensive skip in the loop below keeps the
 // exclusion even if this regex is ever broadened.
 const CODE_BLOCK_REGEX = /```((?![a-zA-Z0-9_-]*:artifact)[a-zA-Z0-9_-]+)?\n([\s\S]*?)```/g;
-
 // Fast prefix check for the defensive skip (covers ```html:artifact plus any
 // future "<lang>:artifact" fence variants).
 const ARTIFACT_FENCE_PREFIX_REGEX = /```[a-zA-Z0-9_-]*:artifact/;
@@ -43,6 +44,17 @@ export const buildCanvasData = (messages: BasicMessage[]) => {
       // Defensive: never steal artifact fences. Keep the raw fence in the
       // stripped display so the artifact layer can strip it downstream.
       if (ARTIFACT_FENCE_PREFIX_REGEX.test(full.slice(0, 64))) {
+        stripped += content.slice(lastIndex, match.index + full.length);
+        lastIndex = match.index + full.length;
+        continue;
+      }
+      // Full standalone HTML documents (<!DOCTYPE html> … </html>) belong to
+      // the simulation card (artifact fallback), not the canvas panel — same
+      // keep-raw treatment so the artifact layer can claim them downstream.
+      if (
+        (lang || "").toLowerCase() === "html" &&
+        isStandaloneHtmlDocument(code)
+      ) {
         stripped += content.slice(lastIndex, match.index + full.length);
         lastIndex = match.index + full.length;
         continue;
