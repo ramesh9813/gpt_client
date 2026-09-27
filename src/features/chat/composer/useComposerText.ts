@@ -8,7 +8,7 @@ export const useComposerArmed = () => {
   // Mirrors researchArmed exactly: chip indicator, send opts, one-shot disarm.
   const [artifactArmed, setArtifactArmed] = useState(false);
   // Sticky modes: stay on across sends until explicitly cleared.
-  // Web search defaults ON; quiz defaults OFF. Both persist in localStorage.
+  // Web search defaults OFF (tap to arm); quiz defaults OFF. Both persist in localStorage.
   const [webSearchArmed, setWebSearchArmed] = useState(() => readWebSearchArmed());
   const [mcqArmed, setMcqArmed] = useState(() => {
     try {
@@ -134,8 +134,8 @@ export const useComposerText = ({
     // the prefix so attachments still go through normally.
     const routed =
       mcqArmed && trimmed && !MCQ_PREFIX.test(trimmed) ? `mcq ${trimmed}` : trimmed;
-    // webSearch is always explicit (true/false) so an explicit OFF beats
-    // the pipeline default-ON; research/artifact stay one-shot opt-ins.
+    // webSearch is always explicit (true/false) so the armed toggle is
+    // honored exactly; research/artifact stay one-shot opt-ins.
     const opts = {
       ...(researchArmed ? { research: true as const } : {}),
       ...(artifactArmed ? { artifact: true as const } : {}),

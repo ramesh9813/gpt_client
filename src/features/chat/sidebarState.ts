@@ -62,18 +62,27 @@ export const clearLastConversationId = (): void => {
   }
 };
 
-// Web search stays ON by default for every input until explicitly turned
-// off. The composer persists the globe toggle here; the send pipeline
+// Web search stays OFF by default — only an explicit tap on the model's
+// Web Search row arms it. The choice persists here; the send pipeline
 // falls back to it whenever a turn carries no explicit flag (follow-up
 // chips, quiz rounds, edits, regenerates).
 export const WEBSEARCH_ARMED_KEY = "chatapp.websearch.armed";
 
+// One-time migration marker: the old default was ON and auto-persisted, so
+// a stored "true" is usually not an explicit choice. First read after this
+// change resets everyone to OFF once; later taps persist normally.
+const WEBSEARCH_DEFAULT_OFF_MARK = "chatapp.websearch.defaultOff.v1";
+
 export const readWebSearchArmed = (): boolean => {
   try {
-    if (typeof window === "undefined" || !window.localStorage) return true;
-    const v = window.localStorage.getItem(WEBSEARCH_ARMED_KEY);
-    return v === null ? true : v !== "false";
+    if (typeof window === "undefined" || !window.localStorage) return false;
+    if (!window.localStorage.getItem(WEBSEARCH_DEFAULT_OFF_MARK)) {
+      window.localStorage.setItem(WEBSEARCH_ARMED_KEY, "false");
+      window.localStorage.setItem(WEBSEARCH_DEFAULT_OFF_MARK, "1");
+      return false;
+    }
+    return window.localStorage.getItem(WEBSEARCH_ARMED_KEY) === "true";
   } catch {
-    return true;
+    return false;
   }
 };

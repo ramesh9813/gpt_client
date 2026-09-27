@@ -110,7 +110,7 @@ export const useChatMessages = ({
     const turnModel = resolveModelForPrompt
       ? resolveModelForPrompt(trimmed)
       : model;
-    // Web search defaults ON for every input; only an explicit OFF wins.
+    // Web search defaults OFF; only an explicit arm (model-card toggle) wins.
     const searchOn = opts?.webSearch ?? readWebSearchArmed();
 
     setMessages((prev) => [
