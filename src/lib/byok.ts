@@ -389,9 +389,9 @@ export const getByokHeaders = (modelOverride?: string): Record<string, string> =
 export const fetchByokModels = async (
   providerId: ByokProviderId,
   apiKey?: string
-): Promise<{ models: string[]; freeIds: string[] }> => {
+): Promise<{ models: string[]; freeIds: string[]; message?: string }> => {
   const res = await apiFetch<
-    ApiResponse<{ models: string[]; freeIds?: string[] }>
+    ApiResponse<{ models: string[]; freeIds?: string[]; message?: string }>
   >("/api/byok/models", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -403,5 +403,6 @@ export const fetchByokModels = async (
   return {
     models: Array.isArray(res?.data?.models) ? res.data.models : [],
     freeIds: Array.isArray(res?.data?.freeIds) ? res.data.freeIds! : [],
+    message: typeof res?.data?.message === "string" ? res.data.message : undefined,
   };
 };

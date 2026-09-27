@@ -124,7 +124,7 @@ export const ByokCard = () => {
     setModelsLoading(true);
     setModelsNote(null);
     void fetchByokModels(provider.id, withKey)
-      .then(({ models, freeIds: fetchedFree }) => {
+      .then(({ models, freeIds: fetchedFree, message }) => {
         if (fetchSeq.current !== seq) return;
         setModelsLoading(false);
         if (models.length > 0) {
@@ -136,7 +136,8 @@ export const ByokCard = () => {
           setModel((prev) => (models.includes(prev) ? prev : models[0]));
         } else {
           setModelsNote(
-            "Could not load the live list — showing a built-in shortlist."
+            message ??
+              "Could not load the live list — showing a built-in shortlist."
           );
         }
       })
