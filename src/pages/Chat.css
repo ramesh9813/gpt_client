@@ -145,6 +145,15 @@
   line-height: 1.25rem;
 }
 
+/* Chat-area pill icons (sidebar toggle, new chat, canvas): halve the
+   icon contrast so the floating pill stays quiet. Buttons keep full
+   hover/active feedback; only the glyphs dim. */
+.chat-header-pill .sidebar-toggle-icon,
+.chat-header-pill .chat-newchat-icon,
+.chat-header-pill .chat-canvas-toggle i {
+  opacity: 0.5;
+}
+
 .chat-canvas-toggle {
   display: inline-flex;
   align-items: center;
