@@ -78,7 +78,16 @@ export const AssistantMessage = memo(
     () => displayContent || message.content
   );
 
-  if (!message.content && !(message.images && message.images.length > 0) && !(message.videos && message.videos.length > 0) && !message.quiz && message.status !== "STREAMING" && messageArtifacts.length === 0) {
+  // Exact failure reason: the server persists it in `error` while leaving
+  // `content` empty, so after the post-stream refetch the row would render
+  // as an invisible bubble (early return below) without this. Pre-refetch
+  // throw paths put the reason in `content` instead — covered either way.
+  const errorReason =
+    message.status === "ERROR"
+      ? message.error || message.content || "No response was generated."
+      : null;
+
+  if (!message.content && !(message.images && message.images.length > 0) && !(message.videos && message.videos.length > 0) && !message.quiz && message.status !== "STREAMING" && messageArtifacts.length === 0 && !errorReason) {
     return null;
   }
 
@@ -195,6 +204,15 @@ export const AssistantMessage = memo(
           </div>
         ) : (
           <>
+            {errorReason ? (
+              <div className="msg-error" role="alert">
+                <i className="bi bi-exclamation-triangle msg-error-icon" aria-hidden="true" />
+                <div className="msg-error-body">
+                  <div className="msg-error-title">No response was generated</div>
+                  <div className="msg-error-text">{errorReason}</div>
+                </div>
+              </div>
+            ) : null}
             {messageArtifacts.length > 0 ? (
               <div className="msg-artifacts">
                 {messageArtifacts.map((artifact) => (
@@ -205,7 +223,7 @@ export const AssistantMessage = memo(
                 ))}
               </div>
             ) : null}
-            {displayContent ? <MarkdownContent content={displayContent} /> : null}
+            {displayContent && !errorReason ? <MarkdownContent content={displayContent} /> : null}
           </>
         )}
         {message.quiz && message.quiz.questions.length > 0 ? (

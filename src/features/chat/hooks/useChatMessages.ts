@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { apiFetch, ApiResponse } from "../../../lib/api";
+import { getActiveByok } from "../../../lib/byok";
 import { readWebSearchArmed } from "../sidebarState";
 
 // Thinking mode mirrors webSearch: sticky localStorage flag honored by
@@ -35,6 +36,10 @@ export const useChatMessages = ({
   );
   const [lastUserMessage, setLastUserMessage] = useState("");
   const [composerError, setComposerError] = useState<string | null>(null);
+  // Live ref: resend reads the latest thread even if its row memo-skipped a
+  // re-render (UserMessage ignores volatile callbacks in its comparator).
+  const messagesRef = useRef<ChatMessage[]>(messages);
+  messagesRef.current = messages;
   // Live phase of the in-flight turn for the "what is happening" status.
   const [activeTurnKind, setActiveTurnKind] = useState<TurnKind | null>(null);
   const messageSchema = useMemo(
@@ -150,6 +155,7 @@ export const useChatMessages = ({
             ? {
                 ...m,
                 content: err?.message || "Streaming failed",
+                error: err?.message || "Streaming failed",
                 status: "ERROR",
               }
             : m
@@ -226,6 +232,7 @@ export const useChatMessages = ({
             ? {
                 ...m,
                 content: err?.message || "Streaming failed",
+                error: err?.message || "Streaming failed",
                 status: "ERROR",
               }
             : m
@@ -293,6 +300,7 @@ export const useChatMessages = ({
             ? {
                 ...m,
                 content: err?.message || "Regeneration failed",
+                error: err?.message || "Regeneration failed",
                 status: "ERROR",
               }
             : m
@@ -303,6 +311,92 @@ export const useChatMessages = ({
       setActiveStreamId(null);
       setActiveTurnKind(null);
       queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
+    }
+  };
+
+  // Resend a USER message to the SAME model that answered it (its following
+  // assistant row's model, else the composer's current model). Same-model
+  // retry, not a model switch — the RegenerateMenu stays the place for that.
+  const handleResend = async (userMessageId: string) => {
+    if (!conversationId) return;
+    const thread = messagesRef.current;
+    const index = thread.findIndex((m) => m.id === userMessageId);
+    if (index === -1) return;
+    const userMessage = thread[index];
+    if (userMessage.role !== "USER") return;
+
+    const next = thread[index + 1];
+    const answeredModel =
+      next && next.role === "ASSISTANT" && next.model ? next.model : null;
+    let sameModel = answeredModel || model;
+    // BYOK turns persist "provider:model"; the chat path needs the plain
+    // provider model id, so strip the prefix only when it matches the
+    // active provider (never touch ":free" suffixed OpenRouter ids).
+    const activeByok = getActiveByok();
+    if (
+      activeByok &&
+      sameModel.startsWith(`${activeByok.provider}:`)
+    ) {
+      sameModel = sameModel.slice(activeByok.provider.length + 1);
+    }
+
+    // Normal case: an answer row follows — reuse it in place, exactly like
+    // a regenerate pinned to the same model.
+    if (next && next.role === "ASSISTANT") {
+      await handleRegenerate(next.id, sameModel);
+      return;
+    }
+
+    // No answer row yet (previous attempt died before one was saved):
+    // append a fresh assistant slot and stream this message again.
+    const fallbackModel = resolveModelForPrompt
+      ? resolveModelForPrompt(userMessage.content)
+      : model;
+    setStreaming(true);
+    const tempAssistantId = `local-assistant-${Date.now()}`;
+    setActiveStreamId(tempAssistantId);
+    setActiveTurnKind(detectTurnKind(userMessage.content));
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: tempAssistantId,
+        role: "ASSISTANT",
+        content: "",
+        status: "STREAMING",
+        model: fallbackModel === "default" ? "default" : fallbackModel,
+      },
+    ]);
+    try {
+      await streamAssistant(setMessages, {
+        tempAssistantId,
+        conversationId,
+        existingUserMessageId: userMessage.id,
+        selectedModel: fallbackModel,
+        webSearch: readWebSearchArmed(),
+        think: readThinkingArmed(),
+      });
+    } catch (err: any) {
+      if (cancelRef.current) {
+        return;
+      }
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempAssistantId
+            ? {
+                ...m,
+                content: err?.message || "Resend failed",
+                error: err?.message || "Resend failed",
+                status: "ERROR",
+              }
+            : m
+        )
+      );
+    } finally {
+      setStreaming(false);
+      setActiveStreamId(null);
+      setActiveTurnKind(null);
+      queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
     }
   };
 
@@ -322,6 +416,7 @@ export const useChatMessages = ({
     sendMessage,
     handleEditSubmit,
     handleRegenerate,
+    handleResend,
   };
 };
 

@@ -81,6 +81,7 @@ const Chat = () => {
     sendMessage,
     handleEditSubmit,
     handleRegenerate,
+    handleResend,
   } = useChatMessages({
     conversationId,
     model,
@@ -247,6 +248,11 @@ const Chat = () => {
               // models (incl. per-message regenerate alternatives).
               onRegenerate={
                 isGeneralUser && !byokActive ? undefined : handleRegenerate
+              }
+              // Same gate: resending reuses the turn's own model, but still
+              // consumes a built-in completion when no provider key is set.
+              onResend={
+                isGeneralUser && !byokActive ? undefined : handleResend
               }
               onStopStreaming={handleStopStreaming}
               onFollowup={(q) => void sendMessage(q)}

@@ -31,6 +31,9 @@ export type ChatMessage = {
   content: string;
   reasoning?: string;
   status?: "COMPLETE" | "STREAMING" | "ERROR";
+  // Exact server reason when a turn fails (persisted in DB, survives the
+  // post-stream refetch that wipes the transient streaming content).
+  error?: string | null;
   model?: string | null;
   images?: string[];
   videos?: string[];

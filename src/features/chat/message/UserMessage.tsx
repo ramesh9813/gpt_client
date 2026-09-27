@@ -20,6 +20,7 @@ type UserMessageProps = {
   startEdit: (message: ChatMessage) => void;
   onEditSubmit?: (id: string, value: string) => Promise<void>;
   editDisabled?: boolean;
+  onResend?: (messageId: string) => void;
 };
 
 export const UserMessage = memo(
@@ -36,7 +37,8 @@ export const UserMessage = memo(
     cancelEdit,
     startEdit,
     onEditSubmit,
-  editDisabled
+  editDisabled,
+  onResend,
 }: UserMessageProps) => {
   // Double fast click / double tap on the bubble copies it immediately.
   const { copied, onDoubleClick, onTouchStart, onTouchEnd } = useDoubleCopy(
@@ -124,6 +126,18 @@ export const UserMessage = memo(
                 type="button"
               >
                 <i className="bi bi-pencil msg-action-icon"></i>
+              </button>
+            )}
+            {onResend && !editDisabled && (
+              <button
+                className="msg-icon-btn"
+                onClick={() => onResend(message.id)}
+                disabled={editDisabled}
+                title="Resend to same model"
+                aria-label="Resend to same model"
+                type="button"
+              >
+                <i className="bi bi-arrow-repeat msg-action-icon"></i>
               </button>
             )}
           </div>

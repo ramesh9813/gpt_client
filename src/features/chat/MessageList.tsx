@@ -20,6 +20,7 @@ type MessageListProps = {
   editDisabled?: boolean;
   modelOptions?: ModelOption[];
   onRegenerate?: (messageId: string, model: string) => void;
+  onResend?: (messageId: string) => void;
   onStopStreaming?: () => void;
   onFollowup?: (text: string) => void;
   onQuizSelect?: (messageId: string, quiz: QuizRound) => void;
@@ -42,6 +43,7 @@ const MessageList = ({
   editDisabled,
   modelOptions = [],
   onRegenerate,
+  onResend,
   onStopStreaming,
   onFollowup,
   onQuizSelect,
@@ -140,6 +142,7 @@ const MessageList = ({
                 startEdit={edit.startEdit}
                 onEditSubmit={onEditSubmit}
                 editDisabled={editDisabled}
+                onResend={onResend}
               />
             );
           }
