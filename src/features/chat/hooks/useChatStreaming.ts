@@ -318,6 +318,16 @@ export const useChatStreaming = () => {
         );
       };
 
+      // Line-by-line typewriter: buffer SSE token deltas and render whole
+      // lines per tick so the answer types out line by line (no mid-line
+      // markdown reflow). Backlog drains adaptively (~4 ticks) so long
+      // answers never feel buffered; a long single line without newlines
+      // flushes progressively at word boundaries so output never stalls.
+      // Final remainder (no trailing newline) flushes when the stream ends.
+      const LINE_TICK_MS = 70;
+      const PARTIAL_FLUSH_CHARS = 160;
+      const MAX_LINES_PER_TICK = 8;
+
       const flushPending = () => {
         flushTimer = null;
         if (isCancelled()) {
@@ -329,17 +339,55 @@ export const useChatStreaming = () => {
           if (streamDone) resolveOnce();
           return;
         }
-        // Frame-paced typewriter (~25fps) with adaptive chunks: drain speed
-        // scales with backlog so fast providers never LOOK buffered, while
-        // frames stay small enough for low-end devices to keep up.
-        const chunkSize = Math.max(
-          160,
-          Math.min(900, Math.ceil(pendingText.length / 4))
-        );
-        const chunk = pendingText.slice(0, chunkSize);
-        pendingText = pendingText.slice(chunkSize);
-        appendChunk(chunk);
-        flushTimer = setTimeout(flushPending, 40);
+        const lastNl = pendingText.lastIndexOf("\n");
+        if (lastNl >= 0) {
+          const complete = pendingText.slice(0, lastNl + 1);
+          const rest = pendingText.slice(lastNl + 1);
+          const completeLines = complete.slice(0, -1).split("\n");
+          const totalLines = completeLines.length;
+          const perTick = Math.max(
+            1,
+            Math.min(
+              MAX_LINES_PER_TICK,
+              Math.ceil(totalLines / 4)
+            )
+          );
+          const emitCount = Math.min(perTick, totalLines);
+          const chunk =
+            completeLines.slice(0, emitCount).join("\n") + "\n";
+          const leftover = completeLines.slice(emitCount);
+          pendingText =
+            (leftover.length > 0 ? leftover.join("\n") + "\n" : "") + rest;
+          appendChunk(chunk);
+          if (pendingText.length > 0) {
+            flushTimer = setTimeout(flushPending, LINE_TICK_MS);
+          } else if (streamDone) {
+            resolveOnce();
+          }
+          // Pending empty + stream live: no timer — next token re-arms
+          // via startFlush. Avoids no-op wakeups between batches.
+          return;
+        }
+        // No complete line yet.
+        if (streamDone) {
+          const chunk = pendingText;
+          pendingText = "";
+          appendChunk(chunk);
+          resolveOnce();
+          return;
+        }
+        if (pendingText.length >= PARTIAL_FLUSH_CHARS) {
+          // Long single line: flush up to a word boundary to stay alive.
+          const cut = pendingText.lastIndexOf(" ", PARTIAL_FLUSH_CHARS);
+          const at = cut > 40 ? cut + 1 : PARTIAL_FLUSH_CHARS;
+          const chunk = pendingText.slice(0, at);
+          pendingText = pendingText.slice(at);
+          appendChunk(chunk);
+          flushTimer = setTimeout(flushPending, LINE_TICK_MS);
+          return;
+        }
+        // Short partial line: hold until the line completes, more tokens
+        // arrive (startFlush), or the stream ends. No spin timer here.
       };
 
       const startFlush = () => {
