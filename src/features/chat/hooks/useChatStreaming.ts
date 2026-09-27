@@ -299,8 +299,10 @@ export const useChatStreaming = () => {
       let currentEvent = "message";
       let pendingText = "";
       let streamDone = false;
+      let rafId: number | null = null;
       let flushTimer: ReturnType<typeof setTimeout> | null = null;
       let resolveFlushDone: (() => void) | null = null;
+      let lastFlushAt = 0;
 
       const resolveOnce = () => {
         if (!resolveFlushDone) return;
@@ -318,18 +320,23 @@ export const useChatStreaming = () => {
         );
       };
 
-      // Line-by-line typewriter: buffer SSE token deltas and render whole
-      // lines per tick so the answer types out line by line (no mid-line
-      // markdown reflow). Backlog drains adaptively (~4 ticks) so long
-      // answers never feel buffered; a long single line without newlines
-      // flushes progressively at word boundaries so output never stalls.
-      // Final remainder (no trailing newline) flushes when the stream ends.
-      const LINE_TICK_MS = 70;
-      const PARTIAL_FLUSH_CHARS = 160;
-      const MAX_LINES_PER_TICK = 8;
+      // Super-smooth high-speed typewriter — line-by-line, RAF-batched.
+      // - Queued deltas render on every animation frame (~60fps) so typing
+      //   never stutters even when the provider bursts.
+      // - Whole lines are emitted per frame (no mid-line markdown reflow) but
+      //   partial lines flush very early (24 chars) so the first token appears
+      //   instantly. Long single lines stream word-by-word without stalling.
+      // - Backlog drains adaptively: more pending lines → more per frame
+      //   (capped), so fast models feel high-speed while slow models still
+      //   feel continuous.
+      const FRAME_MS = 16;
+      const PARTIAL_FLUSH_CHARS = 24;
+      const MAX_LINES_PER_TICK = 3;
+      const MIN_PARTIAL_WORD_CUT = 8;
 
       const flushPending = () => {
         flushTimer = null;
+        rafId = null;
         if (isCancelled()) {
           pendingText = "";
           resolveOnce();
@@ -339,36 +346,37 @@ export const useChatStreaming = () => {
           if (streamDone) resolveOnce();
           return;
         }
+        const now = performance.now();
+        // throttle to one frame when queue is small — keeps 60fps without spin
+        if (now - lastFlushAt < FRAME_MS && pendingText.length < 400) {
+          scheduleFlush();
+          return;
+        }
+        lastFlushAt = now;
         const lastNl = pendingText.lastIndexOf("\n");
         if (lastNl >= 0) {
           const complete = pendingText.slice(0, lastNl + 1);
           const rest = pendingText.slice(lastNl + 1);
           const completeLines = complete.slice(0, -1).split("\n");
           const totalLines = completeLines.length;
+          // drain faster when many lines are queued, but cap per frame for smoothness
           const perTick = Math.max(
             1,
-            Math.min(
-              MAX_LINES_PER_TICK,
-              Math.ceil(totalLines / 4)
-            )
+            Math.min(MAX_LINES_PER_TICK, Math.ceil(totalLines / 3))
           );
           const emitCount = Math.min(perTick, totalLines);
-          const chunk =
-            completeLines.slice(0, emitCount).join("\n") + "\n";
+          const chunk = completeLines.slice(0, emitCount).join("\n") + "\n";
           const leftover = completeLines.slice(emitCount);
           pendingText =
             (leftover.length > 0 ? leftover.join("\n") + "\n" : "") + rest;
           appendChunk(chunk);
           if (pendingText.length > 0) {
-            flushTimer = setTimeout(flushPending, LINE_TICK_MS);
+            scheduleFlush();
           } else if (streamDone) {
             resolveOnce();
           }
-          // Pending empty + stream live: no timer — next token re-arms
-          // via startFlush. Avoids no-op wakeups between batches.
           return;
         }
-        // No complete line yet.
         if (streamDone) {
           const chunk = pendingText;
           pendingText = "";
@@ -377,22 +385,37 @@ export const useChatStreaming = () => {
           return;
         }
         if (pendingText.length >= PARTIAL_FLUSH_CHARS) {
-          // Long single line: flush up to a word boundary to stay alive.
-          const cut = pendingText.lastIndexOf(" ", PARTIAL_FLUSH_CHARS);
-          const at = cut > 40 ? cut + 1 : PARTIAL_FLUSH_CHARS;
+          const cut = pendingText.lastIndexOf(" ", PARTIAL_FLUSH_CHARS + 16);
+          const at =
+            cut > MIN_PARTIAL_WORD_CUT ? cut + 1 : Math.min(pendingText.length, PARTIAL_FLUSH_CHARS + 16);
           const chunk = pendingText.slice(0, at);
           pendingText = pendingText.slice(at);
           appendChunk(chunk);
-          flushTimer = setTimeout(flushPending, LINE_TICK_MS);
+          scheduleFlush();
           return;
         }
-        // Short partial line: hold until the line completes, more tokens
-        // arrive (startFlush), or the stream ends. No spin timer here.
+        // Short partial (< 24 chars): hold briefly — next token or next frame
+        // will flush it. Schedule a one-shot so the first token never stalls.
+        scheduleFlush();
+      };
+
+      const scheduleFlush = () => {
+        if (isCancelled()) return;
+        if (rafId != null || flushTimer != null) return;
+        // Prefer RAF for silk 60fps; fallback to 16ms timer outside browser frame
+        if (typeof requestAnimationFrame === "function") {
+          rafId = requestAnimationFrame(() => {
+            rafId = null;
+            flushPending();
+          });
+        } else {
+          flushTimer = setTimeout(flushPending, FRAME_MS);
+        }
       };
 
       const startFlush = () => {
-        if (flushTimer || isCancelled()) return;
-        flushTimer = setTimeout(flushPending, 0);
+        if (isCancelled()) return;
+        scheduleFlush();
       };
 
       while (true) {
@@ -464,6 +487,10 @@ export const useChatStreaming = () => {
               const errorMessage = (parsed as any).message || "Streaming failed";
               pendingText = "";
               streamDone = true;
+              if (rafId != null) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+              }
               if (flushTimer) {
                 clearTimeout(flushTimer);
                 flushTimer = null;
@@ -489,7 +516,7 @@ export const useChatStreaming = () => {
       }
       await new Promise<void>((resolve) => {
         resolveFlushDone = resolve;
-        if (pendingText.length === 0 && !flushTimer) {
+        if (pendingText.length === 0 && !flushTimer && rafId == null) {
           resolveOnce();
         }
       });
