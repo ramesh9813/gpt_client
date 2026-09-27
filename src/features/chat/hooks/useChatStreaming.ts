@@ -106,7 +106,7 @@ export const useChatStreaming = () => {
             provider: string;
             baseUrl: string;
           }>
-        >(`${apiBase}/api/chat/direct-prepare`, {
+        >("/api/chat/direct-prepare", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -157,7 +157,7 @@ export const useChatStreaming = () => {
         if (result.cancelled || isCancelled()) return true;
 
         // 3. Persist onto the prepared row (server ownership-checks it).
-        await apiFetch(`${apiBase}/api/chat/direct-finish`, {
+        await apiFetch("/api/chat/direct-finish", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -213,7 +213,7 @@ export const useChatStreaming = () => {
           "Direct streaming failed";
         if (!preparedAssistantId) return false;
         try {
-          await apiFetch(`${apiBase}/api/chat/direct-finish`, {
+          await apiFetch("/api/chat/direct-finish", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

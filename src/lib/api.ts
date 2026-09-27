@@ -11,6 +11,18 @@ let refreshPromise: Promise<boolean> | null = null;
 // when a request needs it before a refresh. Cleared on logout/refresh failure.
 let inMemoryAccessToken = "";
 
+// CSRF double-submit token fallback. The server sets it as a readable
+// `csrfToken` cookie AND returns it in login/signup/refresh JSON
+// (`data.tokens.csrfToken`). When third-party cookies are blocked the cookie
+// never lands in document.cookie, so we keep the JSON copy in memory +
+// localStorage and send it as `x-csrf-token`.
+let inMemoryCsrfToken = "";
+try {
+  inMemoryCsrfToken = localStorage.getItem("csrfToken") || "";
+} catch {
+  inMemoryCsrfToken = "";
+}
+
 export const getInMemoryAccessToken = () => inMemoryAccessToken;
 export const setInMemoryAccessToken = (token: string) => {
   inMemoryAccessToken = token;
@@ -24,10 +36,24 @@ export const setStoredAccessToken = (token: string) => {
 };
 export const getStoredRefreshToken = () => "";
 export const setStoredRefreshToken = (_token: string) => {};
-export const getStoredCsrfToken = () => "";
-export const setStoredCsrfToken = (_token: string) => {};
+export const getStoredCsrfToken = () => inMemoryCsrfToken;
+export const setStoredCsrfToken = (token: string) => {
+  inMemoryCsrfToken = token || "";
+  try {
+    if (inMemoryCsrfToken) localStorage.setItem("csrfToken", inMemoryCsrfToken);
+    else localStorage.removeItem("csrfToken");
+  } catch {
+    // storage unavailable (private mode) — memory fallback still works
+  }
+};
 export const clearAuthStorage = () => {
   inMemoryAccessToken = "";
+  inMemoryCsrfToken = "";
+  try {
+    localStorage.removeItem("csrfToken");
+  } catch {
+    // ignore
+  }
 };
 export const saveAuthTokens = (tokens?: {
   accessToken?: string;
@@ -36,19 +62,34 @@ export const saveAuthTokens = (tokens?: {
 }) => {
   if (!tokens) return;
   if (tokens.accessToken) inMemoryAccessToken = tokens.accessToken;
-  // refreshToken/csrfToken are httpOnly cookies — not stored in JS
+  if (tokens.csrfToken) {
+    inMemoryCsrfToken = tokens.csrfToken;
+    try {
+      localStorage.setItem("csrfToken", tokens.csrfToken);
+    } catch {
+      // ignore
+    }
+  }
+  // refreshToken stays httpOnly cookie-only — never stored in JS
 };
 
 export const getCsrfToken = () => {
+  if (inMemoryCsrfToken) return inMemoryCsrfToken;
   const match = document.cookie
     .split(";")
     .map((c) => c.trim())
     .find((c) => c.startsWith("csrfToken="));
-  if (!match) return "";
+  if (match) {
+    try {
+      return decodeURIComponent(match.slice("csrfToken=".length));
+    } catch {
+      return match.slice("csrfToken=".length);
+    }
+  }
   try {
-    return decodeURIComponent(match.slice("csrfToken=".length));
+    return localStorage.getItem("csrfToken") || "";
   } catch {
-    return match.slice("csrfToken=".length);
+    return "";
   }
 };
 
@@ -76,8 +117,8 @@ const refreshSession = async () => {
         }
         const text = await res.text();
         const json = safeJsonParse(text);
-        if (json?.data?.tokens?.accessToken) {
-          setInMemoryAccessToken(json.data.tokens.accessToken);
+        if (json?.data?.tokens) {
+          saveAuthTokens(json.data.tokens);
         }
         return true;
       })
@@ -156,7 +197,7 @@ export const apiFetch = async <T>(
           }
         );
       }
-      if (retryJson?.data?.tokens?.accessToken) {
+      if (retryJson?.data?.tokens) {
         saveAuthTokens(retryJson.data.tokens);
       }
       return (retryJson || ({} as T)) as T;
@@ -174,7 +215,7 @@ export const apiFetch = async <T>(
     );
   }
 
-  if (json?.data?.tokens?.accessToken) {
+  if (json?.data?.tokens) {
     saveAuthTokens(json.data.tokens);
   }
 
