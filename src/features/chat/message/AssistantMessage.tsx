@@ -220,6 +220,7 @@ export const AssistantMessage = memo(
                     key={artifact.id}
                     artifact={artifact}
                     startOpen={message.status === "COMPLETE"}
+                    building={message.status === "STREAMING"}
                   />
                 ))}
               </div>

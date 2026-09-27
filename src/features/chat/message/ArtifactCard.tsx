@@ -8,6 +8,10 @@ type ArtifactCardProps = {
   // Auto-open once the turn settles: collapsed while STREAMING (avoids
   // iframe thrash per token), open as soon as the message is COMPLETE.
   startOpen?: boolean;
+  // Mid-stream (unclosed fence): the card already shows its onboard Open
+  // button — label it honestly until the turn settles. Preview stays the
+  // default mode either way: simulation, never code.
+  building?: boolean;
 };
 
 /**
@@ -15,7 +19,7 @@ type ArtifactCardProps = {
  * Open expands the SAME card in place to a full-height (90vh) simulation.
  * Input area is never hidden.
  */
-export const ArtifactCard = ({ artifact, startOpen }: ArtifactCardProps) => {
+export const ArtifactCard = ({ artifact, startOpen, building }: ArtifactCardProps) => {
   const title = artifact.title?.trim() || "Interactive Simulation";
   const [open, setOpen] = useState(!!startOpen);
   const [mode, setMode] = useState<"preview" | "code">("preview");
@@ -88,7 +92,9 @@ export const ArtifactCard = ({ artifact, startOpen }: ArtifactCardProps) => {
           <i className="bi bi-play-circle artifact-card-icon-glyph"></i>
         </div>
         <div className="artifact-card-text">
-          <div className="artifact-card-label">Interactive Simulation Created</div>
+          <div className="artifact-card-label">
+            {building ? "Building Simulation…" : "Interactive Simulation Created"}
+          </div>
           <div className="artifact-card-title" title={title}>
             {title}
           </div>

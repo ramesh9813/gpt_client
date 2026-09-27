@@ -26,6 +26,16 @@ type BasicMessage = {
 export const ARTIFACT_FENCE_REGEX = /```html:artifact[ \t]*\r?\n([\s\S]*?)```/g;
 
 /**
+ * In-progress artifact: an opening ```html:artifact fence with no closing
+ * fence yet (the model is still streaming the HTML). Matched separately so
+ * the card + onboard Open button appear immediately — showing the
+ * simulation (preview) — instead of raw code while the turn streams.
+ * Plain ```html fences are NOT matched here: mid-stream they are
+ * indistinguishable from ordinary code snippets (see fallback rule above).
+ */
+export const UNCLOSED_ARTIFACT_OPENER_REGEX = /```html:artifact[ \t]*\r?\n?/g;
+
+/**
  * Fallback: models often drop the non-standard ":artifact" suffix and emit a
  * plain ```html fence instead (renders as a dead code block otherwise). A
  * plain html fence is claimed as a simulation ONLY when its body is a
@@ -178,6 +188,30 @@ export const buildArtifactData = (
       lastIndex = span.end;
       hasArtifact = true;
       claimBlock(span.code);
+    }
+
+    // Trailing unclosed opener (mid-stream): claim the remainder as a live
+    // block so the onboard expand button shows at once. Only when the
+    // opener sits after every claimed range (never inside one).
+    const lastClaimedEnd = spans.length > 0 ? spans[spans.length - 1].end : -1;
+    let lastOpenerStart = -1;
+    let lastOpenerEnd = -1;
+    UNCLOSED_ARTIFACT_OPENER_REGEX.lastIndex = 0;
+    let openerMatch: RegExpExecArray | null;
+    while ((openerMatch = UNCLOSED_ARTIFACT_OPENER_REGEX.exec(content))) {
+      lastOpenerStart = openerMatch.index;
+      lastOpenerEnd = openerMatch.index + openerMatch[0].length;
+    }
+    if (lastOpenerStart >= 0 && lastOpenerStart >= lastClaimedEnd) {
+      const tail = content.slice(lastOpenerEnd);
+      stripped += content.slice(lastIndex, lastOpenerStart);
+      lastIndex = content.length;
+      hasArtifact = true;
+      // Empty body (opener just typed): strip the fence from display but
+      // claim no block yet — the card appears with the first code chunk.
+      if (tail.trim().length > 0) {
+        claimBlock(tail);
+      }
     }
 
     if (hasArtifact) {
