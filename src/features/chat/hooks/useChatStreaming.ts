@@ -321,18 +321,17 @@ export const useChatStreaming = () => {
       };
 
       // Super-smooth high-speed typewriter — line-by-line, RAF-batched.
-      // - Queued deltas render on every animation frame (~60fps) so typing
-      //   never stutters even when the provider bursts.
-      // - Whole lines are emitted per frame (no mid-line markdown reflow) but
-      //   partial lines flush very early (24 chars) so the first token appears
-      //   instantly. Long single lines stream word-by-word without stalling.
-      // - Backlog drains adaptively: more pending lines → more per frame
-      //   (capped), so fast models feel high-speed while slow models still
-      //   feel continuous.
+      // Applies to EVERY provider (OpenRouter, CleanAPIs, all BYOK) because
+      // the server normalises every provider to the same `token` SSE contract.
+      // - Queued deltas render on every animation frame (~60fps) so bursts
+      //   never stutter.
+      // - Whole lines per frame (no mid-line markdown reflow); partial lines
+      //   stream word-by-word each frame so the FIRST token paints within one
+      //   frame (~16ms) even when the provider sends tiny deltas.
+      // - Backlog drains adaptively (cap 3 lines/frame) for high-speed feel.
       const FRAME_MS = 16;
-      const PARTIAL_FLUSH_CHARS = 24;
       const MAX_LINES_PER_TICK = 3;
-      const MIN_PARTIAL_WORD_CUT = 8;
+      const PARTIAL_CHARS_PER_FRAME = 48;
 
       const flushPending = () => {
         flushTimer = null;
@@ -347,7 +346,6 @@ export const useChatStreaming = () => {
           return;
         }
         const now = performance.now();
-        // throttle to one frame when queue is small — keeps 60fps without spin
         if (now - lastFlushAt < FRAME_MS && pendingText.length < 400) {
           scheduleFlush();
           return;
@@ -359,7 +357,6 @@ export const useChatStreaming = () => {
           const rest = pendingText.slice(lastNl + 1);
           const completeLines = complete.slice(0, -1).split("\n");
           const totalLines = completeLines.length;
-          // drain faster when many lines are queued, but cap per frame for smoothness
           const perTick = Math.max(
             1,
             Math.min(MAX_LINES_PER_TICK, Math.ceil(totalLines / 3))
@@ -384,19 +381,21 @@ export const useChatStreaming = () => {
           resolveOnce();
           return;
         }
-        if (pendingText.length >= PARTIAL_FLUSH_CHARS) {
-          const cut = pendingText.lastIndexOf(" ", PARTIAL_FLUSH_CHARS + 16);
-          const at =
-            cut > MIN_PARTIAL_WORD_CUT ? cut + 1 : Math.min(pendingText.length, PARTIAL_FLUSH_CHARS + 16);
-          const chunk = pendingText.slice(0, at);
-          pendingText = pendingText.slice(at);
-          appendChunk(chunk);
-          scheduleFlush();
-          return;
-        }
-        // Short partial (< 24 chars): hold briefly — next token or next frame
-        // will flush it. Schedule a one-shot so the first token never stalls.
-        scheduleFlush();
+        // No complete line yet — stream word-by-word EVERY frame so the
+        // first token appears within ~16ms regardless of provider chunk size.
+        // This is what makes CleanAPIs / slow TTFT providers feel instant.
+        const cut = pendingText.lastIndexOf(" ", PARTIAL_CHARS_PER_FRAME);
+        const at =
+          pendingText.length <= PARTIAL_CHARS_PER_FRAME
+            ? pendingText.length
+            : cut > 8
+              ? cut + 1
+              : PARTIAL_CHARS_PER_FRAME;
+        const chunk = pendingText.slice(0, at);
+        pendingText = pendingText.slice(at);
+        appendChunk(chunk);
+        if (pendingText.length > 0) scheduleFlush();
+        else scheduleFlush(); // keep RAF alive so next delta paints in one frame
       };
 
       const scheduleFlush = () => {
