@@ -187,6 +187,23 @@
   background-color: var(--sidebar);
 }
 
+/* Menu items with a leading icon (e.g. folder "New chat"): horizontal
+   icon + label layout using theme colors. */
+.conv-side-dropdown-item--with-icon {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.conv-side-dropdown-item-icon {
+  flex-shrink: 0;
+  font-size: 0.875rem;
+  line-height: 1;
+  color: var(--muted);
+}
+.conv-side-dropdown-item--with-icon:hover .conv-side-dropdown-item-icon {
+  color: var(--text);
+}
+
 .conv-side-dropdown-item:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;

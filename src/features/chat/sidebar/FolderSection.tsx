@@ -109,9 +109,6 @@ export function FolderSection({
         {folders.map((folder) => {
           const chatCount = folder._count?.conversations || 0;
           const isOpen = expandedFolders.has(folder.id);
-          // Highlighted (open or empty) folders get the boxed "+" matching
-          // the "···" button; folders with chats keep the subtle frameless "+".
-          const highlighted = isOpen || chatCount === 0;
           return (
           <div key={folder.id} className="conv-side-folder-group">
             <div className="conv-side-folder-row" data-expanded={isOpen ? "true" : "false"}>
@@ -124,14 +121,6 @@ export function FolderSection({
                   </span>
                 )}
               </div>
-              <IconButton
-                className={`conv-side-folder-add-btn${highlighted ? " conv-side-folder-add-btn--boxed" : ""}`}
-                onClick={() => onCreateInFolder(folder.id)}
-                title="New Chat in Folder"
-                aria-label={`New chat in ${folder.name}`}
-              >
-                <i className="bi bi-plus-lg conv-side-folder-add-icon"></i>
-              </IconButton>
               <div className={`conv-side-folder-menu ${folderMenuOpen === folder.id ? "conv-side-folder-menu--open" : "conv-side-folder-menu--closed"}`}
                 onMouseLeave={onCloseFolderMenu}>
                 <IconButton
@@ -143,6 +132,16 @@ export function FolderSection({
                   <i className="bi bi-three-dots"></i>
                 </IconButton>
                 <Dropdown open={folderMenuOpen === folder.id} className="conv-side-folder-dropdown">
+                  <button
+                    className="conv-side-dropdown-item conv-side-dropdown-item--with-icon"
+                    onClick={() => {
+                      onCreateInFolder(folder.id);
+                      onCloseFolderMenu();
+                    }}
+                  >
+                    <i className="bi bi-plus-lg conv-side-dropdown-item-icon" aria-hidden="true"></i>
+                    <span>New chat</span>
+                  </button>
                   <button
                     className="conv-side-dropdown-item conv-side-dropdown-item--danger"
                     onClick={() => onDeleteFolder(folder.id)}
