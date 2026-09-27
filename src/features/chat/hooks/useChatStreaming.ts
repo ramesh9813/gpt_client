@@ -11,6 +11,7 @@ import {
   streamDirectCompletion,
 } from "../../../lib/directByok";
 import type { ChatMessage } from "../MessageList";
+import { clampWps, readStreamWps } from "../streamSpeed";
 import {
   applyFollowupsEvent,
   applyImagesEvent,
@@ -320,18 +321,14 @@ export const useChatStreaming = () => {
         );
       };
 
-      // Super-smooth high-speed typewriter — line-by-line, RAF-batched.
+      // Human typing — word-by-word at configurable WPS.
       // Applies to EVERY provider (OpenRouter, CleanAPIs, all BYOK) because
-      // the server normalises every provider to the same `token` SSE contract.
-      // - Queued deltas render on every animation frame (~60fps) so bursts
-      //   never stutter.
-      // - Whole lines per frame (no mid-line markdown reflow); partial lines
-      //   stream word-by-word each frame so the FIRST token paints within one
-      //   frame (~16ms) even when the provider sends tiny deltas.
-      // - Backlog drains adaptively (cap 3 lines/frame) for high-speed feel.
+      // the server normalises every provider to the same `token` SSE
+      // contract. 5 chars ≈ 1 word. User controls WPS in Settings; default
+      // 35 WPS = ~175 CPS. Live WPS is re-read each frame so the slider
+      // applies mid-stream.
       const FRAME_MS = 16;
-      const MAX_LINES_PER_TICK = 3;
-      const PARTIAL_CHARS_PER_FRAME = 48;
+      const CHARS_PER_WORD = 5;
 
       const flushPending = () => {
         flushTimer = null;
@@ -345,57 +342,36 @@ export const useChatStreaming = () => {
           if (streamDone) resolveOnce();
           return;
         }
-        const now = performance.now();
-        if (now - lastFlushAt < FRAME_MS && pendingText.length < 400) {
-          scheduleFlush();
-          return;
-        }
-        lastFlushAt = now;
-        const lastNl = pendingText.lastIndexOf("\n");
-        if (lastNl >= 0) {
-          const complete = pendingText.slice(0, lastNl + 1);
-          const rest = pendingText.slice(lastNl + 1);
-          const completeLines = complete.slice(0, -1).split("\n");
-          const totalLines = completeLines.length;
-          const perTick = Math.max(
-            1,
-            Math.min(MAX_LINES_PER_TICK, Math.ceil(totalLines / 3))
-          );
-          const emitCount = Math.min(perTick, totalLines);
-          const chunk = completeLines.slice(0, emitCount).join("\n") + "\n";
-          const leftover = completeLines.slice(emitCount);
-          pendingText =
-            (leftover.length > 0 ? leftover.join("\n") + "\n" : "") + rest;
-          appendChunk(chunk);
-          if (pendingText.length > 0) {
-            scheduleFlush();
-          } else if (streamDone) {
-            resolveOnce();
-          }
-          return;
-        }
-        if (streamDone) {
+        // Re-read live so a Settings change mid-stream takes effect instantly
+        const liveWps = clampWps(readStreamWps());
+        const liveCps = liveWps * CHARS_PER_WORD;
+        const charsPerFrame = Math.max(1, Math.round((liveCps * FRAME_MS) / 1000));
+        lastFlushAt = performance.now();
+
+        // Final remainder when stream finished: drain at WPS pace for
+        // smooth finish — same as live typing, no instant dump.
+        // Normal live pace: emit exactly charsPerFrame per frame,
+        // word-boundary when possible, newline included naturally.
+        const budget = charsPerFrame;
+        // Small remainder: flush it to avoid one-char straggler frames
+        if (pendingText.length <= budget) {
           const chunk = pendingText;
           pendingText = "";
           appendChunk(chunk);
-          resolveOnce();
+          if (streamDone) resolveOnce();
+          else if (pendingText.length > 0) scheduleFlush();
           return;
         }
-        // No complete line yet — stream word-by-word EVERY frame so the
-        // first token appears within ~16ms regardless of provider chunk size.
-        // This is what makes CleanAPIs / slow TTFT providers feel instant.
-        const cut = pendingText.lastIndexOf(" ", PARTIAL_CHARS_PER_FRAME);
-        const at =
-          pendingText.length <= PARTIAL_CHARS_PER_FRAME
-            ? pendingText.length
-            : cut > 8
-              ? cut + 1
-              : PARTIAL_CHARS_PER_FRAME;
+        // Find natural break (space or newline) within budget for
+        // line-by-line feel without mid-word cuts
+        const spaceCut = pendingText.lastIndexOf(" ", budget);
+        const nlCut = pendingText.lastIndexOf("\n", budget);
+        const breakCut = Math.max(spaceCut, nlCut);
+        const at = breakCut > 3 ? breakCut + 1 : budget;
         const chunk = pendingText.slice(0, at);
         pendingText = pendingText.slice(at);
         appendChunk(chunk);
-        if (pendingText.length > 0) scheduleFlush();
-        else scheduleFlush(); // keep RAF alive so next delta paints in one frame
+        scheduleFlush();
       };
 
       const scheduleFlush = () => {

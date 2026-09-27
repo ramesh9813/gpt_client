@@ -16,6 +16,14 @@ import {
   clampAppFontSize,
   clampIconScale,
 } from "../../lib/theme";
+import {
+  STREAM_WPS_MIN,
+  STREAM_WPS_MAX,
+  STREAM_WPS_DEFAULT,
+  clampWps,
+  readStreamWps,
+  saveStreamWps,
+} from "../chat/streamSpeed";
 import { BRANDS, applyBrand, isBrandId, type BrandId } from "../../lib/brandTheme";
 import {
   settingsSchema,
@@ -41,6 +49,7 @@ export const SettingsTab = () => {
   const isGeneralUser = meData?.data?.user?.role === "user";
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<string | null>(null);
+  const [streamWps, setStreamWps] = useState<number>(() => readStreamWps());
   const {
     register,
     handleSubmit,
@@ -255,6 +264,41 @@ export const SettingsTab = () => {
             />
           </div>
         ) : null}
+        <div className="account-card">
+          <h3 className="account-card-title">Response streaming</h3>
+          <div className="account-fields">
+            <div>
+              <label className="account-field-label" htmlFor="stream-wps">
+                Typing speed{" "}
+                <span className="account-font-size-value">
+                  {streamWps} words/sec · {streamWps * 5} chars/sec
+                </span>
+              </label>
+              <input
+                id="stream-wps"
+                type="range"
+                min={STREAM_WPS_MIN}
+                max={STREAM_WPS_MAX}
+                step={1}
+                value={streamWps}
+                onChange={(e) => {
+                  const v = clampWps(Number(e.target.value));
+                  setStreamWps(v);
+                  saveStreamWps(v);
+                }}
+                className="account-range"
+                aria-valuetext={`${streamWps} words per second`}
+              />
+              <div className="account-range-ends" aria-hidden="true">
+                <span className="account-range-end-small">{STREAM_WPS_MIN} slow</span>
+                <span className="account-range-end-large">{STREAM_WPS_MAX} fast</span>
+              </div>
+              <span className="account-check-hint">
+                How fast the AI answer types out on screen — word by word, line by line. Default {STREAM_WPS_DEFAULT} wps. Applies to every model (OpenRouter, CleanAPIs, all providers). Takes effect instantly, even mid-stream.
+              </span>
+            </div>
+          </div>
+        </div>
         <div>
           <label className="account-check-row">
             <input
