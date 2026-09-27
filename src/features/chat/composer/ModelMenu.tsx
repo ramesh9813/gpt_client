@@ -1,9 +1,14 @@
+import { useState } from "react";
 import { ModelSearch } from "./ModelSearch";
 import { ModelMenuFooter } from "./ModelMenuFooter";
 import { ModelSortMenu } from "./ModelSortMenu";
 import { useModelMenuList } from "./useModelMenuList";
 import { formatUpdatedAgo } from "../utils/formatUpdatedAgo";
-import { getActiveByok } from "../../../lib/byok";
+import {
+  fetchByokModels,
+  getActiveByok,
+  saveByokConfig,
+} from "../../../lib/byok";
 import "./ModelMenu.css";
 
 export type ModelOption = {
@@ -122,9 +127,39 @@ export const ModelMenu = ({
   // Built-in (server-key) features are owner/admin only: the model picker is
   // hidden for general users without an active provider key, and the built-in
   // research/image rows are hidden for general users entirely.
-  const byokActive = getActiveByok() !== null;
+  const byokCfg = getActiveByok();
+  const byokActive = byokCfg !== null;
+  const [freeOnlyTick, setFreeOnlyTick] = useState<number>(0);
+  const freeOnly = byokCfg?.freeOnly === true;
+  const freeCount = byokCfg
+    ? (byokCfg.freeModels?.[byokCfg.provider]?.length ?? 0)
+    : 0;
+  const toggleFreeOnly = () => {
+    if (!byokCfg) return;
+    const next = !freeOnly;
+    saveByokConfig({ ...byokCfg, freeOnly: next });
+    setFreeOnlyTick((t) => t + 1);
+    // First time filtering this provider: pull the catalog so freeIds fill in.
+    if (next && (byokCfg.freeModels?.[byokCfg.provider]?.length ?? 0) === 0) {
+      void fetchByokModels(byokCfg.provider, byokCfg.apiKey)
+        .then(({ models, freeIds }) => {
+          const fresh = getActiveByok();
+          if (!fresh) return;
+          saveByokConfig({
+            ...fresh,
+            models:
+              models.length > 0
+                ? { ...(fresh.models ?? {}), [fresh.provider]: models }
+                : fresh.models,
+            freeModels: { ...(fresh.freeModels ?? {}), [fresh.provider]: freeIds },
+          });
+        })
+        .catch(() => {});
+    }
+  };
   const showModelRow = !isGeneralUser || byokActive;
   const showBuiltinFeatures = !isGeneralUser;
+  void freeOnlyTick; // render re-derivation dep
 
   if (!menuOpen) return null;
 
@@ -273,6 +308,25 @@ export const ModelMenu = ({
                   : "Search models"
             }
           />
+          {byokActive && !researchOnly && !imageOnly ? (
+            <button
+              type="button"
+              className="composer-free-filter"
+              aria-pressed={freeOnly}
+              onClick={toggleFreeOnly}
+              title={
+                freeCount > 0
+                  ? `${freeCount} free ${freeCount === 1 ? "model" : "models"} reported by this provider`
+                  : "Show only this provider's free-tier models (when known)"
+              }
+            >
+              <i
+                className={`bi ${freeOnly ? "bi-check-circle" : "bi-circle"} composer-free-icon`}
+                aria-hidden="true"
+              />
+              <span>Free models only{freeCount > 0 ? ` (${freeCount})` : ""}</span>
+            </button>
+          ) : null}
           <div className="composer-model-listbox">
             {filtered.map((option) => {
               const active = option.value === model;

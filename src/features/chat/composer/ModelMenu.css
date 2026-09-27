@@ -83,3 +83,29 @@
   font-size: 11px;
   line-height: 1rem;
 }
+
+/* Free-tier filter chip (BYOK provider model list) */
+.composer-free-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  width: 100%;
+  padding: 0.375rem 0.625rem;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  text-align: left;
+}
+.composer-free-filter:hover {
+  color: var(--text);
+}
+.composer-free-filter[aria-pressed="true"] {
+  color: var(--accent);
+}
+.composer-free-icon {
+  font-size: 0.875rem;
+}
