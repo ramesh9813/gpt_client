@@ -52,7 +52,7 @@
 .conv-side-history-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 /* Section-level "new folder" affordance — quiet until needed */
@@ -100,28 +100,28 @@
   border-radius: 8px;
 }
 
-/* Folder list */
+/* Folder list — compact: tightened gaps between category rows */
 .conv-side-folder-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .conv-side-folder-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   border-radius: 8px;
 }
 
-/* Refined folder header row */
+/* Refined folder header row — compact vertical padding */
 .conv-side-folder-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 4px;
   min-height: 32px;
-  padding: 4px 4px 4px 8px;
+  padding: 2px 4px 2px 8px;
   border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
