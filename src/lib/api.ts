@@ -44,7 +44,12 @@ export const getCsrfToken = () => {
     .split(";")
     .map((c) => c.trim())
     .find((c) => c.startsWith("csrfToken="));
-  return match ? match.split("=")[1] : "";
+  if (!match) return "";
+  try {
+    return decodeURIComponent(match.slice("csrfToken=".length));
+  } catch {
+    return match.slice("csrfToken=".length);
+  }
 };
 
 const shouldSendCsrf = (method?: string) => {
@@ -54,10 +59,12 @@ const shouldSendCsrf = (method?: string) => {
 
 const refreshSession = async () => {
   if (!refreshPromise) {
+    const csrf = getCsrfToken();
     refreshPromise = fetch(`${API_BASE}/api/auth/refresh`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...(csrf ? { "x-csrf-token": csrf } : {}),
       },
       // no body — refresh uses httpOnly cookie
       credentials: "include",
