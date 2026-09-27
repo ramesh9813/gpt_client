@@ -16,7 +16,7 @@ export type { ChatMessage, ModelOption, QuizQuestion, QuizRound } from "./messag
 
 type MessageListProps = {
   messages: ChatMessage[];
-  onEditSubmit?: (id: string, value: string) => Promise<void>;
+  onEditSubmit?: (id: string, value: string, images?: string[]) => Promise<void>;
   editDisabled?: boolean;
   modelOptions?: ModelOption[];
   onRegenerate?: (messageId: string, model: string) => void;
@@ -133,6 +133,8 @@ const MessageList = ({
                 isEditing={edit.editingId === message.id}
                 editingValue={edit.editingValue}
                 setEditingValue={edit.setEditingValue}
+                editingImages={edit.editingImages}
+                onRemoveEditingImage={edit.removeEditingImage}
                 editingError={edit.editingError}
                 savingId={edit.savingId}
                 editRef={edit.editRef}

@@ -11,6 +11,8 @@ type UserMessageProps = {
   isEditing: boolean;
   editingValue: string;
   setEditingValue: (value: string) => void;
+  editingImages: string[];
+  onRemoveEditingImage: (index: number) => void;
   editingError: string | null;
   savingId: string | null;
   editRef: RefObject<HTMLTextAreaElement>;
@@ -18,7 +20,7 @@ type UserMessageProps = {
   submitEdit: () => void;
   cancelEdit: () => void;
   startEdit: (message: ChatMessage) => void;
-  onEditSubmit?: (id: string, value: string) => Promise<void>;
+  onEditSubmit?: (id: string, value: string, images?: string[]) => Promise<void>;
   editDisabled?: boolean;
   onResend?: (messageId: string) => void;
 };
@@ -29,6 +31,8 @@ export const UserMessage = memo(
     isEditing,
     editingValue,
     setEditingValue,
+    editingImages,
+    onRemoveEditingImage,
     editingError,
     savingId,
     editRef,
@@ -67,7 +71,29 @@ export const UserMessage = memo(
           ) : null}
           {isEditing ? (
             <div className="msg-user-edit-wrap">
-              <MessageImages images={message.images} />
+              {editingImages.length > 0 ? (
+                <div className="msg-images msg-images--editable">
+                  {editingImages.map((src, i) => (
+                    <div key={i} className="msg-image-wrap">
+                      <img
+                        src={src}
+                        alt={`Attachment ${i + 1}`}
+                        loading="lazy"
+                        className="msg-image"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => onRemoveEditingImage(i)}
+                        aria-label={`Remove image ${i + 1} (not sent on save)`}
+                        title="Remove image"
+                        className="msg-image-remove"
+                      >
+                        <i className="bi bi-x msg-image-remove-icon" aria-hidden="true" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
               <Textarea
                 ref={editRef}
                 rows={2}
@@ -152,6 +178,7 @@ export const UserMessage = memo(
   prev.message === next.message &&
   prev.isEditing === next.isEditing &&
   prev.editingValue === next.editingValue &&
+  prev.editingImages === next.editingImages &&
   prev.editingError === next.editingError &&
   prev.savingId === next.savingId &&
   prev.editDisabled === next.editDisabled

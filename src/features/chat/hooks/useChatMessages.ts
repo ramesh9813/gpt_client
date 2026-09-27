@@ -170,7 +170,7 @@ export const useChatMessages = ({
     }
   };
 
-  const handleEditSubmit = async (messageId: string, text: string) => {
+  const handleEditSubmit = async (messageId: string, text: string, images?: string[]) => {
     if (!conversationId) {
       throw new Error("Missing conversation");
     }
@@ -195,7 +195,11 @@ export const useChatMessages = ({
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: text, pruneFollowing: true }),
+          body: JSON.stringify({
+            content: text,
+            ...(images !== undefined ? { images } : {}),
+            pruneFollowing: true,
+          }),
         }
       );
 
@@ -203,7 +207,12 @@ export const useChatMessages = ({
         const index = prev.findIndex((m) => m.id === messageId);
         if (index === -1) return prev;
         const next = [...prev.slice(0, index + 1)];
-        next[index] = { ...next[index], content: text, status: "COMPLETE" };
+        next[index] = {
+          ...next[index],
+          content: text,
+          ...(images !== undefined ? { images: [...images] } : {}),
+          status: "COMPLETE",
+        };
         next.push({
           id: tempAssistantId,
           role: "ASSISTANT",
