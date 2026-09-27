@@ -1,7 +1,15 @@
 import { useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { getCsrfToken } from "../../../lib/api";
-import { getByokHeaders } from "../../../lib/byok";
+import { apiFetch, getCsrfToken, type ApiResponse } from "../../../lib/api";
+import {
+  getActiveByok,
+  getByokHeaders,
+  getByokProvider,
+} from "../../../lib/byok";
+import {
+  isDirectSupported,
+  streamDirectCompletion,
+} from "../../../lib/directByok";
 import type { ChatMessage } from "../MessageList";
 import {
   applyFollowupsEvent,
@@ -58,6 +66,182 @@ export const useChatStreaming = () => {
     const isCancelled = () => controller.signal.aborted || cancelRef.current;
 
     const ctx: StreamEventCtx = { setMessages, tempAssistantId, isCancelled };
+
+    // Browser-direct fallback: when the SERVER relay is firewalled
+    // (challenged SSE error), replay the exact prepared turn straight from
+    // the browser with the user's own Settings key, then persist it via
+    // /api/chat/direct-finish. Returns true when the turn was recovered
+    // (fully or as a persisted partial with its real reason).
+    const tryDirectFallback = async (errPayload: any): Promise<boolean> => {
+      // Real server row for the failed turn — needed to persist any outcome
+      // so the row can never be stranded as eternal STREAMING.
+      let preparedAssistantId: string | null = null;
+      try {
+        const failedAssistantId =
+          typeof errPayload?.assistantMessageId === "string"
+            ? errPayload.assistantMessageId
+            : null;
+        const failedUserId =
+          typeof errPayload?.userMessageId === "string"
+            ? errPayload.userMessageId
+            : typeof existingUserMessageId === "string"
+              ? existingUserMessageId
+              : null;
+        if (!failedAssistantId || !failedUserId) return false;
+        const cfg = getActiveByok();
+        if (!cfg) return false;
+        const provider = getByokProvider(cfg.provider);
+        if (!provider || !isDirectSupported(cfg.provider)) return false;
+
+        // 1. Server prepares the exact turn payload + resets the failed row.
+        // The key travels in x-byok-* headers as on every turn; the server
+        // verifies ownership but never needs to call the provider itself.
+        const byokHeaders = getByokHeaders(selectedModel);
+        const prep = await apiFetch<
+          ApiResponse<{
+            assistantMessageId: string;
+            conversationId: string;
+            messages: Array<{ role: string; content: unknown }>;
+            model: string;
+            provider: string;
+            baseUrl: string;
+          }>
+        >(`${apiBase}/api/chat/direct-prepare`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-csrf-token": getCsrfToken(),
+            ...byokHeaders,
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            conversationId,
+            assistantMessageId: failedAssistantId,
+            existingUserMessageId: failedUserId,
+            ...(artifact ? { artifact: true } : {}),
+          }),
+        });
+        const turn = prep?.data;
+        if (
+          !turn ||
+          !Array.isArray(turn.messages) ||
+          !turn.assistantMessageId ||
+          !turn.model ||
+          !turn.baseUrl
+        ) {
+          return false;
+        }
+        preparedAssistantId = turn.assistantMessageId;
+
+        // 2. Stream straight from the browser with the user's own key.
+        const startedAt = Date.now();
+        const result = await streamDirectCompletion({
+          baseUrl: turn.baseUrl,
+          providerName: provider.name,
+          apiKey: cfg.apiKey,
+          model: turn.model,
+          messages: turn.messages,
+          signal: controller.signal,
+          isCancelled,
+          onToken: (delta) => {
+            if (isCancelled()) return;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === tempAssistantId
+                  ? { ...m, content: m.content + delta }
+                  : m
+              )
+            );
+          },
+        });
+        if (result.cancelled || isCancelled()) return true;
+
+        // 3. Persist onto the prepared row (server ownership-checks it).
+        await apiFetch(`${apiBase}/api/chat/direct-finish`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-csrf-token": getCsrfToken(),
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            conversationId,
+            assistantMessageId: turn.assistantMessageId,
+            content: result.content,
+            // Same contract as the relay: thinking traces persist only when
+            // the user armed think mode.
+            ...(result.reasoning && think ? { reasoning: result.reasoning } : {}),
+            model: `${turn.provider}:${turn.model}`,
+            ...(typeof result.usage?.prompt_tokens === "number"
+              ? { promptTokens: result.usage.prompt_tokens }
+              : {}),
+            ...(typeof result.usage?.completion_tokens === "number"
+              ? { completionTokens: result.usage.completion_tokens }
+              : {}),
+            ...(typeof result.usage?.total_tokens === "number"
+              ? { tokenCount: result.usage.total_tokens }
+              : {}),
+            durationMs: Date.now() - startedAt,
+          }),
+        });
+        if (!isCancelled()) {
+          const finishedAt = Date.now();
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === tempAssistantId
+                ? {
+                    ...m,
+                    status: "COMPLETE",
+                    model: `${turn.provider}:${turn.model}`,
+                    durationMs: finishedAt - startedAt,
+                  }
+                : m
+            )
+          );
+        }
+        return true;
+      } catch (err: any) {
+        // The prepared row was reset to STREAMING — settle it here so it can
+        // never strand as eternal typing. Partial answers persist with their
+        // REAL direct reason; total failures persist the reason with empty
+        // content. No prepared row (prepare itself failed) → let the caller
+        // show the original firewall error instead.
+        const partial =
+          typeof err?.partialContent === "string" ? err.partialContent : "";
+        const reason =
+          (typeof err?.message === "string" && err.message) ||
+          "Direct streaming failed";
+        if (!preparedAssistantId) return false;
+        try {
+          await apiFetch(`${apiBase}/api/chat/direct-finish`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-csrf-token": getCsrfToken(),
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              conversationId,
+              assistantMessageId: preparedAssistantId,
+              content: partial,
+              error: reason.slice(0, 2000),
+            }),
+          });
+        } catch {
+          // best-effort only
+        }
+        if (!isCancelled()) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === tempAssistantId
+                ? { ...m, content: partial, error: reason, status: "ERROR" }
+                : m
+            )
+          );
+        }
+        return true;
+      }
+    };
 
     try {
       // BYOK: user-configured provider key (Settings > AI provider). When
@@ -220,6 +404,15 @@ export const useChatStreaming = () => {
             }
             if (currentEvent === "error") {
               if (isCancelled()) return;
+              // Firewalled relay: retry the exact turn straight from the
+              // browser with the user's own key before showing any error.
+              if ((parsed as any).challenged === true) {
+                try {
+                  if (await tryDirectFallback(parsed)) return;
+                } catch {
+                  // fall through to the error display below
+                }
+              }
               const errorMessage = (parsed as any).message || "Streaming failed";
               pendingText = "";
               streamDone = true;
