@@ -139,6 +139,11 @@ export const ByokCard = () => {
             message ??
               "Could not load the live list — showing a built-in shortlist."
           );
+          // Live failed but a bundled shortlist exists: make sure a model is
+          // selected so BYOK can still activate (CodeCraft first run).
+          if (provider.models.length > 0) {
+            setModel((prev) => prev || provider.models[0]);
+          }
         }
       })
       .catch(() => {
@@ -161,13 +166,16 @@ export const ByokCard = () => {
     setShowKey(false);
     // Auto-load this provider's previously saved key (if the user saved one).
     setApiKey(nextId ? (savedKeys[nextId] ?? "") : "");
-    setModel(
-      nextProvider
-        ? (modelsByProvider[nextProvider.id]?.[0] ??
-            nextProvider.models[0] ??
-            "")
-        : ""
-    );
+    // Keep a usable model: prefer the live cache, then the bundled shortlist,
+    // and never clobber a still-valid selection with "" (that deactivates
+    // BYOK with no way forward for live-only providers like CodeCraft).
+    setModel((prev) => {
+      if (!nextProvider) return "";
+      const live = modelsByProvider[nextProvider.id] ?? [];
+      const all = live.length > 0 ? live : nextProvider.models;
+      if (prev && all.includes(prev)) return prev;
+      return all[0] ?? "";
+    });
   };
 
   // "Load saved": re-read localStorage (source of truth, survives reloads and
@@ -197,9 +205,14 @@ export const ByokCard = () => {
     setSavedKeys(next);
     setKeySavedAt(Date.now());
     if (trimmed && !verifyState) {
+      // Honest status: without a selected model BYOK stays inactive, so say
+      // so instead of claiming chats use the key.
+      const hasModel = model.trim().length > 0;
       setVerifyState({
-        ok: true,
-        message: "Key saved locally — chats now use it with the selected model.",
+        ok: hasModel,
+        message: hasModel
+          ? "Key saved locally — chats now use it with the selected model."
+          : "Key saved locally — select a model to activate it.",
       });
     }
   };
@@ -226,12 +239,14 @@ export const ByokCard = () => {
         }));
         if (!d.models.includes(model)) setModel(d.models[0]);
       }
-      const ok = Boolean(d?.supported);
+      const ok = Boolean(d?.verified);
       setVerifyState({
         ok,
         message: d?.message || "",
       });
       // A verified key is clearly intended for use — persist it locally.
+      // Unverified keys are NOT saved: persisting them leaves the user
+      // thinking verification passed while BYOK stays inactive.
       if (ok) {
         setSavedKeys((prev) => ({ ...prev, [provider.id]: apiKey.trim() }));
         setKeySavedAt(Date.now());

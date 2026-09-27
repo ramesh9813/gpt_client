@@ -175,11 +175,16 @@ export const useChatModels = () => {
 
   const setByokModel = useCallback((next: string) => {
     const cfg = getByokConfig();
+    // Preserve everything (per-provider keys, cached catalogs, free filter):
+    // dropping apiKeys here silently deactivates other providers' saved keys.
     saveByokConfig({
       provider: cfg?.provider ?? null,
       model: next,
       apiKey: cfg?.apiKey ?? "",
+      apiKeys: cfg?.apiKeys,
       models: cfg?.models,
+      freeModels: cfg?.freeModels,
+      freeOnly: cfg?.freeOnly,
     });
   }, []);
   // ── end BYOK ─────────────────────────────────────────────────────────────

@@ -230,10 +230,13 @@ export const useChatStreaming = () => {
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === tempAssistantId
-                    ? { ...m, content: errorMessage, status: "ERROR" }
+                    ? { ...m, content: errorMessage, error: errorMessage, status: "ERROR" }
                     : m
                 )
               );
+              // Terminal: the server ended the turn. Stop parsing so later
+              // chunks can't resurrect content over the error.
+              return;
             }
           }
         }

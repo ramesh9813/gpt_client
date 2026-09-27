@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { apiFetch, ApiResponse } from "../../../lib/api";
-import { getActiveByok } from "../../../lib/byok";
+import { getActiveByok, stripProviderPrefix } from "../../../lib/byok";
 import { readWebSearchArmed } from "../sidebarState";
 
 // Thinking mode mirrors webSearch: sticky localStorage flag honored by
@@ -251,6 +251,14 @@ export const useChatMessages = ({
   const handleRegenerate = async (messageId: string, newModel: string) => {
     if (!conversationId) return;
 
+    // Stored rows carry "provider:model" (e.g. "codecraft:gpt-x"); the chat
+    // path needs the plain provider id — strip defensively so a stored id
+    // echoed back never becomes "codecraft:codecraft:xxx" (provider 404).
+    const activeByokForRegen = getActiveByok();
+    const plainModel = activeByokForRegen
+      ? stripProviderPrefix(activeByokForRegen.provider, newModel)
+      : newModel;
+
     // Find the user message preceding this assistant message
     const messageIndex = messages.findIndex((m) => m.id === messageId);
     if (messageIndex <= 0) return; // Should have a user message before it
@@ -274,7 +282,7 @@ export const useChatMessages = ({
         ...next[messageIndex],
         content: "", // Clear content to show spinner/loading
         status: "STREAMING",
-        model: newModel,
+        model: plainModel,
       };
       return next;
     });
@@ -286,7 +294,7 @@ export const useChatMessages = ({
         // Reusing replaces the message content in-place which is what "Regenerate" usually implies here.
         conversationId,
         existingUserMessageId: userMessage.id,
-        selectedModel: newModel,
+        selectedModel: plainModel,
         webSearch: readWebSearchArmed(),
         think: readThinkingArmed(),
       });
@@ -330,14 +338,10 @@ export const useChatMessages = ({
       next && next.role === "ASSISTANT" && next.model ? next.model : null;
     let sameModel = answeredModel || model;
     // BYOK turns persist "provider:model"; the chat path needs the plain
-    // provider model id, so strip the prefix only when it matches the
-    // active provider (never touch ":free" suffixed OpenRouter ids).
+    // provider model id (never touch ":free" suffixed OpenRouter ids).
     const activeByok = getActiveByok();
-    if (
-      activeByok &&
-      sameModel.startsWith(`${activeByok.provider}:`)
-    ) {
-      sameModel = sameModel.slice(activeByok.provider.length + 1);
+    if (activeByok) {
+      sameModel = stripProviderPrefix(activeByok.provider, sameModel);
     }
 
     // Normal case: an answer row follows — reuse it in place, exactly like

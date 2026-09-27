@@ -226,7 +226,16 @@ export const BYOK_PROVIDERS: ByokProviderInfo[] = [
     keyHint: "cc_...",
     keyPattern: /^cc_[A-Za-z0-9_-]{16,}$/,
     modelsPublic: false,
-    models: [],
+    // Fallback shortlist (live /v1/models wins when reachable): public ids
+    // observed on the catalog. Keeps the dropdown usable offline.
+    models: [
+      "gpt-5.6-luna",
+      "deepseek-v4-flash-0731",
+      "qwen3.8-27b",
+      "gemini-3.7-flash",
+      "kimi-k2.6",
+      "grok-4.5",
+    ],
   },
 ];
 
@@ -325,6 +334,17 @@ export const isByokKeyFormatSupported = (
   apiKey: string
 ): boolean => provider.keyPattern.test(apiKey.trim());
 
+// Stored assistant rows carry "provider:model" (e.g. "codecraft:gpt-x").
+// The chat path needs the plain provider model id — strip the prefix, and
+// only when it matches (never touch ":free" suffixed OpenRouter ids).
+export const stripProviderPrefix = (
+  providerId: string,
+  model: string
+): string => {
+  const prefix = `${providerId}:`;
+  return model.startsWith(prefix) ? model.slice(prefix.length) : model;
+};
+
 // The key a provider should use: its saved entry wins; the loose apiKey field
 // remains as a back-compat fallback for configs written before per-provider
 // key storage existed.
@@ -390,19 +410,30 @@ export const fetchByokModels = async (
   providerId: ByokProviderId,
   apiKey?: string
 ): Promise<{ models: string[]; freeIds: string[]; message?: string }> => {
-  const res = await apiFetch<
-    ApiResponse<{ models: string[]; freeIds?: string[]; message?: string }>
-  >("/api/byok/models", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      provider: providerId,
-      ...(apiKey && apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
-    }),
-  });
-  return {
-    models: Array.isArray(res?.data?.models) ? res.data.models : [],
-    freeIds: Array.isArray(res?.data?.freeIds) ? res.data.freeIds! : [],
-    message: typeof res?.data?.message === "string" ? res.data.message : undefined,
-  };
+  try {
+    const res = await apiFetch<
+      ApiResponse<{ models: string[]; freeIds?: string[]; message?: string }>
+    >("/api/byok/models", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        provider: providerId,
+        ...(apiKey && apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
+      }),
+    });
+    return {
+      models: Array.isArray(res?.data?.models) ? res.data.models : [],
+      freeIds: Array.isArray(res?.data?.freeIds) ? res.data.freeIds! : [],
+      message: typeof res?.data?.message === "string" ? res.data.message : undefined,
+    };
+  } catch (e: any) {
+    // Transport/HTTP failure (unknown provider, 401 session, network…):
+    // return the reason instead of throwing so callers show it, not a
+    // generic "could not load" note.
+    const message =
+      (typeof e?.error?.message === "string" && e.error.message) ||
+      (typeof e?.message === "string" && e.message) ||
+      undefined;
+    return { models: [], freeIds: [], message };
+  }
 };
