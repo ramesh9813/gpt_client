@@ -48,9 +48,9 @@
   font-weight: 600;
 }
 
-/* Chart card: h-96 w-full rounded-xl border border-[var(--border)] bg-[var(--panel)] p-4 */
+/* Chart card: auto height (chart + model table) with a 24rem minimum */
 .account-chart-card {
-  height: 24rem;
+  min-height: 24rem;
   width: 100%;
   border-radius: 0.75rem;
   border: 1px solid var(--border);

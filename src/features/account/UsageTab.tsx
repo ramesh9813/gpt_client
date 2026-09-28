@@ -12,13 +12,19 @@ export const UsageTab = () => {
   });
 
   const logs = usageData?.data?.items || [];
-  const totalTokensToday = useMemo(() => {
+  const todayStats = useMemo(() => {
     const start = new Date();
     start.setHours(0, 0, 0, 0);
-    return logs.reduce((acc, log) => {
-      const createdAt = new Date(log.createdAt);
-      return createdAt >= start ? acc + (log.tokenCount || 0) : acc;
-    }, 0);
+    let tokens = 0;
+    let requests = 0;
+    const models = new Set<string>();
+    logs.forEach((log) => {
+      if (new Date(log.createdAt) < start) return;
+      requests += 1;
+      tokens += log.tokenCount || 0;
+      models.add(log.model || "Unknown");
+    });
+    return { tokens, requests, modelsUsed: models.size };
   }, [logs]);
 
   const PAGE_SIZE = 50;
@@ -52,7 +58,19 @@ export const UsageTab = () => {
         <div className="account-stat-grid">
           <div className="account-stat-card">
             <div className="account-stat-label">Tokens Used (Today)</div>
-            <div className="account-stat-value">{totalTokensToday}</div>
+            <div className="account-stat-value">
+              {todayStats.tokens.toLocaleString()}
+            </div>
+          </div>
+          <div className="account-stat-card">
+            <div className="account-stat-label">Requests (Today)</div>
+            <div className="account-stat-value">
+              {todayStats.requests.toLocaleString()}
+            </div>
+          </div>
+          <div className="account-stat-card">
+            <div className="account-stat-label">Models Used (Today)</div>
+            <div className="account-stat-value">{todayStats.modelsUsed}</div>
           </div>
           <div className="account-stat-card">
              <div className="account-stat-label">Current Plan</div>

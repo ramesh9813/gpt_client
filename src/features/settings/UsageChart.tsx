@@ -6,8 +6,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
-  Legend
+  ResponsiveContainer
 } from "recharts";
 import "./UsageChart.css";
 
@@ -24,25 +23,42 @@ type Props = {
   logs: UsageLog[];
 };
 
+// Distinct per-model palette (12 unique, readable on light + dark themes).
+// One color = one model, matched by the "Usage by Model" table below.
 const COLORS = [
-  "#8884d8",
-  "#82ca9d",
-  "#ffc658",
-  "#ff7300",
-  "#0088fe",
+  "#4E79A7",
+  "#F28E2B",
+  "#E15759",
+  "#76B7B2",
+  "#59A14F",
+  "#EDC948",
+  "#B07AA1",
+  "#FF9DA7",
+  "#9C755F",
+  "#BAB0AC",
   "#00C49F",
-  "#FFBB28",
-  "#FF8042",
-  "#a4de6c",
-  "#d0ed57",
-  "#83a6ed",
-  "#8dd1e1",
-  "#82ca9d",
-  "#a4de6c",
-  "#d0ed57"
+  "#0088FE"
 ];
 
-const getModelColor = (index: number) => COLORS[index % COLORS.length];
+export const getModelColor = (index: number) => COLORS[index % COLORS.length];
+
+/** Short display name: "provider:model" -> "model", "org/model" -> "model". */
+export const shortModelName = (model: string) => {
+  const afterColon = model.includes(":") ? model.split(":").pop()! : model;
+  return afterColon.includes("/") ? afterColon.split("/").pop()! : afterColon;
+};
+
+/** Compact token count: 950 -> "950", 1500 -> "1.5k", 2.3M etc. */
+export const formatTokens = (value: number) => {
+  if (!Number.isFinite(value)) return "0";
+  if (value < 1000) return String(Math.round(value));
+  if (value < 1_000_000) {
+    const k = value / 1000;
+    return `${k >= 100 ? Math.round(k) : k.toFixed(1).replace(/\.0$/, "")}k`;
+  }
+  const m = value / 1_000_000;
+  return `${m >= 100 ? Math.round(m) : m.toFixed(1).replace(/\.0$/, "")}M`;
+};
 
 type RangeKey = "day" | "week" | "year";
 
@@ -60,12 +76,14 @@ const toDateKey = (date: Date) =>
 const toMonthKey = (date: Date) =>
   `${date.getFullYear()}-${pad2(date.getMonth() + 1)}`;
 
+type ModelTotal = { model: string; tokens: number };
+
 export const UsageChart = ({ logs }: Props) => {
   const [range, setRange] = useState<RangeKey>("day");
 
-  const { chartData, models, rangeLabel } = useMemo(() => {
+  const { chartData, models, modelTotals, grandTotal, rangeLabel } = useMemo(() => {
     const now = new Date();
-    const modelSet = new Set<string>();
+    const totals = new Map<string, number>();
     const dayFormatter = new Intl.DateTimeFormat(undefined, {
       weekday: "short",
       month: "short",
@@ -126,8 +144,9 @@ export const UsageChart = ({ logs }: Props) => {
         return;
       }
       const model = log.model || "Unknown";
-      modelSet.add(model);
-      groups[key][model] = (groups[key][model] || 0) + (log.tokenCount || 0);
+      const tokens = log.tokenCount || 0;
+      groups[key][model] = (groups[key][model] || 0) + tokens;
+      totals.set(model, (totals.get(model) || 0) + tokens);
     });
 
     const data = buckets.map((bucket) => ({
@@ -135,9 +154,18 @@ export const UsageChart = ({ logs }: Props) => {
       ...groups[bucket.key],
     }));
 
+    // Rank models by total tokens so colors are stable and meaningful
+    // (top consumer always gets the first palette color).
+    const ranked: ModelTotal[] = Array.from(totals.entries())
+      .map(([model, tokens]) => ({ model, tokens }))
+      .sort((a, b) => b.tokens - a.tokens);
+    const grand = ranked.reduce((acc, row) => acc + row.tokens, 0);
+
     return {
       chartData: data,
-      models: Array.from(modelSet),
+      models: ranked.map((row) => row.model),
+      modelTotals: ranked,
+      grandTotal: grand,
       rangeLabel:
         range === "day"
           ? "Today (hourly)"
@@ -151,59 +179,132 @@ export const UsageChart = ({ logs }: Props) => {
     <div className="usage-chart">
       <div className="usage-chart-header">
         <div className="usage-chart-title">
-          Usage by Model • {rangeLabel}
+          Token usage • {rangeLabel}
         </div>
-        <select
-          className="usage-chart-select"
-          value={range}
-          onChange={(event) => setRange(event.target.value as RangeKey)}
-          aria-label="Select usage range"
-        >
-          {RANGE_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+        <div className="usage-chart-header-right">
+          {grandTotal > 0 ? (
+            <span
+              className="usage-chart-total"
+              title={`${grandTotal.toLocaleString()} tokens`}
+            >
+              {formatTokens(grandTotal)} total
+            </span>
+          ) : null}
+          <select
+            className="usage-chart-select"
+            value={range}
+            onChange={(event) => setRange(event.target.value as RangeKey)}
+            aria-label="Select usage range"
+          >
+            {RANGE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
       <div className="usage-chart-body">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} />
-            <XAxis
-              dataKey="label"
-              tick={{ fontSize: 11, fill: "var(--muted)" }}
-              axisLine={false}
-              tickLine={false}
-              interval={0}
-            />
-            <YAxis
-              tick={{ fontSize: 12, fill: "var(--muted)" }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "var(--panel)",
-                borderColor: "var(--border)",
-                color: "var(--text)",
-              }}
-              cursor={{ fill: "var(--muted)", opacity: 0.1 }}
-              itemStyle={{ color: "var(--text)" }}
-              formatter={(value: any, name: any) => [value, name]}
-            />
-            <Legend />
-            {models.map((model, index) => (
-              <Bar
-                key={model}
-                dataKey={model}
-                stackId="a"
-                fill={getModelColor(index)}
+        {models.length === 0 ? (
+          <div className="usage-chart-empty">No usage in this range yet.</div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} barCategoryGap="28%" barGap={3}>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 11, fill: "var(--muted)" }}
+                axisLine={false}
+                tickLine={false}
+                interval="preserveStartEnd"
+                minTickGap={24}
               />
-            ))}
-          </BarChart>
-        </ResponsiveContainer>
+              <YAxis
+                tick={{ fontSize: 12, fill: "var(--muted)" }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={(value: number) => formatTokens(value)}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "var(--panel)",
+                  borderColor: "var(--border)",
+                  color: "var(--text)",
+                }}
+                cursor={{ fill: "var(--muted)", opacity: 0.1 }}
+                itemStyle={{ color: "var(--text)" }}
+                labelStyle={{ color: "var(--text)" }}
+                formatter={(value: any, name: any) => [
+                  formatTokens(Number(value) || 0),
+                  shortModelName(String(name)),
+                ]}
+              />
+              {models.map((model, index) => (
+                <Bar
+                  key={model}
+                  dataKey={model}
+                  name={shortModelName(model)}
+                  fill={getModelColor(index)}
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={22}
+                />
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
+      {modelTotals.length > 0 ? (
+        <div className="usage-legend">
+          <div className="usage-legend-title">Usage by Model</div>
+          <table className="usage-legend-table">
+            <thead>
+              <tr>
+                <th className="usage-legend-th">Model</th>
+                <th className="usage-legend-th-right">Tokens</th>
+                <th className="usage-legend-th-right">Share</th>
+              </tr>
+            </thead>
+            <tbody>
+              {modelTotals.map((row, index) => {
+                const color = getModelColor(index);
+                const share = grandTotal > 0 ? (row.tokens / grandTotal) * 100 : 0;
+                return (
+                  <tr key={row.model} className="usage-legend-row">
+                    <td className="usage-legend-td">
+                      <span
+                        className="usage-legend-dot"
+                        style={{ backgroundColor: color }}
+                        aria-hidden="true"
+                      />
+                      <span title={row.model}>{shortModelName(row.model)}</span>
+                    </td>
+                    <td
+                      className="usage-legend-td-right"
+                      title={`${row.tokens.toLocaleString()} tokens`}
+                    >
+                      {formatTokens(row.tokens)}
+                    </td>
+                    <td className="usage-legend-td-right">
+                      <span className="usage-share-track" aria-hidden="true">
+                        <span
+                          className="usage-share-fill"
+                          style={{
+                            width: `${Math.max(share, 2)}%`,
+                            backgroundColor: color,
+                          }}
+                        />
+                      </span>
+                      <span className="usage-share-pct">
+                        {share < 0.1 && share > 0 ? "<0.1%" : `${share.toFixed(1)}%`}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
     </div>
   );
 };
