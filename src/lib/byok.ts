@@ -243,17 +243,35 @@ export const getByokProvider = (
   id: string | null | undefined
 ): ByokProviderInfo | null => BYOK_PROVIDERS.find((p) => p.id === id) ?? null;
 
+// Permissive when provider was added dynamically by an admin (unknown at
+// build time). Any lowercase slug is kept; BYOK activation uses a generic
+// key pattern when the registry has no entry.
+export const PROVIDER_ID_RE = /^[a-z0-9][a-z0-9_-]{1,30}$/;
+export const isValidByokProviderId = (id: string) => PROVIDER_ID_RE.test(id.trim().toLowerCase());
+
+export type ServerProviderInfo = {
+  id: string;
+  name: string;
+  kind: string;
+  baseUrl: string;
+  keyHint: string;
+  keyPattern: string;
+  keylessModels: boolean;
+  models: string[];
+  source: "builtin" | "custom";
+};
+
 export type ByokConfig = {
-  provider: ByokProviderId | null;
+  provider: string | null;
   model: string;
   apiKey: string;
   // Saved API keys per provider — "Save key" in Settings writes the key here
   // so switching providers auto-loads each provider's saved key.
-  apiKeys?: Partial<Record<ByokProviderId, string>>;
+  apiKeys?: Record<string, string>;
   // Live model lists fetched per provider id (keyed lists survive reloads).
-  models?: Partial<Record<ByokProviderId, string[]>>;
+  models?: Record<string, string[]>;
   // Free-tier model ids per provider, reported by the catalog endpoint.
-  freeModels?: Partial<Record<ByokProviderId, string[]>>;
+  freeModels?: Record<string, string[]>;
   // When true, model dropdowns show only free models where the provider
   // reports a free tier.
   freeOnly?: boolean;
@@ -268,13 +286,14 @@ export const getByokConfig = (): ByokConfig | null => {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return null;
-    const provider = getByokProvider(parsed.provider)?.id ?? null;
+    const rawProvider = typeof parsed.provider === "string" ? parsed.provider.trim().toLowerCase() : "";
+    const provider = rawProvider && isValidByokProviderId(rawProvider) ? rawProvider : null;
     const rawKeys =
       parsed.apiKeys && typeof parsed.apiKeys === "object" ? parsed.apiKeys : {};
-    const apiKeys: Partial<Record<ByokProviderId, string>> = {};
+    const apiKeys: Record<string, string> = {};
     for (const [k, v] of Object.entries(rawKeys)) {
-      const pid = getByokProvider(k)?.id;
-      if (pid && typeof v === "string" && v.length > 0) apiKeys[pid] = v;
+      const key = String(k).trim().toLowerCase();
+      if (key && isValidByokProviderId(key) && typeof v === "string" && v.length > 0) apiKeys[key] = v;
     }
     return {
       provider,
@@ -354,34 +373,37 @@ export const resolveByokApiKey = (cfg: ByokConfig): string => {
   return (typeof fromMap === "string" && fromMap.trim()) || cfg.apiKey || "";
 };
 
-export const saveByokApiKey = (providerId: ByokProviderId, key: string) => {
+export const saveByokApiKey = (providerId: string, key: string) => {
+  const pid = providerId.trim().toLowerCase();
   const cfg = getByokConfig() ?? { provider: null, model: "", apiKey: "" };
   const nextKeys = { ...(cfg.apiKeys ?? {}) };
   const trimmed = key.trim();
-  if (trimmed) nextKeys[providerId] = trimmed;
-  else delete nextKeys[providerId];
+  if (trimmed) nextKeys[pid] = trimmed;
+  else delete nextKeys[pid];
   saveByokConfig({
     ...cfg,
     apiKeys: nextKeys,
-    apiKey: cfg.provider === providerId ? trimmed : cfg.apiKey,
+    apiKey: cfg.provider === pid ? trimmed : cfg.apiKey,
   });
 };
 
 // BYOK is active the moment a provider is chosen with a well-formed (saved)
 // key and a model — no separate toggle. Choosing "Default (built-in
 // OpenRouter)" (or a missing key) returns the app to the server models.
-export const getActiveByok = (): (ByokConfig &
-  { provider: ByokProviderId; apiKey: string }) | null => {
+// Unknown (admin-added) providers use a permissive format check so a fresh
+// custom endpoint isn't blocked by a missing RegExp before /validate.
+export const getActiveByok = (): (ByokConfig & { provider: string; apiKey: string }) | null => {
   const cfg = getByokConfig();
   if (!cfg || !cfg.provider) return null;
   const provider = getByokProvider(cfg.provider);
   const apiKey = resolveByokApiKey(cfg);
-  if (!provider || !isByokKeyFormatSupported(provider, apiKey)) return null;
+  if (provider) {
+    if (!isByokKeyFormatSupported(provider, apiKey)) return null;
+  } else {
+    if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{7,}$/.test(apiKey.trim())) return null;
+  }
   if (!cfg.model.trim()) return null;
-  return { ...cfg, apiKey } as ByokConfig & {
-    provider: ByokProviderId;
-    apiKey: string;
-  };
+  return { ...cfg, apiKey } as ByokConfig & { provider: string; apiKey: string };
 };
 
 // Headers for /api/chat/stream when BYOK is active. Empty object otherwise so
@@ -407,7 +429,7 @@ export const getByokHeaders = (modelOverride?: string): Record<string, string> =
 // as a request header to our own API). freeIds is populated when the provider
 // reports free tiers (OpenRouter pricing / ":free" ids / all-free providers).
 export const fetchByokModels = async (
-  providerId: ByokProviderId,
+  providerId: string,
   apiKey?: string
 ): Promise<{ models: string[]; freeIds: string[]; message?: string }> => {
   try {

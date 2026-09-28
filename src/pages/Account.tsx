@@ -10,8 +10,9 @@ import { SettingsTab } from "../features/account/SettingsTab";
 import { UsageTab } from "../features/account/UsageTab";
 import ConnectedAppsTab from "../features/account/ConnectedAppsTab";
 import AdminUsersTab from "../features/account/AdminUsersTab";
+import AdminProvidersTab from "../features/account/AdminProvidersTab";
 
-export type Tab = "profile" | "settings" | "security" | "data_controls" | "payment" | "usage" | "connectapp" | "users";
+export type Tab = "profile" | "settings" | "security" | "data_controls" | "payment" | "usage" | "connectapp" | "users" | "providers";
 
 export type AccountTab = Tab;
 
@@ -46,6 +47,7 @@ const Account = () => {
   };
 
   const isOwner = meData?.data?.user?.role === "owner";
+  const isAdminLike = meData?.data?.user?.role === "owner" || meData?.data?.user?.role === "admin";
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: "profile", label: "Profile", icon: "bi-person" },
     { id: "settings", label: "Settings", icon: "bi-gear" },
@@ -56,6 +58,8 @@ const Account = () => {
     { id: "connectapp", label: "Connected Apps", icon: "bi-grid" },
     // Owner-only console: promote/demote users.
     ...(isOwner ? [{ id: "users" as Tab, label: "Users", icon: "bi-people" }] : []),
+    // Admin/owner: add dynamic BYOK providers (id + base URL) for all users.
+    ...(isAdminLike ? [{ id: "providers" as Tab, label: "More providers", icon: "bi-plug" }] : []),
   ];
 
   const renderContent = () => {
@@ -166,6 +170,8 @@ const Account = () => {
         return <ConnectedAppsTab />;
       case "users":
         return <AdminUsersTab selfId={meData?.data?.user?.id} />;
+      case "providers":
+        return <AdminProvidersTab />;
       default:
         return null;
     }
