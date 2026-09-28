@@ -3,8 +3,9 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CodeBlockWithRun } from "./CodeBlockWithRun";
+import { downloadImageAs } from "../../../lib/image";
 
 const ALLOWED_HREF = /^(https?:\/\/|mailto:|#|\/)/i;
 const ALLOWED_IMG_SRC = /^(https?:\/\/|data:image\/(png|jpeg|jpg|gif|webp);base64,|\/)/i;
@@ -38,20 +39,89 @@ const normalizeMath = (s: string): string => {
     .replace(/\\\[/g, "$$")
     .replace(/\\\]/g, "$$");
 
-  // Promote inline $...$ that spans a newline and contains block-ish
-  // LaTeX (frac, hbar, nabla, left/right, etc.) to display $$...$$.
-  // Keeps short inline "$E=mc^2$" untouched.
   out = out.replace(/(?<!\$)\$(?!\$)([\s\S]*?)(?<!\$)\$(?!\$)/g, (full, inner: string) => {
     if (inner.includes("\n") && /\\(frac|hbar|Psi|psi|nabla|mathbf|left|right|partial|sum|int|sqrt)/.test(inner)) {
       const trimmed = inner.trim();
-      // Avoid turning a genuinely short inline that was line-wrapped by
-      // the streamer into display — require at least one block command.
       if (trimmed.length > 16) return `$$${inner}$$`;
     }
     return full;
   });
 
   return out;
+};
+
+const MarkdownImage = ({ src, alt }: { src: string; alt: string }) => {
+  const [expanded, setExpanded] = useState(false);
+  const close = useCallback(() => setExpanded(false), []);
+  useEffect(() => {
+    if (!expanded) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [expanded, close]);
+
+  return (
+    <>
+      <span className="msg-md-img-wrap" role="group" aria-label={alt || "Image"}>
+        <img src={src} alt={alt} loading="lazy" referrerPolicy="no-referrer" onClick={() => setExpanded(true)} style={{ cursor: "zoom-in" }} />
+        <span className="msg-md-img-actions" aria-hidden="false">
+          <button type="button" className="msg-md-img-btn" onClick={() => setExpanded(true)} aria-label="Expand image" title="Expand">
+            <i className="bi bi-arrows-angle-expand" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="msg-md-img-btn"
+            onClick={() => void downloadImageAs(src, "jpg", 0)}
+            aria-label="Download JPG"
+            title="Download JPG"
+          >
+            JPG
+          </button>
+          <button
+            type="button"
+            className="msg-md-img-btn"
+            onClick={() => void downloadImageAs(src, "png", 0)}
+            aria-label="Download PNG"
+            title="Download PNG"
+          >
+            PNG
+          </button>
+        </span>
+      </span>
+      {expanded && (
+        <span className="msg-image-lightbox" role="dialog" aria-modal="true" aria-label="Expanded image" onClick={close} style={{ display: "flex" }}>
+          <span className="msg-lightbox-card" role="document" onClick={(e) => e.stopPropagation()}>
+            <span className="msg-lightbox-card-head">
+              <span className="msg-lightbox-card-title">
+                <i className="bi bi-image" aria-hidden="true" /> <span>{alt || "Image"}</span>
+              </span>
+              <button type="button" className="msg-lightbox-card-close" onClick={close} aria-label="Close" title="Close">
+                <i className="bi bi-x-lg" aria-hidden="true" />
+              </button>
+            </span>
+            <span className="msg-lightbox-card-body">
+              <img src={src} alt={alt || "Expanded image"} className="msg-lightbox-card-img" />
+            </span>
+            <span className="msg-lightbox-card-foot">
+              <button type="button" className="msg-lightbox-dl" onClick={() => void downloadImageAs(src, "jpg", 0)} aria-label="Download JPG">
+                <i className="bi bi-filetype-jpg" aria-hidden="true" /> Download JPG
+              </button>
+              <button type="button" className="msg-lightbox-dl msg-lightbox-dl--alt" onClick={() => void downloadImageAs(src, "png", 0)} aria-label="Download PNG">
+                <i className="bi bi-filetype-png" aria-hidden="true" /> Download PNG
+              </button>
+            </span>
+          </span>
+        </span>
+      )}
+    </>
+  );
 };
 
 export const MarkdownContent = ({ content }: { content: string }) => {
@@ -61,7 +131,6 @@ export const MarkdownContent = ({ content }: { content: string }) => {
       remarkPlugins={[remarkMath, remarkGfm]}
       rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]] as any}
       components={{
-        // Citations (incl. web-search sources) open in a new tab.
         a(props) {
           const { children, node, ...rest } = props as any;
           const safeHref = sanitizeHref(rest.href);
@@ -84,14 +153,13 @@ export const MarkdownContent = ({ content }: { content: string }) => {
           const safeSrc = sanitizeImgSrc(props.src as string | undefined);
           if (!safeSrc) return null;
           const alt = typeof props.alt === "string" ? props.alt : "";
-          return <img src={safeSrc} alt={alt} loading="lazy" referrerPolicy="no-referrer" />;
+          return <MarkdownImage src={safeSrc} alt={alt} />;
         },
         pre(props) {
           return <div className="msg-md-pre">{props.children}</div>;
         },
         code(props) {
           const { children, className, node, ...rest } = props;
-          // KaTeX math is already rendered by rehype-katex — don't turn it into a code block.
           if (className && /language-math|math-(inline|display)/.test(className)) {
             return (
               <code {...rest} className={className}>
@@ -101,10 +169,7 @@ export const MarkdownContent = ({ content }: { content: string }) => {
           }
           const match = /language-(\w+)/.exec(className || "");
           return match ? (
-            <CodeBlockWithRun
-              language={match[1]}
-              code={String(children)}
-            />
+            <CodeBlockWithRun language={match[1]} code={String(children)} />
           ) : (
             <code {...rest} className={className}>
               {children}

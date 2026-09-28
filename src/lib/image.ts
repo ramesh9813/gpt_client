@@ -3,8 +3,8 @@
  * - `compressImageFile` is kept for optional display thumbnails, but the API
  *   payload now preserves full original resolution (lossless base64).
  */
-export const MAX_IMAGE_DIM = 2560;
-export const IMAGE_QUALITY = 0.92;
+export const MAX_IMAGE_DIM = 1080;
+export const IMAGE_QUALITY = 0.80;
 export const MAX_IMAGES_PER_MESSAGE = 5;
 
 export function isImageFile(file: File): boolean {
@@ -110,4 +110,77 @@ export async function originalDataURLList(
 ): Promise<string[]> {
   const list = Array.from(files).filter(isImageFile).slice(0, MAX_IMAGES_PER_MESSAGE);
   return Promise.all(list.map((f) => originalDataURL(f)));
+}
+
+/**
+ * Download an image `src` (https:// or data:image/...) as JPG or PNG.
+ * Tries canvas conversion so the output mime matches `format`; falls back
+ * to direct download / open-in-new-tab on CORS taint or error.
+ */
+export async function downloadImageAs(
+  src: string,
+  format: "jpg" | "png",
+  index: number
+): Promise<void> {
+  const ext = format === "jpg" ? "jpg" : "png";
+  const fileName = `image-${index + 1}.${ext}`;
+  const doDirectDownload = (href: string) => {
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = fileName;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
+  try {
+    const img = new Image();
+    if (/^https?:\/\//i.test(src)) (img as HTMLImageElement).crossOrigin = "anonymous";
+    (img as any).decoding = "async";
+    const loaded = await new Promise<HTMLImageElement>((resolve, reject) => {
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+    const w = loaded.naturalWidth || 1024;
+    const h = loaded.naturalHeight || 1024;
+    const MAX = 1080;
+    const scale = Math.min(1, MAX / Math.max(w, h));
+    const cw = Math.max(1, Math.round(w * scale));
+    const ch = Math.max(1, Math.round(h * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = cw;
+    canvas.height = ch;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("no 2d");
+    if (format === "jpg") {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, cw, ch);
+    } else {
+      ctx.clearRect(0, 0, cw, ch);
+    }
+    ctx.drawImage(loaded, 0, 0, cw, ch);
+    const mime = format === "jpg" ? "image/jpeg" : "image/png";
+    const dataUrl = canvas.toDataURL(mime, (format === "jpg" ? 0.80 : 0.92) as any);
+    doDirectDownload(dataUrl);
+  } catch {
+    try {
+      if (src.startsWith("data:")) {
+        doDirectDownload(src);
+      } else {
+        const res = await fetch(src, { mode: "cors" });
+        if (res.ok) {
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          doDirectDownload(url);
+          setTimeout(() => URL.revokeObjectURL(url), 4000);
+          return;
+        }
+        window.open(src, "_blank", "noopener");
+      }
+    } catch {
+      window.open(src, "_blank", "noopener");
+    }
+  }
 }

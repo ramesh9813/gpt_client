@@ -40,14 +40,13 @@ export const useCameraCapture = ({ onFiles }: CameraCaptureOptions) => {
             throw new Error("unsupported");
           }
           const stream = await navigator.mediaDevices.getUserMedia({
-            // Request the highest practical resolution: most phone backs do
-            // 3840x2160+; without an explicit ideal browsers fall back to
-            // ~640x480 which caps quality no matter what the encoder does.
-            // We ask for 4K ideal and let the device pick the closest it can.
+            // 1080p ideal — keeps quality good while avoiding lag/hang
+            // that 4K (3840x2160) causes on mid/low-end devices. Browser
+            // picks closest supported if 1080p unavailable.
             video: {
               facingMode,
-              width: { ideal: 3840 },
-              height: { ideal: 2160 },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
             },
             audio: false,
           });
@@ -152,7 +151,26 @@ export const useCameraCapture = ({ onFiles }: CameraCaptureOptions) => {
         // older canvas implementations ignore filter — capture unfiltered
       }
       ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob(
+      // Cap canvas encode to ~1080 on the long edge + 0.80 quality to avoid
+      // jank/hang from huge JPEG encodes that stalled the UI at 4K + 1.0.
+      const MAX_EDGE = 1080;
+      const QUALITY = 0.80;
+      const longEdge = Math.max(canvas.width, canvas.height);
+      let encCanvas: HTMLCanvasElement = canvas;
+      if (longEdge > MAX_EDGE) {
+        const s = MAX_EDGE / longEdge;
+        const tmp = document.createElement("canvas");
+        tmp.width = Math.max(1, Math.round(canvas.width * s));
+        tmp.height = Math.max(1, Math.round(canvas.height * s));
+        const tctx = tmp.getContext("2d");
+        if (tctx) {
+          tctx.imageSmoothingEnabled = true;
+          tctx.imageSmoothingQuality = "high";
+          tctx.drawImage(canvas, 0, 0, tmp.width, tmp.height);
+          encCanvas = tmp;
+        }
+      }
+      encCanvas.toBlob(
         (blob) => {
           if (!blob) return;
           const file = new File([blob], `photo-${Date.now()}.jpg`, {
@@ -163,7 +181,7 @@ export const useCameraCapture = ({ onFiles }: CameraCaptureOptions) => {
           void onFilesRef.current(dt.files);
         },
         "image/jpeg",
-        1.0
+        QUALITY
       );
     };
 

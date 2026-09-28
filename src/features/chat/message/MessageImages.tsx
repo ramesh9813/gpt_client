@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { downloadImageAs } from "../../../lib/image";
 
 export const MessageImages = ({ images }: { images?: string[] }) => {
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
@@ -13,14 +14,10 @@ export const MessageImages = ({ images }: { images?: string[] }) => {
       if (e.key === "Escape") close();
       if (!hasMultiple) return;
       if (e.key === "ArrowLeft") {
-        setExpandedIdx((prev) =>
-          prev === null ? null : (prev - 1 + count) % count
-        );
+        setExpandedIdx((prev) => (prev === null ? null : (prev - 1 + count) % count));
       }
       if (e.key === "ArrowRight") {
-        setExpandedIdx((prev) =>
-          prev === null ? null : (prev + 1) % count
-        );
+        setExpandedIdx((prev) => (prev === null ? null : (prev + 1) % count));
       }
     };
     document.addEventListener("keydown", onKey);
@@ -34,25 +31,20 @@ export const MessageImages = ({ images }: { images?: string[] }) => {
 
   if (!images || count === 0) return null;
 
-  // Fixed-dimension gallery: uniform 280x220 card regardless of count.
-  // 4+ uses 2x2 with +N badge on last tile when overflow.
   const capped = 4;
   const display = count > capped ? images.slice(0, capped) : images;
   const extra = count > capped ? count - capped : 0;
 
   const layoutCls =
-    count === 1
-      ? "msg-gallery--1"
-      : count === 2
-        ? "msg-gallery--2"
-        : count === 3
-          ? "msg-gallery--3"
-          : "msg-gallery--4";
+    count === 1 ? "msg-gallery--1" : count === 2 ? "msg-gallery--2" : count === 3 ? "msg-gallery--3" : "msg-gallery--4";
 
   const expandedSrc =
-    expandedIdx !== null && expandedIdx >= 0 && expandedIdx < count
-      ? images[expandedIdx]
-      : null;
+    expandedIdx !== null && expandedIdx >= 0 && expandedIdx < count ? images[expandedIdx] : null;
+
+  const handleDownload = (format: "jpg" | "png", idx: number) => {
+    const src = images[idx];
+    if (src) void downloadImageAs(src, format, idx);
+  };
 
   return (
     <>
@@ -75,13 +67,7 @@ export const MessageImages = ({ images }: { images?: string[] }) => {
                 }
               }}
             >
-              <img
-                src={src}
-                alt={`Attachment ${i + 1}`}
-                loading="lazy"
-                decoding="async"
-                className="msg-gallery-img"
-              />
+              <img src={src} alt={`Attachment ${i + 1}`} loading="lazy" decoding="async" className="msg-gallery-img" />
               <button
                 type="button"
                 className="msg-gallery-expand"
@@ -111,68 +97,97 @@ export const MessageImages = ({ images }: { images?: string[] }) => {
         })}
       </div>
 
-      {expandedSrc && (
-        <div
-          className="msg-image-lightbox"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Expanded image"
-          onClick={close}
+      {/* Download tab: shown whenever images exist. Theme-consistent pill bar. */}
+      <div className="msg-gallery-actions" role="group" aria-label="Download image">
+        <span className="msg-gallery-actions-label">Download:</span>
+        <button
+          type="button"
+          className="msg-gallery-dl"
+          onClick={() => handleDownload("jpg", expandedIdx ?? 0)}
+          title={count === 1 ? "Download as JPG" : `Download image ${(expandedIdx ?? 0) + 1} as JPG`}
+          aria-label="Download JPG"
         >
-          <button
-            type="button"
-            className="msg-image-lightbox-close"
-            onClick={close}
-            aria-label="Close expanded image"
-            title="Close"
-          >
-            <i className="bi bi-x-lg" aria-hidden="true" />
-          </button>
+          <i className="bi bi-download" aria-hidden="true" /> JPG
+        </button>
+        <button
+          type="button"
+          className="msg-gallery-dl"
+          onClick={() => handleDownload("png", expandedIdx ?? 0)}
+          title={count === 1 ? "Download as PNG" : `Download image ${(expandedIdx ?? 0) + 1} as PNG`}
+          aria-label="Download PNG"
+        >
+          <i className="bi bi-download" aria-hidden="true" /> PNG
+        </button>
+        {count > 1 && <span className="msg-gallery-actions-hint">{count} images — expand to pick</span>}
+      </div>
 
-          {hasMultiple && (
-            <>
-              <button
-                type="button"
-                className="msg-lightbox-nav msg-lightbox-prev"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setExpandedIdx((prev) =>
-                    prev === null ? null : (prev - 1 + count) % count
-                  );
-                }}
-                aria-label="Previous image"
-              >
-                <i className="bi bi-chevron-left" aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className="msg-lightbox-nav msg-lightbox-next"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setExpandedIdx((prev) =>
-                    prev === null ? null : (prev + 1) % count
-                  );
-                }}
-                aria-label="Next image"
-              >
-                <i className="bi bi-chevron-right" aria-hidden="true" />
-              </button>
-            </>
-          )}
-
-          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
-          <img
-            src={expandedSrc}
-            alt="Expanded attachment"
-            className="msg-image-lightbox-img"
+      {expandedSrc && (
+        <div className="msg-image-lightbox" role="dialog" aria-modal="true" aria-label="Expanded image" onClick={close}>
+          {/* Popcard: centered card showing complete full image + download tabs. Click inside does not close. */}
+          <div
+            className="msg-lightbox-card"
+            role="document"
             onClick={(e) => e.stopPropagation()}
-          />
-
-          {hasMultiple && (
-            <div className="msg-lightbox-counter" aria-live="polite">
-              {expandedIdx! + 1} / {count}
+          >
+            <div className="msg-lightbox-card-head">
+              <div className="msg-lightbox-card-title">
+                <i className="bi bi-image" aria-hidden="true" />
+                <span>
+                  Image {expandedIdx! + 1} of {count}
+                </span>
+              </div>
+              <button type="button" className="msg-lightbox-card-close" onClick={close} aria-label="Close" title="Close">
+                <i className="bi bi-x-lg" aria-hidden="true" />
+              </button>
             </div>
-          )}
+
+            <div className="msg-lightbox-card-body">
+              <img src={expandedSrc} alt="Expanded attachment" className="msg-lightbox-card-img" />
+            </div>
+
+            <div className="msg-lightbox-card-foot">
+              <button
+                type="button"
+                className="msg-lightbox-dl"
+                onClick={() => handleDownload("jpg", expandedIdx!)}
+                aria-label="Download JPG"
+              >
+                <i className="bi bi-filetype-jpg" aria-hidden="true" /> Download JPG
+              </button>
+              <button
+                type="button"
+                className="msg-lightbox-dl msg-lightbox-dl--alt"
+                onClick={() => handleDownload("png", expandedIdx!)}
+                aria-label="Download PNG"
+              >
+                <i className="bi bi-filetype-png" aria-hidden="true" /> Download PNG
+              </button>
+            </div>
+
+            {hasMultiple && (
+              <div className="msg-lightbox-card-nav" aria-hidden="false">
+                <button
+                  type="button"
+                  className="msg-lightbox-nav msg-lightbox-prev"
+                  onClick={() => setExpandedIdx((prev) => (prev === null ? null : (prev - 1 + count) % count))}
+                  aria-label="Previous image"
+                >
+                  <i className="bi bi-chevron-left" aria-hidden="true" />
+                </button>
+                <span className="msg-lightbox-counter">
+                  {expandedIdx! + 1} / {count}
+                </span>
+                <button
+                  type="button"
+                  className="msg-lightbox-nav msg-lightbox-next"
+                  onClick={() => setExpandedIdx((prev) => (prev === null ? null : (prev + 1) % count))}
+                  aria-label="Next image"
+                >
+                  <i className="bi bi-chevron-right" aria-hidden="true" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </>
