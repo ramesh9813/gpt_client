@@ -55,6 +55,13 @@ export function ConversationRow({
       {conversation.pinned ? (
         <i className="bi bi-pin-fill conv-side-pin-icon" aria-label="Pinned" title="Pinned"></i>
       ) : null}
+      {typeof conversation.customPrompt === "string" && conversation.customPrompt.trim().length > 0 ? (
+        <span
+          className={`conv-tuning-dot ${conversation.customPromptEnabled === true ? "conv-tuning-dot--active" : "conv-tuning-dot--inactive"}`}
+          title={conversation.customPromptEnabled === true ? "Custom prompt active" : "Custom prompt saved (off)"}
+          aria-label={conversation.customPromptEnabled === true ? "Custom prompt active" : "Custom prompt off"}
+        />
+      ) : null}
       <div
         className={`conv-side-conv-menu ${menuOpen === conversation.id ? "conv-side-conv-menu--open" : "conv-side-conv-menu--closed"}`}
         onMouseLeave={onCloseMenu}
