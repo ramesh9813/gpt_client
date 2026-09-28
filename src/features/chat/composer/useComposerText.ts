@@ -72,7 +72,7 @@ export const adjustTextareaHeight = (el: HTMLTextAreaElement) => {
   el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
 };
 
-type SendOpts = { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean };
+type SendOpts = { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean; files?: Array<{ name: string; mime: string; size: number; content: string }> };
 
 type UseComposerTextOptions = {
   value: string;

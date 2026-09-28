@@ -259,3 +259,10 @@
 .composer-back-btn:hover {
   color: var(--text);
 }
+
+.composer-option-hint {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muted);
+  flex-shrink: 0;
+}

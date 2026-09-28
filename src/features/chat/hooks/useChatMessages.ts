@@ -86,11 +86,12 @@ export const useChatMessages = ({
     writeCachedMessages(conversationId, messages);
   }, [conversationId, messages]);
 
-  const sendMessage = async (text: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean }) => {
+  const sendMessage = async (text: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean; files?: Array<{ name: string; mime: string; size: number; content: string }> }) => {
     if (!conversationId) return;
     const trimmed = text.trim();
     const hasImages = !!images && images.length > 0;
-    if (!trimmed && !hasImages) {
+    const hasFiles = !!opts?.files && opts.files.length > 0;
+    if (!trimmed && !hasImages && !hasFiles) {
       setComposerError("Message is required");
       return;
     }
@@ -120,7 +121,8 @@ export const useChatMessages = ({
         role: "USER",
         content: trimmed,
         ...(hasImages ? { images: [...images!] } : {}),
-      },
+        ...(hasFiles ? { files: (opts!.files as any).map((f: any) => ({ name: f.name, mime: f.mime, size: f.size })) } : {}),
+      } as any,
       {
         id: tempAssistantId,
         role: "ASSISTANT",
@@ -139,6 +141,7 @@ export const useChatMessages = ({
         conversationId,
         userMessage: trimmed,
         images: hasImages ? images : undefined,
+        files: hasFiles ? (opts as any).files : undefined,
         selectedModel: turnModel,
         ...(opts?.research ? { research: true as const } : {}),
         ...(opts?.artifact ? { artifact: true as const } : {}),

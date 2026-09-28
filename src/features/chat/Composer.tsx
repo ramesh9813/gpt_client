@@ -13,13 +13,17 @@ import { requestListScroll, subscribeListScrollState, type ListScrollState } fro
 import { useVoiceInput } from "./composer/useVoiceInput";
 import { useCameraCapture } from "./composer/useCameraCapture";
 import { useComposerArmed, useComposerText } from "./composer/useComposerText";
+import { useComposerFiles } from "./composer/useComposerFiles";
+import FileAttachments from "./composer/FileAttachments";
 
 
 export type { ModelOption, SortOption };
 
+import type { FileAttachment } from "../../lib/fileChat";
+
 export type ComposerProps = {
-  // images?:string[] is optional → backward compat with (value: string) => void
-  onSend: (value: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean }) => void;
+  // images/files optional → backward compat
+  onSend: (value: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean; files?: FileAttachment[] }) => void;
   onStop?: () => void;
   disabled?: boolean;
   streaming?: boolean;
@@ -125,6 +129,8 @@ const Composer = ({
 
   const { images, compressing, fileInputRef, handleFiles, removeImage, clearImages, recentPhotos, recentScreenshots, attachRecent } =
     useComposerImages();
+  const { files, fileError, reading: fileReading, filePickRef, addFiles, removeFile, clearFiles, setFileError } =
+    useComposerFiles();
   const {
     devicePhotos,
     deviceScreenshots,
@@ -181,8 +187,8 @@ const Composer = ({
 
   const {
     textareaRef,
-    canSend,
-    handleSend,
+    canSend: textCanSend,
+    handleSend: baseHandleSend,
     onKeyDown,
     handleEditLast,
     setTextareaRefs,
@@ -203,7 +209,11 @@ const Composer = ({
     streaming,
     lastUserMessage,
     inputRef,
-    onSend,
+    onSend: (v, imgs, opts) => {
+      const payloadFiles = files.length > 0 ? [...files] : undefined;
+      (onSend as any)(v, imgs, payloadFiles ? { ...opts, files: payloadFiles } : opts);
+      if (payloadFiles) clearFiles();
+    },
     clearImages,
     handleFiles,
     attachRecent,
@@ -212,6 +222,11 @@ const Composer = ({
     setResearchArmed,
     setArtifactArmed,
   });
+  const canSend = textCanSend || files.length > 0;
+  const handleSend = () => {
+    if (!canSend || fileReading) return;
+    baseHandleSend();
+  };
 
   const currentModelLabel =
     modelOptions.find((o) => o.value === model)?.label || "Model";
@@ -263,6 +278,8 @@ const Composer = ({
         )}
         {/* Image preview strip */}
         <ImageAttachments images={images} compressing={compressing} onRemove={removeImage} />
+        <FileAttachments files={files} reading={fileReading} fileError={fileError} onRemove={removeFile} onClearError={() => setFileError(null)} />
+        <input ref={filePickRef} type="file" multiple hidden aria-hidden="true" tabIndex={-1} onChange={(e) => void addFiles(e.target.files)} />
 
         <ComposerStatus
           listening={listening}
@@ -288,6 +305,7 @@ const Composer = ({
               setMenuOpen((prev) => !prev);
               if (menuOpen) setModelMenuOpen(false);
             }}
+            onFilePick={() => filePickRef.current?.click()}
             modelMenuOpen={modelMenuOpen}
             onModelMenuOpenChange={setModelMenuOpen}
             onCloseMenu={() => setMenuOpen(false)}

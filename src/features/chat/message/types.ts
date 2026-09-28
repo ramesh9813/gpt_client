@@ -37,6 +37,7 @@ export type ChatMessage = {
   model?: string | null;
   images?: string[];
   videos?: string[];
+  files?: Array<{ name: string; mime?: string; size?: number }>;
   followups?: string[];
   quiz?: QuizRound;
   // Wall-clock time the assistant turn took (ms), set when the turn settles.

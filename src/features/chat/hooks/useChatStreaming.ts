@@ -30,6 +30,7 @@ export type StreamAssistantArgs = {
   conversationId: string;
   userMessage?: string;
   images?: string[];
+  files?: Array<{ name: string; mime: string; size: number; content: string }>;
   existingUserMessageId?: string;
   selectedModel?: string;
   research?: boolean;
@@ -52,6 +53,7 @@ export const useChatStreaming = () => {
       conversationId,
       userMessage,
       images,
+      files,
       existingUserMessageId,
       selectedModel,
       research,
@@ -263,6 +265,7 @@ export const useChatStreaming = () => {
           conversationId,
           userMessage,
           ...(images && images.length > 0 ? { images } : {}),
+          ...(files && files.length > 0 ? { files } : {}),
           existingUserMessageId,
           model:
             !byokActive && selectedModel && selectedModel !== "default"

@@ -46,6 +46,7 @@ type ModelMenuProps = {
   onMcqToggle?: () => void;
   thinkingArmed?: boolean;
   onThinkingToggle?: () => void;
+  onFilePick?: () => void;
   // Catalog freshness footer (from useChatModels):
   modelsTotal?: number;
   modelsUpdatedAt?: string | null;
@@ -80,6 +81,7 @@ export const ModelMenu = ({
   onMcqToggle,
   thinkingArmed,
   onThinkingToggle,
+  onFilePick,
   modelsTotal,
   modelsUpdatedAt,
   modelsStale,
@@ -234,6 +236,18 @@ export const ModelMenu = ({
             <span>Image Generation</span>
           </button>
           )}
+          <button
+            type="button"
+            className="composer-option-btn"
+            onClick={() => {
+              onFilePick?.();
+              onCloseMenu();
+            }}
+          >
+            <i className="bi bi-file-earmark composer-icon-blue"></i>
+            <span>Files</span>
+            <span className="composer-option-hint">code, pdf, txt, audio</span>
+          </button>
         </div>
       ) : (
         <div className="composer-model-sublist">

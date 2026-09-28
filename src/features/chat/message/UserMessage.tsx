@@ -2,6 +2,7 @@ import { KeyboardEvent, RefObject, memo } from "react";
 import { Textarea } from "../../../components/Textarea";
 import type { ChatMessage } from "./types";
 import { MessageImages } from "./MessageImages";
+import { FileChips } from "./FileChips";
 import { MarkdownContent } from "./MarkdownContent";
 import { CopyButton } from "./MessageButtons";
 import { useDoubleCopy } from "./useDoubleCopy";
@@ -129,6 +130,7 @@ export const UserMessage = memo(
             </div>
           ) : (
             <>
+              <FileChips files={(message as any).files} />
               <MessageImages images={message.images} />
               {message.content.trim().length > 0 ? (
                 <MarkdownContent content={message.content} />

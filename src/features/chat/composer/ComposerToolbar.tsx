@@ -51,6 +51,7 @@ export interface ComposerToolbarProps {
   streaming?: boolean;
   onStop?: () => void;
   onSend: () => void;
+  onFilePick?: () => void;
 }
 
 /**
@@ -106,6 +107,7 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
     streaming,
     onStop,
     onSend,
+    onFilePick,
   } = props;
   return (
     <div className="composer-toolbar">
@@ -155,6 +157,7 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
           onMcqToggle={onQuizClick}
           thinkingArmed={thinkingArmed}
           onThinkingToggle={onThinkingToggle}
+          onFilePick={onFilePick}
         />
       )}
     </div>
