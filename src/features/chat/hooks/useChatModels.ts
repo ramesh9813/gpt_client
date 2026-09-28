@@ -111,16 +111,7 @@ export const useChatModels = () => {
   const byokList = useMemo(() => {
     if (!byokCfg || !byokProvider) return [];
     const live = byokCfg.models?.[byokProvider.id];
-    const base = live && live.length > 0 ? live : byokProvider.models;
-    // "Free models only" filter: applies everywhere the BYOK list renders
-    // (composer menu + settings dropdown).
-    if (byokCfg.freeOnly) {
-      if (byokProvider.allModelsFree) return base;
-      const free = byokCfg.freeModels?.[byokProvider.id] ?? [];
-      const filtered = base.filter((id) => free.includes(id));
-      return filtered.length > 0 ? filtered : base;
-    }
-    return base;
+    return live && live.length > 0 ? live : byokProvider.models;
   }, [byokCfg, byokProvider]);
 
   const byokOptions: ModelOption[] = useMemo(

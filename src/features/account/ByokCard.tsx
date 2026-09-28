@@ -67,16 +67,7 @@ export const ByokCard = () => {
   const liveList = provider ? modelsByProvider[provider.id] : undefined;
   const baseOptions =
     liveList && liveList.length > 0 ? liveList : (provider?.models ?? []);
-  // "Free models only": keep ids the provider reports as free-tier (Groq and
-  // NVIDIA list everything; OpenRouter uses zero-priced / ":free" entries). If
-  // a provider reports nothing, the full list stays visible.
-  const freeIds = provider ? (freeModelsByProvider[provider.id] ?? []) : [];
-  const modelOptions =
-    freeOnly && provider && (freeIds.length > 0 || provider.allModelsFree)
-      ? provider.allModelsFree
-        ? baseOptions
-        : baseOptions.filter((m) => freeIds.includes(m))
-      : baseOptions;
+  const modelOptions = baseOptions;
 
   const savedKey = provider ? (savedKeys[provider.id] ?? "") : "";
   const keySupported = provider
@@ -310,27 +301,9 @@ export const ByokCard = () => {
                   </option>
                 ))}
               </select>
-              <span className="account-check-hint">
-                {modelsNote ??
-                  "Live list from the provider; refreshes as soon as a valid key is entered."}
-              </span>
-              <label className="account-check-row byok-free-only">
-                <input
-                  type="checkbox"
-                  className="account-check-input"
-                  checked={freeOnly}
-                  onChange={(e) => setFreeOnly(e.target.checked)}
-                />
-                <span className="account-check-body">
-                  <span className="account-field-label account-check-label">
-                    Free models only
-                  </span>
-                  <span className="account-check-hint">
-                    Show just the provider's free-tier models when that info is
-                    available.
-                  </span>
-                </span>
-              </label>
+              {modelsNote ? (
+                <span className="account-check-hint">{modelsNote}</span>
+              ) : null}
             </div>
             <div>
               <label className="account-field-label" htmlFor="byok-key">
