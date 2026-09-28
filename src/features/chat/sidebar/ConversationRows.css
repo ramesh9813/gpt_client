@@ -292,6 +292,11 @@
   box-shadow: none !important;
   color: var(--text);
 }
+/* Folder-only: three-dot icon 30% larger for easier tap target. */
+.conv-side-folder-menu-btn .bi-three-dots {
+  font-size: 130%;
+  line-height: 1;
+}
 .conv-side-folder-menu-btn:hover {
   background-color: var(--border) !important;
 }
