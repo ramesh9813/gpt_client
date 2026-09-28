@@ -9,7 +9,7 @@
     <title>ChatGPT</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#ffffff" />
+    <meta name="theme-color" content="#202123" />
     <script>
       (function() {
         try {
@@ -32,6 +32,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="ChatGPT" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png" />
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
@@ -44,9 +45,7 @@
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
-          // Relative path so it works with vite `base: "./"` (subpath / Capacitor).
-          // Absolute "/sw.js" 404s off-root and leaves a stale broken bundle cached.
-          navigator.serviceWorker.register("./sw.js").catch(() => {});
+          navigator.serviceWorker.register("/sw.js").catch(() => {});
         });
       }
     </script>
