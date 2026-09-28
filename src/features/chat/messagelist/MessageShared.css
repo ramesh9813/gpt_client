@@ -45,69 +45,90 @@
   font-size: 0.75rem;
 }
 
-/* images — user-sent and AI-generated share this renderer */
-.msg-images {
+/* ── Fixed-dimension gallery (user + AI share this renderer) ──────────
+   Uniform 280×220 card regardless of 1..5 attachments. No bubble bloat.
+   1 → single cover, 2 → 2-col, 3 → 1 large left + 2 stacked right, 4+ → 2×2 +N */
+.msg-gallery {
   margin-bottom: 0.5rem;
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-.msg-images--single {
-  flex-wrap: nowrap;
-  width: 100%;
-}
-.msg-image {
-  max-height: 12rem;
-  width: auto;
+  display: grid;
+  gap: 2px;
+  width: 280px;
   max-width: 100%;
+  height: 220px;
+  max-height: 220px;
+  overflow: hidden;
   border-radius: 0.75rem;
-  border: 1px solid rgb(0 0 0 / 0.1);
-  object-fit: cover;
+  border: 1px solid rgb(0 0 0 / 0.08);
+  background: var(--border);
+  box-sizing: border-box;
 }
-[data-theme="dark"] .msg-image { border-color: rgb(255 255 255 / 0.1); }
-/* Single image: fill the available row width (never more than one per row anyway) */
-.msg-image--single {
+[data-theme="dark"] .msg-gallery { border-color: rgb(255 255 255 / 0.08); }
+
+.msg-gallery--1 { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+.msg-gallery--2 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; }
+.msg-gallery--3 { grid-template-columns: 1.45fr 1fr; grid-template-rows: 1fr 1fr; }
+.msg-gallery--3 .msg-gallery-tile:nth-child(1) { grid-row: 1 / span 2; }
+.msg-gallery--4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+
+.msg-gallery-tile {
+  position: relative;
+  overflow: hidden;
+  background: var(--panel);
+  cursor: zoom-in;
+  min-width: 0;
+  min-height: 0;
+}
+.msg-gallery-img {
+  display: block;
   width: 100%;
-  max-height: none;
-  aspect-ratio: auto;
-  object-fit: contain;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  border: 0;
 }
-/* Expand affordance: subtle corner button over the image */
-.msg-image-wrap--expandable .msg-image-expand,
-.msg-image-wrap--single .msg-image-expand {
+
+/* corner expand affordance */
+.msg-gallery-expand {
   position: absolute;
-  right: 0.4rem;
-  bottom: 0.4rem;
+  right: 0.35rem;
+  bottom: 0.35rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 1.75rem;
-  width: 1.75rem;
+  height: 1.6rem;
+  width: 1.6rem;
   border-radius: 9999px;
   border: 1px solid rgb(255 255 255 / 0.35);
   background: rgb(0 0 0 / 0.55);
   color: #fff;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   cursor: pointer;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
 }
-.msg-image-wrap--single .msg-image-expand {
-  height: 1.9rem;
-  width: 1.9rem;
-}
-.msg-image-expand:hover { background: rgb(0 0 0 / 0.72); }
-.msg-image-expand:active { transform: scale(0.96); }
+.msg-gallery-expand:hover { background: rgb(0 0 0 / 0.72); }
+.msg-gallery-expand:active { transform: scale(0.96); }
 
-/* AI generated image: render full available width in its row */
-.msg-assistant .msg-images--single {
-  width: 100%;
+/* +N overlay on last tile when count > 4 */
+.msg-gallery-more {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 0.62);
+  color: #fff;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  cursor: zoom-in;
 }
-.msg-assistant .msg-image--single {
-  width: 100%;
-  max-width: 100%;
-}
+
+/* legacy flex aliases — keep harmless if older cached markup renders */
+.msg-images { display: none; }
+.msg-image { display: none; }
 
 /* Full-page lightbox */
 .msg-image-lightbox {
@@ -150,6 +171,42 @@
   -webkit-backdrop-filter: blur(8px);
 }
 .msg-image-lightbox-close:hover { background: rgb(255 255 255 / 0.18); }
+.msg-lightbox-nav {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.5rem;
+  width: 2.5rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(255 255 255 / 0.22);
+  background: rgb(255 255 255 / 0.1);
+  color: #fff;
+  font-size: 1.1rem;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.msg-lightbox-prev { left: 0.75rem; }
+.msg-lightbox-next { right: 0.75rem; }
+.msg-lightbox-nav:hover { background: rgb(255 255 255 / 0.16); }
+.msg-lightbox-counter {
+  position: fixed;
+  bottom: 0.85rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  background: rgb(0 0 0 / 0.55);
+  border: 1px solid rgb(255 255 255 / 0.18);
+  color: #fff;
+  font-size: 0.75rem;
+  line-height: 1;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
 
 /* Editable images in message edit mode: corner cancel overlay per image.
    Tapping X drops it from the edit draft — it is not sent on Save. */

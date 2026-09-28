@@ -1,12 +1,11 @@
 /**
- * Client-side image compression helper.
- * No new dependencies — uses <canvas> + Image.
- * Returns a JPEG dataURL capped at `maxDim` (long edge) with `quality`.
+ * Client-side image helpers.
+ * - `compressImageFile` is kept for optional display thumbnails, but the API
+ *   payload now preserves full original resolution (lossless base64).
  */
-
 export const MAX_IMAGE_DIM = 2560;
 export const IMAGE_QUALITY = 0.92;
-export const MAX_IMAGES_PER_MESSAGE = 3;
+export const MAX_IMAGES_PER_MESSAGE = 5;
 
 export function isImageFile(file: File): boolean {
   return file.type.startsWith("image/");
@@ -95,4 +94,20 @@ export async function compressImageList(
 ): Promise<string[]> {
   const list = Array.from(files).filter(isImageFile).slice(0, MAX_IMAGES_PER_MESSAGE);
   return Promise.all(list.map((f) => compressImageFile(f, maxDim, quality)));
+}
+
+/**
+ * Lossless: return the original File as a dataURL without resize or quality
+ * loss. Used for the AI API payload so analysis sees full resolution.
+ * Falls back to `compressImageFile` only on read failure (never expected).
+ */
+export async function originalDataURL(file: File): Promise<string> {
+  return readAsDataURL(file);
+}
+
+export async function originalDataURLList(
+  files: FileList | File[]
+): Promise<string[]> {
+  const list = Array.from(files).filter(isImageFile).slice(0, MAX_IMAGES_PER_MESSAGE);
+  return Promise.all(list.map((f) => originalDataURL(f)));
 }

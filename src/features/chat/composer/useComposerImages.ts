@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { compressImageFile, MAX_IMAGES_PER_MESSAGE } from "../../../lib/image";
+import { originalDataURL, MAX_IMAGES_PER_MESSAGE } from "../../../lib/image";
 
 // Persisted recents so the card shows photos by default even after reload.
 // Newest first (time order), split into camera/picked photos vs pasted
@@ -81,14 +81,13 @@ export const useComposerImages = () => {
     try {
       const room = Math.max(0, MAX_IMAGES_PER_MESSAGE - images.length);
       const slice = picked.slice(0, room);
-      const compressed = await Promise.all(
-        slice.map((f) => compressImageFile(f))
-      );
-      setImages((prev) => [...prev, ...compressed].slice(0, MAX_IMAGES_PER_MESSAGE));
+      // Full original resolution for the AI payload — no resize/quality loss.
+      const fullRes = await Promise.all(slice.map((f) => originalDataURL(f)));
+      setImages((prev) => [...prev, ...fullRes].slice(0, MAX_IMAGES_PER_MESSAGE));
       if (kind === "screenshot") {
-        setRecentScreenshots((prev) => prependUnique(prev, compressed));
+        setRecentScreenshots((prev) => prependUnique(prev, fullRes));
       } else {
-        setRecentPhotos((prev) => prependUnique(prev, compressed));
+        setRecentPhotos((prev) => prependUnique(prev, fullRes));
       }
     } catch {
       // Silently ignore failed decodes; caller can retry with another file.
