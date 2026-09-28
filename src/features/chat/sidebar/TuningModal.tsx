@@ -52,11 +52,9 @@ export const TuningModal = ({ conversationId, conversationTitle, open, onClose, 
 
   if (!open || !conversationId) return null;
 
-  const trimmed = prompt.trim();
   const charCount = prompt.length;
   const over = charCount > TUNING_MAX_LENGTH;
   const dirty = !initialCfg || initialCfg.customPrompt !== prompt || initialCfg.customPromptEnabled !== enabled;
-  const effectiveEnabled = enabled && trimmed.length > 0;
 
   const handleSave = async () => {
     if (!conversationId) return;
@@ -93,7 +91,7 @@ export const TuningModal = ({ conversationId, conversationTitle, open, onClose, 
         <div className="tuning-header">
           <h3 className="tuning-title">Chat Tuning</h3>
           <div className="tuning-header-actions">
-            <label className="tuning-toggle" title={effectiveEnabled ? "Tuning is ON" : "Tuning is OFF"}>
+            <label className="tuning-toggle" title={enabled ? "Tuning is ON" : "Tuning is OFF"}>
               <input
                 type="checkbox"
                 className="tuning-toggle-input"
@@ -107,7 +105,6 @@ export const TuningModal = ({ conversationId, conversationTitle, open, onClose, 
             <button type="button" className="tuning-close" onClick={onClose} aria-label="Close">×</button>
           </div>
         </div>
-        {conversationTitle ? <div className="tuning-subtitle" title={conversationTitle}>{conversationTitle}</div> : null}
         {loading ? <div className="tuning-hint">Loading…</div> : null}
         {error ? <div className="tuning-error" role="alert">{error}</div> : null}
         <div className="tuning-body">
@@ -120,14 +117,11 @@ export const TuningModal = ({ conversationId, conversationTitle, open, onClose, 
             placeholder=""
             rows={5}
             maxLength={TUNING_MAX_LENGTH}
-            aria-describedby="tuning-counter tuning-hint"
+            aria-describedby="tuning-counter"
           />
           <div className="tuning-meta">
             <span id="tuning-counter" className={`tuning-counter ${over ? "tuning-counter--over" : ""}`}>
               {charCount} / {TUNING_MAX_LENGTH}
-            </span>
-            <span id="tuning-hint" className="tuning-hint">
-              {enabled ? (trimmed.length === 0 ? "Turned on but prompt is empty — nothing will be attached." : "Will be attached as a system instruction.") : "Off — prompt stays saved but not attached."}
             </span>
           </div>
         </div>
