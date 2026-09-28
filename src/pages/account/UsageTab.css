@@ -6,12 +6,37 @@
   margin-top: 2rem;
 }
 
-/* Usage title: mb-2 text-xl font-semibold */
-.account-usage-title {
+/* Usage title row: title + range dropdown */
+.account-usage-head {
   margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Usage title: text-xl font-semibold */
+.account-usage-title {
   font-size: 1.25rem;
   line-height: 1.75rem;
   font-weight: 600;
+}
+
+.account-range-select {
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background-color: var(--panel);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--text);
+}
+
+.account-range-select:focus {
+  border-color: var(--accent);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
 }
 
 /* Stat grid: grid gap-4 sm:grid-cols-2 */

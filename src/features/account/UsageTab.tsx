@@ -12,20 +12,43 @@ export const UsageTab = () => {
   });
 
   const logs = usageData?.data?.items || [];
-  const todayStats = useMemo(() => {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
+
+  type TokenRange = "today" | "week" | "month" | "year" | "all";
+  const TOKEN_RANGE_OPTIONS: { value: TokenRange; label: string }[] = [
+    { value: "today", label: "Today" },
+    { value: "week", label: "Weekly" },
+    { value: "month", label: "Monthly" },
+    { value: "year", label: "Yearly" },
+    { value: "all", label: "All time" },
+  ];
+  const [tokenRange, setTokenRange] = useState<TokenRange>("today");
+  const tokenRangeLabel =
+    TOKEN_RANGE_OPTIONS.find((o) => o.value === tokenRange)?.label || "Today";
+
+  const rangeStats = useMemo(() => {
+    const now = new Date();
+    let start: Date | null = null;
+    if (tokenRange === "today") {
+      start = new Date();
+      start.setHours(0, 0, 0, 0);
+    } else if (tokenRange === "week") {
+      start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (tokenRange === "month") {
+      start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else if (tokenRange === "year") {
+      start = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+    }
     let tokens = 0;
     let requests = 0;
     const models = new Set<string>();
     logs.forEach((log) => {
-      if (new Date(log.createdAt) < start) return;
+      if (start && new Date(log.createdAt) < start) return;
       requests += 1;
       tokens += log.tokenCount || 0;
       models.add(log.model || "Unknown");
     });
     return { tokens, requests, modelsUsed: models.size };
-  }, [logs]);
+  }, [logs, tokenRange]);
 
   const PAGE_SIZE = 50;
   const [page, setPage] = useState(1);
@@ -54,23 +77,37 @@ export const UsageTab = () => {
   return (
     <div className="account-wide">
       <div>
-        <h2 className="account-usage-title">Usage Statistics (Today)</h2>
+        <div className="account-usage-head">
+          <h2 className="account-usage-title">Usage Statistics ({tokenRangeLabel})</h2>
+          <select
+            className="account-range-select"
+            value={tokenRange}
+            onChange={(event) => setTokenRange(event.target.value as TokenRange)}
+            aria-label="Select usage stats range"
+          >
+            {TOKEN_RANGE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="account-stat-grid">
           <div className="account-stat-card">
-            <div className="account-stat-label">Tokens Used (Today)</div>
+            <div className="account-stat-label">Tokens Used ({tokenRangeLabel})</div>
             <div className="account-stat-value">
-              {todayStats.tokens.toLocaleString()}
+              {rangeStats.tokens.toLocaleString()}
             </div>
           </div>
           <div className="account-stat-card">
-            <div className="account-stat-label">Requests (Today)</div>
+            <div className="account-stat-label">Requests ({tokenRangeLabel})</div>
             <div className="account-stat-value">
-              {todayStats.requests.toLocaleString()}
+              {rangeStats.requests.toLocaleString()}
             </div>
           </div>
           <div className="account-stat-card">
-            <div className="account-stat-label">Models Used (Today)</div>
-            <div className="account-stat-value">{todayStats.modelsUsed}</div>
+            <div className="account-stat-label">Models Used ({tokenRangeLabel})</div>
+            <div className="account-stat-value">{rangeStats.modelsUsed}</div>
           </div>
           <div className="account-stat-card">
              <div className="account-stat-label">Current Plan</div>

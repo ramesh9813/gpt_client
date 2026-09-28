@@ -70,6 +70,105 @@ export const useChatStreaming = () => {
 
     const ctx: StreamEventCtx = { setMessages, tempAssistantId, isCancelled };
 
+    // Shared WPS typewriter: EVERY token painted on screen — relayed SSE
+    // tokens AND browser-direct fallback tokens — flows through this pacer,
+    // so Settings → Response streaming speed applies to every model and
+    // every provider (OpenRouter, CleanAPIs, custom/unadded providers) with
+    // no instant-dump path. Declared before tryDirectFallback because the
+    // fallback runs inside the SSE loop below and must reuse it.
+    let pendingText = "";
+    let streamDone = false;
+    let rafId: number | null = null;
+    let flushTimer: ReturnType<typeof setTimeout> | null = null;
+    let resolveFlushDone: (() => void) | null = null;
+    let lastFlushAt = 0;
+
+    const resolveOnce = () => {
+      if (!resolveFlushDone) return;
+      const resolver = resolveFlushDone;
+      resolveFlushDone = null;
+      resolver();
+    };
+
+    const appendChunk = (chunk: string) => {
+      if (isCancelled()) return;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempAssistantId ? { ...m, content: m.content + chunk } : m
+        )
+      );
+    };
+
+    // Human typing — word-by-word at configurable WPS.
+    // 5 chars ≈ 1 word. User controls WPS in Settings; default
+    // 35 WPS = ~175 CPS. Live WPS is re-read each frame so the slider
+    // applies mid-stream, on any provider.
+    const FRAME_MS = 16;
+    const CHARS_PER_WORD = 5;
+
+    const flushPending = () => {
+      flushTimer = null;
+      rafId = null;
+      if (isCancelled()) {
+        pendingText = "";
+        resolveOnce();
+        return;
+      }
+      if (pendingText.length === 0) {
+        if (streamDone) resolveOnce();
+        return;
+      }
+      // Re-read live so a Settings change mid-stream takes effect instantly
+      const liveWps = clampWps(readStreamWps());
+      const liveCps = liveWps * CHARS_PER_WORD;
+      const charsPerFrame = Math.max(1, Math.round((liveCps * FRAME_MS) / 1000));
+      lastFlushAt = performance.now();
+
+      // Final remainder when stream finished: drain at WPS pace for
+      // smooth finish — same as live typing, no instant dump.
+      // Normal live pace: emit exactly charsPerFrame per frame,
+      // word-boundary when possible, newline included naturally.
+      const budget = charsPerFrame;
+      // Small remainder: flush it to avoid one-char straggler frames
+      if (pendingText.length <= budget) {
+        const chunk = pendingText;
+        pendingText = "";
+        appendChunk(chunk);
+        if (streamDone) resolveOnce();
+        else if (pendingText.length > 0) scheduleFlush();
+        return;
+      }
+      // Find natural break (space or newline) within budget for
+      // line-by-line feel without mid-word cuts
+      const spaceCut = pendingText.lastIndexOf(" ", budget);
+      const nlCut = pendingText.lastIndexOf("\n", budget);
+      const breakCut = Math.max(spaceCut, nlCut);
+      const at = breakCut > 3 ? breakCut + 1 : budget;
+      const chunk = pendingText.slice(0, at);
+      pendingText = pendingText.slice(at);
+      appendChunk(chunk);
+      scheduleFlush();
+    };
+
+    const scheduleFlush = () => {
+      if (isCancelled()) return;
+      if (rafId != null || flushTimer != null) return;
+      // Prefer RAF for silk 60fps; fallback to 16ms timer outside browser frame
+      if (typeof requestAnimationFrame === "function") {
+        rafId = requestAnimationFrame(() => {
+          rafId = null;
+          flushPending();
+        });
+      } else {
+        flushTimer = setTimeout(flushPending, FRAME_MS);
+      }
+    };
+
+    const startFlush = () => {
+      if (isCancelled()) return;
+      scheduleFlush();
+    };
+
     // Browser-direct fallback: when the SERVER relay is firewalled
     // (challenged SSE error), replay the exact prepared turn straight from
     // the browser with the user's own Settings key, then persist it via
@@ -137,6 +236,11 @@ export const useChatStreaming = () => {
         preparedAssistantId = turn.assistantMessageId;
 
         // 2. Stream straight from the browser with the user's own key.
+        // Tokens flow through the SAME WPS typewriter as relayed turns, so
+        // the Response-streaming speed applies here too (any provider,
+        // including custom ones). Drop any undisplayed relay remainder
+        // first — the fallback replays the whole turn from scratch.
+        pendingText = "";
         const startedAt = Date.now();
         const result = await streamDirectCompletion({
           baseUrl: turn.baseUrl,
@@ -148,16 +252,23 @@ export const useChatStreaming = () => {
           isCancelled,
           onToken: (delta) => {
             if (isCancelled()) return;
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === tempAssistantId
-                  ? { ...m, content: m.content + delta }
-                  : m
-              )
-            );
+            pendingText += delta;
+            startFlush();
           },
         });
         if (result.cancelled || isCancelled()) return true;
+
+        // Drain at WPS pace before persisting, same as the relayed finish.
+        streamDone = true;
+        if (pendingText.length > 0) {
+          startFlush();
+        }
+        await new Promise<void>((resolve) => {
+          resolveFlushDone = resolve;
+          if (pendingText.length === 0 && !flushTimer && rafId == null) {
+            resolveOnce();
+          }
+        });
 
         // 3. Persist onto the prepared row (server ownership-checks it).
         await apiFetch("/api/chat/direct-finish", {
@@ -301,100 +412,6 @@ export const useChatStreaming = () => {
       const decoder = new TextDecoder();
       let buffer = "";
       let currentEvent = "message";
-      let pendingText = "";
-      let streamDone = false;
-      let rafId: number | null = null;
-      let flushTimer: ReturnType<typeof setTimeout> | null = null;
-      let resolveFlushDone: (() => void) | null = null;
-      let lastFlushAt = 0;
-
-      const resolveOnce = () => {
-        if (!resolveFlushDone) return;
-        const resolver = resolveFlushDone;
-        resolveFlushDone = null;
-        resolver();
-      };
-
-      const appendChunk = (chunk: string) => {
-        if (isCancelled()) return;
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === tempAssistantId ? { ...m, content: m.content + chunk } : m
-          )
-        );
-      };
-
-      // Human typing — word-by-word at configurable WPS.
-      // Applies to EVERY provider (OpenRouter, CleanAPIs, all BYOK) because
-      // the server normalises every provider to the same `token` SSE
-      // contract. 5 chars ≈ 1 word. User controls WPS in Settings; default
-      // 35 WPS = ~175 CPS. Live WPS is re-read each frame so the slider
-      // applies mid-stream.
-      const FRAME_MS = 16;
-      const CHARS_PER_WORD = 5;
-
-      const flushPending = () => {
-        flushTimer = null;
-        rafId = null;
-        if (isCancelled()) {
-          pendingText = "";
-          resolveOnce();
-          return;
-        }
-        if (pendingText.length === 0) {
-          if (streamDone) resolveOnce();
-          return;
-        }
-        // Re-read live so a Settings change mid-stream takes effect instantly
-        const liveWps = clampWps(readStreamWps());
-        const liveCps = liveWps * CHARS_PER_WORD;
-        const charsPerFrame = Math.max(1, Math.round((liveCps * FRAME_MS) / 1000));
-        lastFlushAt = performance.now();
-
-        // Final remainder when stream finished: drain at WPS pace for
-        // smooth finish — same as live typing, no instant dump.
-        // Normal live pace: emit exactly charsPerFrame per frame,
-        // word-boundary when possible, newline included naturally.
-        const budget = charsPerFrame;
-        // Small remainder: flush it to avoid one-char straggler frames
-        if (pendingText.length <= budget) {
-          const chunk = pendingText;
-          pendingText = "";
-          appendChunk(chunk);
-          if (streamDone) resolveOnce();
-          else if (pendingText.length > 0) scheduleFlush();
-          return;
-        }
-        // Find natural break (space or newline) within budget for
-        // line-by-line feel without mid-word cuts
-        const spaceCut = pendingText.lastIndexOf(" ", budget);
-        const nlCut = pendingText.lastIndexOf("\n", budget);
-        const breakCut = Math.max(spaceCut, nlCut);
-        const at = breakCut > 3 ? breakCut + 1 : budget;
-        const chunk = pendingText.slice(0, at);
-        pendingText = pendingText.slice(at);
-        appendChunk(chunk);
-        scheduleFlush();
-      };
-
-      const scheduleFlush = () => {
-        if (isCancelled()) return;
-        if (rafId != null || flushTimer != null) return;
-        // Prefer RAF for silk 60fps; fallback to 16ms timer outside browser frame
-        if (typeof requestAnimationFrame === "function") {
-          rafId = requestAnimationFrame(() => {
-            rafId = null;
-            flushPending();
-          });
-        } else {
-          flushTimer = setTimeout(flushPending, FRAME_MS);
-        }
-      };
-
-      const startFlush = () => {
-        if (isCancelled()) return;
-        scheduleFlush();
-      };
 
       while (true) {
         let readResult: ReadableStreamReadResult<Uint8Array>;
