@@ -63,7 +63,7 @@ export const formatTokens = (value: number) => {
 type RangeKey = "day" | "week" | "year";
 
 const RANGE_OPTIONS: { value: RangeKey; label: string }[] = [
-  { value: "day", label: "Today (hourly)" },
+  { value: "day", label: "Today" },
   { value: "week", label: "Last 7 days" },
   { value: "year", label: "Last 12 months" },
 ];
@@ -99,12 +99,12 @@ export const UsageChart = ({ logs }: Props) => {
 
     if (range === "day") {
       rangeStart.setHours(0, 0, 0, 0);
-      for (let i = 0; i < 24; i++) {
-        buckets.push({
-          key: pad2(i),
-          label: String(i),
-        });
-      }
+      // Single stacked bar for today: all models pile into one thick bar
+      // so the user can see each model's share at a glance.
+      buckets.push({
+        key: "today",
+        label: "Today",
+      });
     } else if (range === "week") {
       rangeStart.setHours(0, 0, 0, 0);
       rangeStart.setDate(rangeStart.getDate() - 6);
@@ -139,7 +139,7 @@ export const UsageChart = ({ logs }: Props) => {
         return;
       }
       const key =
-        range === "day" ? pad2(d.getHours()) : range === "week" ? toDateKey(d) : toMonthKey(d);
+        range === "day" ? "today" : range === "week" ? toDateKey(d) : toMonthKey(d);
       if (!groups[key]) {
         return;
       }
@@ -168,12 +168,14 @@ export const UsageChart = ({ logs }: Props) => {
       grandTotal: grand,
       rangeLabel:
         range === "day"
-          ? "Today (hourly)"
+          ? "Today"
           : range === "week"
           ? "Last 7 days"
           : "Last 12 months",
     };
   }, [logs, range]);
+
+  const isSingleStack = range === "day";
 
   return (
     <div className="usage-chart">
@@ -209,7 +211,11 @@ export const UsageChart = ({ logs }: Props) => {
           <div className="usage-chart-empty">No usage in this range yet.</div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} barCategoryGap="28%" barGap={3}>
+            <BarChart
+              data={chartData}
+              barCategoryGap={isSingleStack ? "30%" : "28%"}
+              barGap={isSingleStack ? 0 : 3}
+            >
               <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} />
               <XAxis
                 dataKey="label"
@@ -245,8 +251,16 @@ export const UsageChart = ({ logs }: Props) => {
                   dataKey={model}
                   name={shortModelName(model)}
                   fill={getModelColor(index)}
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={22}
+                  stackId={isSingleStack ? "todayStack" : undefined}
+                  radius={
+                    isSingleStack
+                      ? index === models.length - 1
+                        ? [8, 8, 0, 0]
+                        : [0, 0, 0, 0]
+                      : [4, 4, 0, 0]
+                  }
+                  maxBarSize={isSingleStack ? 72 : 22}
+                  barSize={isSingleStack ? 56 : undefined}
                 />
               ))}
             </BarChart>
