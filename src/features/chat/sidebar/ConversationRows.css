@@ -319,3 +319,17 @@
 }
 .conv-tuning-dot--active { background: var(--accent); }
 .conv-tuning-dot--inactive { background: var(--muted); opacity: 0.9; }
+
+.conv-side-dropdown-item--tuning {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.conv-side-dropdown-item--tuning .conv-side-dropdown-item-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

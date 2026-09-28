@@ -45,18 +45,6 @@ export function ConversationRow({
       data-active={active ? "true" : "false"}
     >
       <span className="conv-side-conv-edge" aria-hidden="true" />
-      {(() => {
-        const hasPrompt = typeof conversation.customPrompt === "string" && conversation.customPrompt.trim().length > 0;
-        if (!hasPrompt) return null;
-        const enabled = conversation.customPromptEnabled === true;
-        return (
-          <span
-            className={`conv-tuning-dot ${enabled ? "conv-tuning-dot--active" : "conv-tuning-dot--inactive"}`}
-            title={enabled ? "Custom prompt active" : "Custom prompt saved (off)"}
-            aria-label={enabled ? "Custom prompt active" : "Custom prompt off"}
-          />
-        );
-      })()}
       <button
         className="conv-side-conv-title-btn"
         onClick={() => onSelect(conversation.id)}
@@ -97,10 +85,17 @@ export function ConversationRow({
                 {conversation.pinned ? "Unpin" : "Pin to top"}
               </button>
               <button
-                className="conv-side-dropdown-item"
+                className="conv-side-dropdown-item conv-side-dropdown-item--tuning"
                 onClick={() => onTuning?.(conversation)}
               >
-                Custom Prompt
+                <span className="conv-side-dropdown-item-label">Custom Prompt</span>
+                {typeof conversation.customPrompt === "string" && conversation.customPrompt.trim().length > 0 ? (
+                  <span
+                    className={`conv-tuning-dot ${conversation.customPromptEnabled === true ? "conv-tuning-dot--active" : "conv-tuning-dot--inactive"}`}
+                    title={conversation.customPromptEnabled === true ? "Custom prompt active" : "Custom prompt saved (off)"}
+                    aria-label={conversation.customPromptEnabled === true ? "Custom prompt active" : "Custom prompt off"}
+                  />
+                ) : null}
               </button>
               <button
                 className="conv-side-dropdown-item conv-side-dropdown-item--danger"
