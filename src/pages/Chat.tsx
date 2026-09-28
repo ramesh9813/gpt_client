@@ -163,7 +163,7 @@ const Chat = () => {
   const newChatMutation = useNewChat({ cancelRef, setStreaming, setActiveStreamId, setMessages });
 
   const { handleHeaderToggle, headerHidden, pinHeader, handleScrollDirection } = useChatHeader({
-    isMobile, sidebarState, toggleDrawer, hideSidebar, showSidebar,
+    isMobile, sidebarState, toggleDrawer, hideSidebar, showSidebar, streaming,
   });
 
   const handleStopStreaming = () => {
@@ -186,13 +186,15 @@ const Chat = () => {
         onOpenDrawer={openDrawer}
       />
       <main className="chat-main">
-        {/* Floating action pill — compact, overlays content, wraps icons only */}
+        {/* Floating action pill — hidden while AI generates; reappears only
+            on a deliberate scroll-up (user fought auto-follow to read above). */}
         <header
           className={
             headerHidden && !pinHeader
               ? "chat-header chat-header--hidden"
               : "chat-header"
           }
+          aria-hidden={headerHidden && !pinHeader ? true : undefined}
         >
           <div className="chat-header-pill" role="toolbar" aria-label="Chat actions">
             <SidebarToggle
