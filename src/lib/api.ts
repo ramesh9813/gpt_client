@@ -130,6 +130,11 @@ const refreshSession = async () => {
   return refreshPromise;
 };
 
+// Exported for flows that don't go through apiFetch (chat SSE streaming
+// uses a raw fetch): lets them refresh the session and retry once instead
+// of surfacing "Missing access token" after idle expiry.
+export const refreshSessionNow = () => refreshSession();
+
 const safeJsonParse = (value: string) => {
   try {
     return JSON.parse(value);

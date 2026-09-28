@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Suspense, lazy, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { apiFetch, ApiResponse } from "./lib/api";
+import { apiFetch, ApiResponse, getApiBase } from "./lib/api";
 import { type OpenRouterModel } from "./features/chat/hooks/modelCache";
 import { getCachedMeForShell, useMe, useSettings } from "./lib/hooks";
 import { applyTheme, clampAppFontSize, clampIconScale } from "./lib/theme";
@@ -108,6 +108,40 @@ const App = () => {
       applyBrand(settings.brand);
     }
   }, [data]);
+
+  // Coming back after being away: wake the hibernated free-tier backend and
+  // silently refresh the session BEFORE the next prompt, so the first
+  // message back neither waits on a cold boot nor fails with
+  // "Missing access token". Fire-and-forget, auth pages excluded.
+  useEffect(() => {
+    let lastActive = Date.now();
+    const WAKE_AFTER_MS = 120_000;
+    const poke = () => {
+      if (document.visibilityState !== "visible") {
+        lastActive = Date.now();
+        return;
+      }
+      const away = Date.now() - lastActive;
+      lastActive = Date.now();
+      if (away < WAKE_AFTER_MS) return;
+      if (["/login", "/signup"].includes(window.location.pathname)) return;
+      try {
+        void fetch(`${getApiBase()}/api/health`, {
+          credentials: "include",
+        }).catch(() => {});
+      } catch {
+        // ignore — the real request will surface any outage
+      }
+      // apiFetch refreshes the session on 401 automatically.
+      void apiFetch("/api/me").catch(() => {});
+    };
+    document.addEventListener("visibilitychange", poke);
+    window.addEventListener("focus", poke);
+    return () => {
+      document.removeEventListener("visibilitychange", poke);
+      window.removeEventListener("focus", poke);
+    };
+  }, []);
 
   return (
     <Suspense fallback={<RouteFallback />}>

@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { apiFetch, getCsrfToken, type ApiResponse } from "../../../lib/api";
+import { apiFetch, getCsrfToken, getInMemoryAccessToken, refreshSessionNow, type ApiResponse } from "../../../lib/api";
 import {
   getActiveByok,
   getByokHeaders,
@@ -364,32 +364,52 @@ export const useChatStreaming = () => {
       // the OpenRouter body field.
       const byokHeaders = getByokHeaders(selectedModel);
       const byokActive = Object.keys(byokHeaders).length > 0;
-      const response = await fetch(`${apiBase}/api/chat/stream`, {
-        method: "POST",
-        headers: {
+      const streamBody = JSON.stringify({
+        conversationId,
+        userMessage,
+        ...(images && images.length > 0 ? { images } : {}),
+        ...(files && files.length > 0 ? { files } : {}),
+        existingUserMessageId,
+        model:
+          !byokActive && selectedModel && selectedModel !== "default"
+            ? selectedModel
+            : undefined,
+        ...(research ? { research: true } : {}),
+        ...(artifact ? { artifact: true } : {}),
+        // Always explicit: an explicit OFF must beat the default-ON.
+        ...(webSearch === undefined ? {} : { webSearch }),
+        ...(think ? { think: true } : {}),
+      });
+      // Auth rides the httpOnly cookie, plus the in-memory bearer as a
+      // fallback (the cookie is gone after 15 min idle while JS memory
+      // survives — without this the server sees "Missing access token").
+      const buildStreamHeaders = (): Record<string, string> => {
+        const headers: Record<string, string> = {
           "Content-Type": "application/json",
           "x-csrf-token": getCsrfToken(),
           ...byokHeaders,
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          conversationId,
-          userMessage,
-          ...(images && images.length > 0 ? { images } : {}),
-          ...(files && files.length > 0 ? { files } : {}),
-          existingUserMessageId,
-          model:
-            !byokActive && selectedModel && selectedModel !== "default"
-              ? selectedModel
-              : undefined,
-          ...(research ? { research: true } : {}),
-          ...(artifact ? { artifact: true } : {}),
-          // Always explicit: an explicit OFF must beat the default-ON.
-          ...(webSearch === undefined ? {} : { webSearch }),
-          ...(think ? { think: true } : {}),
-        }),
-        signal: controller.signal,
-      });
+        };
+        const bearer = getInMemoryAccessToken();
+        if (bearer) headers["Authorization"] = `Bearer ${bearer}`;
+        return headers;
+      };
+      const postStream = () =>
+        fetch(`${apiBase}/api/chat/stream`, {
+          method: "POST",
+          headers: buildStreamHeaders(),
+          credentials: "include",
+          body: streamBody,
+          signal: controller.signal,
+        });
+      let response = await postStream();
+      if (response.status === 401 && !isCancelled()) {
+        // Session expired while away — refresh silently and retry once, so
+        // returning users never see "Missing/Invalid access token".
+        const refreshed = await refreshSessionNow().catch(() => false);
+        if (refreshed && !isCancelled()) {
+          response = await postStream();
+        }
+      }
 
       if (!response.ok || !response.body) {
         const text = await response.text();
