@@ -15,6 +15,7 @@ import { SidebarRail } from "./sidebar/SidebarRail";
 import { AccountFooter } from "./sidebar/AccountFooter";
 import { SidebarHeader } from "./sidebar/SidebarHeader";
 import { RenameModal } from "./sidebar/RenameModal";
+import { TuningModal } from "./sidebar/TuningModal";
 
 export type { Conversation, Folder } from "./sidebar/types";
 
@@ -46,6 +47,7 @@ const ConversationSidebar = ({
   const [renameError, setRenameError] = useState<string | null>(null);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
+  const [tuningId, setTuningId] = useState<string | null>(null);
 
   const asideRef = useRef<HTMLElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -139,6 +141,10 @@ const ConversationSidebar = ({
         }}
         onPin={(c) => {
           pinMutation.mutate({ id: c.id, pinned: !c.pinned });
+          setMenuOpen(null);
+        }}
+        onTuning={(c) => {
+          setTuningId(c.id);
           setMenuOpen(null);
         }}
         folders={folders}
@@ -280,6 +286,14 @@ const ConversationSidebar = ({
               setRenameId(null);
             }
           }}
+        />
+        <TuningModal
+          conversationId={tuningId}
+          conversationTitle={
+            tuningId ? ([...uncategorized, ...Object.values(groupedConversations).flat()].find((c) => c.id === tuningId)?.title ?? undefined) : undefined
+          }
+          open={!!tuningId}
+          onClose={() => setTuningId(null)}
         />
       </aside>
     </>

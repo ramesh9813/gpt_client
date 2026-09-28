@@ -13,6 +13,7 @@ export interface ConversationRowProps {
   onRename: (conversation: Conversation) => void;
   onDelete: (id: string) => void;
   onPin: (conversation: Conversation) => void;
+  onTuning?: (conversation: Conversation) => void;
   folders: Folder[];
   onMove: (conversationId: string, folderId: string | null) => void;
 }
@@ -27,6 +28,7 @@ export function ConversationRow({
   onRename,
   onDelete,
   onPin,
+  onTuning,
   folders,
   onMove,
 }: ConversationRowProps) {
@@ -81,6 +83,12 @@ export function ConversationRow({
                 onClick={() => onPin(conversation)}
               >
                 {conversation.pinned ? "Unpin" : "Pin to top"}
+              </button>
+              <button
+                className="conv-side-dropdown-item"
+                onClick={() => onTuning?.(conversation)}
+              >
+                Custom Prompt
               </button>
               <button
                 className="conv-side-dropdown-item conv-side-dropdown-item--danger"
