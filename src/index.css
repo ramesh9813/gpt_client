@@ -292,6 +292,29 @@ pre code {
   padding-bottom: calc(max(env(safe-area-inset-bottom, 0px), 6px) + var(--kb-height, 0px) + env(keyboard-inset-height, 0px)) !important;
 }
 
+/* KaTeX math rendering — overflow + dark mode */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5em 0;
+  -webkit-overflow-scrolling: touch;
+}
+.katex-display > .katex {
+  white-space: nowrap;
+}
+.markdown .katex {
+  font-size: 1.05em;
+}
+/* KaTeX inherits theme color; ensure not forced black */
+.katex .mord,
+.katex .mop,
+.katex .mrel,
+.katex .mopen,
+.katex .mclose,
+.katex .mpunct {
+  color: inherit;
+}
+
 /* DeepSeek-style history sidebar: smooth width/transform, a11y focus, reduced-motion */
 #conversation-history {
   min-width: 0;

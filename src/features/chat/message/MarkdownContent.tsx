@@ -1,5 +1,9 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
+import { useMemo } from "react";
 import { CodeBlockWithRun } from "./CodeBlockWithRun";
 
 const ALLOWED_HREF = /^(https?:\/\/|mailto:|#|\/)/i;
@@ -19,10 +23,20 @@ const sanitizeImgSrc = (src?: string): string | undefined => {
   return undefined;
 };
 
+/** Normalize common LLM variants: \( \) and \[ \] → $ / $$ for remark-math. */
+const normalizeMath = (s: string) =>
+  s
+    .replace(/\\\(/g, "$")
+    .replace(/\\\)/g, "$")
+    .replace(/\\\[/g, "$$")
+    .replace(/\\\]/g, "$$");
+
 export const MarkdownContent = ({ content }: { content: string }) => {
+  const normalized = useMemo(() => normalizeMath(content), [content]);
   return (
     <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
+      remarkPlugins={[remarkGfm, remarkMath]}
+      rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]] as any}
       components={{
         // Citations (incl. web-search sources) open in a new tab.
         a(props) {
@@ -54,6 +68,14 @@ export const MarkdownContent = ({ content }: { content: string }) => {
         },
         code(props) {
           const { children, className, node, ...rest } = props;
+          // KaTeX math is already rendered by rehype-katex — don't turn it into a code block.
+          if (className && /language-math|math-(inline|display)/.test(className)) {
+            return (
+              <code {...rest} className={className}>
+                {children}
+              </code>
+            );
+          }
           const match = /language-(\w+)/.exec(className || "");
           return match ? (
             <CodeBlockWithRun
@@ -68,7 +90,7 @@ export const MarkdownContent = ({ content }: { content: string }) => {
         }
       }}
     >
-      {content}
+      {normalized}
     </ReactMarkdown>
   );
 };
