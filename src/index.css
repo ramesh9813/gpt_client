@@ -292,11 +292,13 @@ pre code {
   padding-bottom: calc(max(env(safe-area-inset-bottom, 0px), 6px) + var(--kb-height, 0px) + env(keyboard-inset-height, 0px)) !important;
 }
 
-/* KaTeX math rendering — overflow + dark mode */
+/* KaTeX math rendering — overflow + dark mode + no overlap */
 .katex-display {
+  display: block;
   overflow-x: auto;
   overflow-y: hidden;
   padding: 0.5em 0;
+  margin: 0.6em 0 !important;
   -webkit-overflow-scrolling: touch;
 }
 .katex-display > .katex {
@@ -304,6 +306,23 @@ pre code {
 }
 .markdown .katex {
   font-size: 1.05em;
+}
+.markdown .katex-display {
+  max-width: 100%;
+}
+/* Inline KaTeX must wrap cleanly — never overlap adjacent text */
+.markdown .katex:not(.katex-display .katex) {
+  word-break: break-word;
+}
+.markdown p .katex-display {
+  display: block;
+}
+/* KaTeX error fallback (throwOnError:false) should not bleed */
+.katex-error {
+  color: var(--text) !important;
+  background: transparent !important;
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 /* KaTeX inherits theme color; ensure not forced black */
 .katex .mord,

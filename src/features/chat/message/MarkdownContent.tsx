@@ -23,19 +23,42 @@ const sanitizeImgSrc = (src?: string): string | undefined => {
   return undefined;
 };
 
-/** Normalize common LLM variants: \( \) and \[ \] → $ / $$ for remark-math. */
-const normalizeMath = (s: string) =>
-  s
+/**
+ * Normalize LLM math variants so remark-math can parse them:
+ * - \( \) → $ $  and  \[ \] → $$ $$
+ * - Multiline single-dollar blocks (LLM often writes
+ *   "$ a \\frac... \n \\left[...\\right] $" on two lines) are promoted
+ *   to $$ display $$ so KaTeX renders as a centered block instead of
+ *   an inline run that overflows/overlaps adjacent text.
+ */
+const normalizeMath = (s: string): string => {
+  let out = s
     .replace(/\\\(/g, "$")
     .replace(/\\\)/g, "$")
     .replace(/\\\[/g, "$$")
     .replace(/\\\]/g, "$$");
 
+  // Promote inline $...$ that spans a newline and contains block-ish
+  // LaTeX (frac, hbar, nabla, left/right, etc.) to display $$...$$.
+  // Keeps short inline "$E=mc^2$" untouched.
+  out = out.replace(/(?<!\$)\$(?!\$)([\s\S]*?)(?<!\$)\$(?!\$)/g, (full, inner: string) => {
+    if (inner.includes("\n") && /\\(frac|hbar|Psi|psi|nabla|mathbf|left|right|partial|sum|int|sqrt)/.test(inner)) {
+      const trimmed = inner.trim();
+      // Avoid turning a genuinely short inline that was line-wrapped by
+      // the streamer into display — require at least one block command.
+      if (trimmed.length > 16) return `$$${inner}$$`;
+    }
+    return full;
+  });
+
+  return out;
+};
+
 export const MarkdownContent = ({ content }: { content: string }) => {
   const normalized = useMemo(() => normalizeMath(content), [content]);
   return (
     <ReactMarkdown
-      remarkPlugins={[remarkGfm, remarkMath]}
+      remarkPlugins={[remarkMath, remarkGfm]}
       rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]] as any}
       components={{
         // Citations (incl. web-search sources) open in a new tab.
