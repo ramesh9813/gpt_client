@@ -13,7 +13,8 @@ export interface TuningModalProps {
 }
 
 export const TuningModal = ({ conversationId, conversationTitle, open, onClose, onSaved }: TuningModalProps) => {
-  const [enabled, setEnabled] = useState(false);
+  // Default ON: a fresh custom prompt activates on Save without an extra toggle.
+  const [enabled, setEnabled] = useState(true);
   const [prompt, setPrompt] = useState("");
   const [initialCfg, setInitialCfg] = useState<TuningConfig | null>(null);
   const [loading, setLoading] = useState(false);
@@ -30,7 +31,7 @@ export const TuningModal = ({ conversationId, conversationTitle, open, onClose, 
       setPrompt(cached.customPrompt ?? "");
       setInitialCfg(cached);
     } else {
-      setEnabled(false);
+      setEnabled(true);
       setPrompt("");
       setInitialCfg(null);
     }

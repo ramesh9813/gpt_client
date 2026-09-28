@@ -37,7 +37,8 @@ export function readCachedTuning(conversationId: string): TuningConfig | null {
   if (!cached || typeof cached !== "object") return null;
   return {
     customPrompt: typeof cached.customPrompt === "string" ? cached.customPrompt : cached.customPrompt == null ? null : String(cached.customPrompt),
-    customPromptEnabled: cached.customPromptEnabled === true,
+    // Default ON: only an explicit false stays off.
+    customPromptEnabled: cached.customPromptEnabled !== false,
   };
 }
 
@@ -61,7 +62,7 @@ export async function fetchTuning(conversationId: string): Promise<TuningConfig>
   const t = res.data?.tuning;
   const cfg: TuningConfig = {
     customPrompt: t?.customPrompt ?? null,
-    customPromptEnabled: t?.customPromptEnabled === true,
+    customPromptEnabled: t?.customPromptEnabled !== false,
   };
   writeCachedTuning(conversationId, cfg);
   return cfg;
