@@ -192,7 +192,7 @@ export const AssistantMessage = memo(
         ) : null}
         <MessageImages images={message.images} />
         <VideoBlock videos={message.videos} />
-        {message.status === "STREAMING" && !displayContent && !message.quiz ? (
+        {message.status === "STREAMING" && !displayContent && !message.quiz && !showGenStatus ? (
           <div className="msg-typing">
             <div className="msg-typing-dot msg-typing-dot--1"></div>
             <div className="msg-typing-dot msg-typing-dot--2"></div>
@@ -322,7 +322,7 @@ export const AssistantMessage = memo(
                   <i className="bi bi-stop-circle msg-action-icon"></i>
                 </button>
               ) : null}
-              {message.content && (
+              {message.content && !showGenStatus && (
                 <div className="msg-generating" title="Generating...">
                   <div className="msg-generating-dot msg-generating-dot--1"></div>
                   <div className="msg-generating-dot msg-generating-dot--2"></div>

@@ -63,10 +63,12 @@ export const QuizCard = ({
             sel !== null && sel !== undefined;
           const questionLocked = isDisabled || answered || isRevealed;
 
+          // Model may already prefix e.g. "1. " — strip it so UI index is single source.
+          const cleanQuestion = q.question.replace(/^\s*\d+[\.\)\-]?\s*/, "");
           return (
             <li key={qi} className="quiz-card-q">
               <div className="quiz-card-q-title">
-                {qi + 1}. {q.question}
+                {qi + 1}. {cleanQuestion}
               </div>
               <div
                 className="quiz-card-opts"

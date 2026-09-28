@@ -5,6 +5,8 @@ export type Conversation = {
   createdAt: string;
   updatedAt: string;
   pinned?: boolean;
+  customPrompt?: string | null;
+  customPromptEnabled?: boolean;
 };
 
 export type Folder = {

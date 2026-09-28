@@ -45,6 +45,18 @@ export function ConversationRow({
       data-active={active ? "true" : "false"}
     >
       <span className="conv-side-conv-edge" aria-hidden="true" />
+      {(() => {
+        const hasPrompt = typeof conversation.customPrompt === "string" && conversation.customPrompt.trim().length > 0;
+        if (!hasPrompt) return null;
+        const enabled = conversation.customPromptEnabled === true;
+        return (
+          <span
+            className={`conv-tuning-dot ${enabled ? "conv-tuning-dot--active" : "conv-tuning-dot--inactive"}`}
+            title={enabled ? "Custom prompt active" : "Custom prompt saved (off)"}
+            aria-label={enabled ? "Custom prompt active" : "Custom prompt off"}
+          />
+        );
+      })()}
       <button
         className="conv-side-conv-title-btn"
         onClick={() => onSelect(conversation.id)}

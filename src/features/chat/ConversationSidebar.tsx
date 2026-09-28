@@ -1,6 +1,7 @@
 import "./ConversationSidebar.css";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Input } from "../../components/Input";
 import { useMe } from "../../lib/hooks";
 import type { SidebarState } from "./sidebarState";
@@ -16,6 +17,7 @@ import { AccountFooter } from "./sidebar/AccountFooter";
 import { SidebarHeader } from "./sidebar/SidebarHeader";
 import { RenameModal } from "./sidebar/RenameModal";
 import { TuningModal } from "./sidebar/TuningModal";
+import { readCachedConversations, writeCachedConversations } from "./chatCache";
 
 export type { Conversation, Folder } from "./sidebar/types";
 
@@ -54,6 +56,7 @@ const ConversationSidebar = ({
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
   const params = useParams();
+  const queryClient = useQueryClient();
   const { data: meData } = useMe();
 
   const user = meData?.data?.user;
@@ -294,6 +297,32 @@ const ConversationSidebar = ({
           }
           open={!!tuningId}
           onClose={() => setTuningId(null)}
+          onSaved={(cfg) => {
+            if (!tuningId) return;
+            // Patch conversation cache so the tuning dot appears instantly.
+            const patch = (old: unknown) => {
+              const o = old as { data?: { items?: Conversation[] } } | undefined;
+              if (!o?.data?.items) return old;
+              return { ...(o as object), data: { ...(o.data as object), items: (o.data.items as Conversation[]).map((c) => c.id === tuningId ? { ...c, customPrompt: cfg.customPrompt, customPromptEnabled: cfg.customPromptEnabled } : c) } };
+            };
+            const k1 = queryClient.getQueryData(["conversations"]) as { data?: { items?: Conversation[] } } | undefined;
+            const k2 = queryClient.getQueryData(["conversations", ""]) as { data?: { items?: Conversation[] } } | undefined;
+            queryClient.setQueryData(["conversations"], patch(k1));
+            queryClient.setQueryData(["conversations", ""], patch(k2));
+            // Also persist for instant paint on reload.
+            const combined = (() => {
+              const a = (k1?.data?.items ?? []);
+              const b = (k2?.data?.items ?? []);
+              const map = new Map<string, Conversation>();
+              [...a, ...b].forEach((c) => map.set(c.id, c));
+              return [...map.values()];
+            })();
+            const patched = combined.map((c) => c.id === tuningId ? { ...c, customPrompt: cfg.customPrompt, customPromptEnabled: cfg.customPromptEnabled } : c);
+            if (patched.length > 0) writeCachedConversations(patched);
+            // Fallback: also write raw cached list directly
+            const raw = readCachedConversations();
+            if (raw) writeCachedConversations(raw.map((c) => c.id === tuningId ? { ...c, customPrompt: cfg.customPrompt, customPromptEnabled: cfg.customPromptEnabled } as Conversation : c));
+          }}
         />
       </aside>
     </>

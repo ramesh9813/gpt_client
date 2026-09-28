@@ -117,7 +117,7 @@ export const TuningModal = ({ conversationId, conversationTitle, open, onClose, 
             className="tuning-textarea"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="e.g., Keep whole chat in English, respond in bullet points, provide short explanations without fluff."
+            placeholder=""
             rows={5}
             maxLength={TUNING_MAX_LENGTH}
             aria-describedby="tuning-counter tuning-hint"
