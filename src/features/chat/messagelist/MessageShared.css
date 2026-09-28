@@ -45,13 +45,17 @@
   font-size: 0.75rem;
 }
 
-/* images */
+/* images — user-sent and AI-generated share this renderer */
 .msg-images {
   margin-bottom: 0.5rem;
   display: flex;
   min-width: 0;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+.msg-images--single {
+  flex-wrap: nowrap;
+  width: 100%;
 }
 .msg-image {
   max-height: 12rem;
@@ -62,6 +66,90 @@
   object-fit: cover;
 }
 [data-theme="dark"] .msg-image { border-color: rgb(255 255 255 / 0.1); }
+/* Single image: fill the available row width (never more than one per row anyway) */
+.msg-image--single {
+  width: 100%;
+  max-height: none;
+  aspect-ratio: auto;
+  object-fit: contain;
+}
+/* Expand affordance: subtle corner button over the image */
+.msg-image-wrap--expandable .msg-image-expand,
+.msg-image-wrap--single .msg-image-expand {
+  position: absolute;
+  right: 0.4rem;
+  bottom: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.75rem;
+  width: 1.75rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(255 255 255 / 0.35);
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+  font-size: 0.8rem;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.msg-image-wrap--single .msg-image-expand {
+  height: 1.9rem;
+  width: 1.9rem;
+}
+.msg-image-expand:hover { background: rgb(0 0 0 / 0.72); }
+.msg-image-expand:active { transform: scale(0.96); }
+
+/* AI generated image: render full available width in its row */
+.msg-assistant .msg-images--single {
+  width: 100%;
+}
+.msg-assistant .msg-image--single {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Full-page lightbox */
+.msg-image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgb(0 0 0 / 0.92);
+  cursor: zoom-out;
+}
+.msg-image-lightbox-img {
+  max-width: min(96vw, 1100px);
+  max-height: 92dvh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 0.75rem;
+  box-shadow: 0 16px 48px rgb(0 0 0 / 0.5);
+  cursor: default;
+}
+.msg-image-lightbox-close {
+  position: fixed;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.25rem;
+  width: 2.25rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(255 255 255 / 0.25);
+  background: rgb(255 255 255 / 0.12);
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.msg-image-lightbox-close:hover { background: rgb(255 255 255 / 0.18); }
 
 /* Editable images in message edit mode: corner cancel overlay per image.
    Tapping X drops it from the edit draft — it is not sent on Save. */

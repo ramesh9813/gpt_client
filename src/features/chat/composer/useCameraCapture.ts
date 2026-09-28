@@ -40,13 +40,14 @@ export const useCameraCapture = ({ onFiles }: CameraCaptureOptions) => {
             throw new Error("unsupported");
           }
           const stream = await navigator.mediaDevices.getUserMedia({
-            // Request a high-resolution stream: browsers default to a low
-            // capture size (often 640x480) when no resolution is asked for,
-            // which caps photo quality no matter what the encoder does.
+            // Request the highest practical resolution: most phone backs do
+            // 3840x2160+; without an explicit ideal browsers fall back to
+            // ~640x480 which caps quality no matter what the encoder does.
+            // We ask for 4K ideal and let the device pick the closest it can.
             video: {
               facingMode,
-              width: { ideal: 1920 },
-              height: { ideal: 1080 },
+              width: { ideal: 3840 },
+              height: { ideal: 2160 },
             },
             audio: false,
           });
@@ -122,13 +123,27 @@ export const useCameraCapture = ({ onFiles }: CameraCaptureOptions) => {
     const handleCapturePhoto = () => {
       const video = videoRef.current;
       if (!video || video.videoWidth === 0) return;
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+      const rect = video.getBoundingClientRect();
+      const dispW = rect.width || vw;
+      const dispH = rect.height || vh;
+      // Video is rendered with object-fit: cover in a small viewfinder. The
+      // user only sees the center-cropped window (dispW x dispH scaled with
+      // cover). Capturing the full sensor frame would include extra content
+      // outside the viewfinder — so crop to exactly what the user previewed.
+      const coverScale = Math.max(dispW / vw, dispH / vh);
+      const visW = dispW / coverScale;
+      const visH = dispH / coverScale;
+      const sx = Math.max(0, (vw - visW) / 2);
+      const sy = Math.max(0, (vh - visH) / 2);
+      const sw = Math.min(vw - sx, visW);
+      const sh = Math.min(vh - sy, visH);
       const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      canvas.width = Math.max(1, Math.round(sw));
+      canvas.height = Math.max(1, Math.round(sh));
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
-      // Bake the preview brightness into the file (CSS filters don't
-      // affect drawImage, so the canvas filter does it explicitly).
       try {
         ctx.filter = `brightness(${brightnessRef.current})`;
         ctx.imageSmoothingEnabled = true;
@@ -136,7 +151,7 @@ export const useCameraCapture = ({ onFiles }: CameraCaptureOptions) => {
       } catch {
         // older canvas implementations ignore filter — capture unfiltered
       }
-      ctx.drawImage(video, 0, 0);
+      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
       canvas.toBlob(
         (blob) => {
           if (!blob) return;
@@ -148,7 +163,7 @@ export const useCameraCapture = ({ onFiles }: CameraCaptureOptions) => {
           void onFilesRef.current(dt.files);
         },
         "image/jpeg",
-        0.95
+        1.0
       );
     };
 

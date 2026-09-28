@@ -4,8 +4,8 @@
  * Returns a JPEG dataURL capped at `maxDim` (long edge) with `quality`.
  */
 
-export const MAX_IMAGE_DIM = 1920;
-export const IMAGE_QUALITY = 0.85;
+export const MAX_IMAGE_DIM = 2560;
+export const IMAGE_QUALITY = 0.92;
 export const MAX_IMAGES_PER_MESSAGE = 3;
 
 export function isImageFile(file: File): boolean {
