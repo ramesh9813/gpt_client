@@ -14,5 +14,7 @@ export type Folder = {
   name: string;
   createdAt: string;
   updatedAt: string;
+  customPrompt?: string | null;
+  customPromptEnabled?: boolean;
   _count?: { conversations: number };
 };

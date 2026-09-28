@@ -207,7 +207,8 @@
   white-space: nowrap;
 }
 
-/* Count badge follows the selected brand style color (same treatment as avatar) */
+/* Count badge: plain number by default (no background). A folder custom
+   prompt recolors it — accent when active, grey when saved but off. */
 .conv-side-folder-count {
   flex-shrink: 0;
   display: inline-flex;
@@ -220,11 +221,21 @@
   font-weight: 700;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  background-color: var(--accent);
-  color: var(--bg);
+  color: var(--muted);
   border: 1px solid transparent;
   border-radius: 9999px;
+}
+
+.conv-side-folder-count--prompt-on {
+  background-color: var(--accent);
+  color: var(--bg);
   box-shadow: var(--shadow);
+}
+
+.conv-side-folder-count--prompt-off {
+  background-color: var(--muted);
+  color: var(--bg);
+  opacity: 0.85;
 }
 
 /* Indented children rail */

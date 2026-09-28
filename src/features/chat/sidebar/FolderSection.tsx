@@ -20,6 +20,7 @@ export interface FolderSectionProps {
   onToggleFolderMenu: (id: string) => void;
   onCloseFolderMenu: () => void;
   onDeleteFolder: (id: string) => void;
+  onTuneFolder: (id: string) => void;
   renderConversation: (conversation: Conversation) => ReactNode;
 }
 
@@ -39,6 +40,7 @@ export function FolderSection({
   onToggleFolderMenu,
   onCloseFolderMenu,
   onDeleteFolder,
+  onTuneFolder,
   renderConversation,
 }: FolderSectionProps) {
   const [categoriesOpen, setCategoriesOpen] = useState(() => {
@@ -109,6 +111,18 @@ export function FolderSection({
         {folders.map((folder) => {
           const chatCount = folder._count?.conversations || 0;
           const isOpen = expandedFolders.has(folder.id);
+          // Folder tuning badge: prompt on → colored background, prompt saved
+          // but off → grey background, no prompt → plain number, no background.
+          const hasFolderPrompt =
+            typeof folder.customPrompt === "string" && folder.customPrompt.trim().length > 0;
+          const folderPromptOn = hasFolderPrompt && folder.customPromptEnabled !== false;
+          const countClassName = `conv-side-folder-count${
+            folderPromptOn
+              ? " conv-side-folder-count--prompt-on"
+              : hasFolderPrompt
+                ? " conv-side-folder-count--prompt-off"
+                : ""
+          }`;
           return (
           <div key={folder.id} className="conv-side-folder-group">
             <div className="conv-side-folder-row" data-expanded={isOpen ? "true" : "false"}>
@@ -116,7 +130,16 @@ export function FolderSection({
                 <i className={`bi bi-folder${isOpen ? "-fill" : ""} conv-side-folder-icon`}></i>
                 <span className="conv-side-folder-name">{folder.name}</span>
                 {chatCount > 0 && (
-                  <span className="conv-side-folder-count">
+                  <span
+                    className={countClassName}
+                    title={
+                      folderPromptOn
+                        ? "Folder custom prompt active"
+                        : hasFolderPrompt
+                          ? "Folder custom prompt saved (off)"
+                          : `${chatCount} chats`
+                    }
+                  >
                     {chatCount}
                   </span>
                 )}
@@ -141,6 +164,22 @@ export function FolderSection({
                   >
                     <i className="bi bi-plus-lg conv-side-dropdown-item-icon" aria-hidden="true"></i>
                     <span>New chat</span>
+                  </button>
+                  <button
+                    className="conv-side-dropdown-item conv-side-dropdown-item--tuning"
+                    onClick={() => {
+                      onTuneFolder(folder.id);
+                      onCloseFolderMenu();
+                    }}
+                  >
+                    <span className="conv-side-dropdown-item-label">Custom Prompt</span>
+                    {hasFolderPrompt ? (
+                      <span
+                        className={`conv-tuning-dot ${folderPromptOn ? "conv-tuning-dot--active" : "conv-tuning-dot--inactive"}`}
+                        title={folderPromptOn ? "Custom prompt active" : "Custom prompt saved (off)"}
+                        aria-label={folderPromptOn ? "Custom prompt active" : "Custom prompt off"}
+                      />
+                    ) : null}
                   </button>
                   <button
                     className="conv-side-dropdown-item conv-side-dropdown-item--danger"

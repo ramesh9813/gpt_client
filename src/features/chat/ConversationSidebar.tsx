@@ -6,7 +6,7 @@ import { Input } from "../../components/Input";
 import { useMe } from "../../lib/hooks";
 import type { SidebarState } from "./sidebarState";
 import { cn } from "../../lib/utils";
-import type { Conversation } from "./sidebar/types";
+import type { Conversation, Folder } from "./sidebar/types";
 import { useSidebarData } from "./sidebar/useSidebarData";
 import { useConversationMutations } from "./sidebar/conversationMutations";
 import { ConversationRow } from "./sidebar/ConversationRow";
@@ -17,7 +17,7 @@ import { AccountFooter } from "./sidebar/AccountFooter";
 import { SidebarHeader } from "./sidebar/SidebarHeader";
 import { RenameModal } from "./sidebar/RenameModal";
 import { TuningModal } from "./sidebar/TuningModal";
-import { readCachedConversations, writeCachedConversations } from "./chatCache";
+import { readCachedConversations, writeCachedConversations, readCachedFolders, writeCachedFolders } from "./chatCache";
 
 export type { Conversation, Folder } from "./sidebar/types";
 
@@ -50,6 +50,7 @@ const ConversationSidebar = ({
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [tuningId, setTuningId] = useState<string | null>(null);
+  const [folderTuningId, setFolderTuningId] = useState<string | null>(null);
 
   const asideRef = useRef<HTMLElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -254,6 +255,7 @@ const ConversationSidebar = ({
                     deleteFolderMutation.mutate(id);
                     setFolderMenuOpen(null);
                   }}
+                  onTuneFolder={(id) => setFolderTuningId(id)}
                   renderConversation={renderConversation}
                 />
 
@@ -322,6 +324,29 @@ const ConversationSidebar = ({
             // Fallback: also write raw cached list directly
             const raw = readCachedConversations();
             if (raw) writeCachedConversations(raw.map((c) => c.id === tuningId ? { ...c, customPrompt: cfg.customPrompt, customPromptEnabled: cfg.customPromptEnabled } as Conversation : c));
+          }}
+        />
+        <TuningModal
+          conversationId={null}
+          folderId={folderTuningId}
+          folderTitle={
+            folderTuningId ? (folders.find((f) => f.id === folderTuningId)?.name ?? undefined) : undefined
+          }
+          open={!!folderTuningId}
+          onClose={() => setFolderTuningId(null)}
+          onSaved={(cfg) => {
+            if (!folderTuningId) return;
+            // Patch folders cache so the count badge recolors instantly.
+            const patchFolders = (old: unknown) => {
+              const o = old as { data?: { items?: Folder[] } } | undefined;
+              if (!o?.data?.items) return old;
+              return { ...(o as object), data: { ...(o.data as object), items: (o.data.items as Folder[]).map((f) => f.id === folderTuningId ? { ...f, customPrompt: cfg.customPrompt, customPromptEnabled: cfg.customPromptEnabled } : f) } };
+            };
+            const fk = queryClient.getQueryData(["folders"]);
+            queryClient.setQueryData(["folders"], patchFolders(fk));
+            const rawFolders = readCachedFolders();
+            if (rawFolders) writeCachedFolders(rawFolders.map((f) => f.id === folderTuningId ? { ...f, customPrompt: cfg.customPrompt, customPromptEnabled: cfg.customPromptEnabled } : f));
+            else queryClient.invalidateQueries({ queryKey: ["folders"] });
           }}
         />
       </aside>

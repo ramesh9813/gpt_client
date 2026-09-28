@@ -3,16 +3,24 @@ import { Button } from "../../../components/Button";
 import { Textarea } from "../../../components/Textarea";
 import "./TuningModal.css";
 import { TUNING_MAX_LENGTH, fetchTuning, readCachedTuning, saveTuning, writeCachedTuning, type TuningConfig } from "../chatTuning";
+import { fetchFolderTuning, readCachedFolderTuning, saveFolderTuning, writeCachedFolderTuning } from "../folderTuning";
 
 export interface TuningModalProps {
   conversationId: string | null;
   conversationTitle?: string;
+  // Folder mode: when folderId is set, the modal edits the folder-level
+  // custom prompt inherited by every chat inside (chat props ignored).
+  folderId?: string | null;
+  folderTitle?: string;
   open: boolean;
   onClose: () => void;
   onSaved?: (cfg: TuningConfig) => void;
 }
 
-export const TuningModal = ({ conversationId, conversationTitle, open, onClose, onSaved }: TuningModalProps) => {
+export const TuningModal = ({ conversationId, conversationTitle, folderId, folderTitle, open, onClose, onSaved }: TuningModalProps) => {
+  const isFolder = !!folderId;
+  const scopeId = isFolder ? folderId : conversationId;
+  const scopeTitle = isFolder ? folderTitle : conversationTitle;
   // Default ON: a fresh custom prompt activates on Save without an extra toggle.
   const [enabled, setEnabled] = useState(true);
   const [prompt, setPrompt] = useState("");
@@ -22,10 +30,14 @@ export const TuningModal = ({ conversationId, conversationTitle, open, onClose, 
   const [error, setError] = useState<string | null>(null);
 
   // Lazy load once per open (cache-first paint, then background refresh).
+  const loadCached = (id: string) =>
+    isFolder ? readCachedFolderTuning(id) : readCachedTuning(id);
+  const loadRemote = (id: string) =>
+    isFolder ? fetchFolderTuning(id) : fetchTuning(id);
   useEffect(() => {
-    if (!open || !conversationId) return;
+    if (!open || !scopeId) return;
     setError(null);
-    const cached = readCachedTuning(conversationId);
+    const cached = loadCached(scopeId);
     if (cached) {
       setEnabled(cached.customPromptEnabled);
       setPrompt(cached.customPrompt ?? "");
@@ -36,7 +48,7 @@ export const TuningModal = ({ conversationId, conversationTitle, open, onClose, 
       setInitialCfg(null);
     }
     setLoading(true);
-    fetchTuning(conversationId)
+    loadRemote(scopeId)
       .then((cfg) => {
         setEnabled(cfg.customPromptEnabled);
         setPrompt(cfg.customPrompt ?? "");
@@ -49,16 +61,17 @@ export const TuningModal = ({ conversationId, conversationTitle, open, onClose, 
         setError(msg);
       })
       .finally(() => setLoading(false));
-  }, [open, conversationId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, scopeId]);
 
-  if (!open || !conversationId) return null;
+  if (!open || !scopeId) return null;
 
   const charCount = prompt.length;
   const over = charCount > TUNING_MAX_LENGTH;
   const dirty = !initialCfg || initialCfg.customPrompt !== prompt || initialCfg.customPromptEnabled !== enabled;
 
   const handleSave = async () => {
-    if (!conversationId) return;
+    if (!scopeId) return;
     if (over) {
       setError(`Prompt exceeds ${TUNING_MAX_LENGTH} characters`);
       return;
@@ -71,8 +84,11 @@ export const TuningModal = ({ conversationId, conversationTitle, open, onClose, 
         customPrompt: prompt,
         customPromptEnabled: enabled,
       };
-      const saved = await saveTuning(conversationId, cfg);
-      writeCachedTuning(conversationId, saved);
+      const saved = isFolder
+        ? await saveFolderTuning(scopeId, cfg)
+        : await saveTuning(scopeId, cfg);
+      if (isFolder) writeCachedFolderTuning(scopeId, saved);
+      else writeCachedTuning(scopeId, saved);
       onSaved?.(saved);
       onClose();
     } catch (e: unknown) {
@@ -86,11 +102,11 @@ export const TuningModal = ({ conversationId, conversationTitle, open, onClose, 
   };
 
   return (
-    <div className="tuning-overlay" role="dialog" aria-modal="true" aria-label="Chat Tuning">
+    <div className="tuning-overlay" role="dialog" aria-modal="true" aria-label={isFolder ? "Folder Tuning" : "Chat Tuning"}>
       <div className="tuning-backdrop" onClick={onClose} aria-hidden="true" />
       <div className="tuning-panel">
         <div className="tuning-header">
-          <h3 className="tuning-title">Chat Tuning</h3>
+          <h3 className="tuning-title">{isFolder ? `Folder Tuning${scopeTitle ? ` — ${scopeTitle}` : ""}` : "Chat Tuning"}</h3>
           <div className="tuning-header-actions">
             <label className="tuning-toggle" title={enabled ? "Tuning is ON" : "Tuning is OFF"}>
               <input
@@ -110,6 +126,9 @@ export const TuningModal = ({ conversationId, conversationTitle, open, onClose, 
         {error ? <div className="tuning-error" role="alert">{error}</div> : null}
         <div className="tuning-body">
           <label className="tuning-label" htmlFor="tuning-prompt">Custom prompt</label>
+          {isFolder ? (
+            <div className="tuning-hint">Applies to every chat inside this folder.</div>
+          ) : null}
           <Textarea
             id="tuning-prompt"
             className="tuning-textarea"
