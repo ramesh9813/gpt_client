@@ -29,6 +29,8 @@ export type UserSettings = {
   videoModel?: string;
   appFontSize?: number;
   iconScale?: number;
+  devicePhotosFolder?: string | null;
+  deviceScreenshotsFolder?: string | null;
 };
 
 export const useMe = (enabled = true) => {

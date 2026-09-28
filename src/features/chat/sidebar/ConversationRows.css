@@ -309,6 +309,17 @@
   font-size: 0.75rem;
   color: var(--accent);
   flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.conv-side-pin-placeholder {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  display: inline-block;
 }
 .conv-tuning-dot {
   width: 7px;
@@ -319,6 +330,10 @@
 }
 .conv-tuning-dot--active { background: var(--accent); }
 .conv-tuning-dot--inactive { background: var(--muted); opacity: 0.9; }
+.conv-tuning-dot--placeholder {
+  visibility: hidden;
+  pointer-events: none;
+}
 
 .conv-side-dropdown-item--tuning {
   display: flex;

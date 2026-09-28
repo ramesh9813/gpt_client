@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { apiFetch, type ApiResponse } from "../../../lib/api";
+import type { UserSettings } from "../../../lib/hooks";
 import {
   idbGetHandle,
   idbSetHandle,
@@ -90,6 +92,21 @@ export const useDeviceImages = () => {
     return () => revokeUrls(leftovers);
   }, [revokeUrls]);
 
+  const syncFolderToServer = useCallback((kind: DeviceFolderKind, folderName: string) => {
+    // Fire-and-forget: folder NAME only (never a handle) goes to UserSettings
+    // so reopening the app can show the saved folder label instantly without
+    // re-prompting for a picker. Actual files still load locally via the
+    // IndexedDB handle — never uploaded, never sent anywhere.
+    const key = kind === "photos" ? "devicePhotosFolder" : "deviceScreenshotsFolder";
+    void apiFetch<ApiResponse<{ settings: UserSettings }>>("/api/me/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [key]: folderName }),
+    }).catch(() => {
+      // offline or DB not yet migrated — local meta still works
+    });
+  }, []);
+
   const rebuildRows = useCallback(() => {
     const all = [...sourcesRef.current.photos, ...sourcesRef.current.screenshots];
     // Latest first: newest lastModified at index 0. File names (camera /
@@ -148,10 +165,36 @@ export const useDeviceImages = () => {
           size: f.file.size,
         }))
       );
+      // Remember the folder NAME in the DB so reloads don't re-prompt.
+      syncFolderToServer(kind, folder);
       if (!skipRebuild) rebuildRows();
     },
-    [rebuildRows]
+    [rebuildRows, syncFolderToServer]
   );
+
+  // Restore saved folder LABELS from the server on first mount so recents
+  // show instantly even before the handle scan resolves; also seeds the
+  // per-row header immediately on reload.
+  useEffect(() => {
+    let cancelled = false;
+    void apiFetch<ApiResponse<{ settings: UserSettings | null }>>("/api/me/settings")
+      .then((res) => {
+        if (cancelled) return;
+        const s = res?.data?.settings;
+        if (!s) return;
+        // Only seed when no local meta yet — local handle label wins otherwise.
+        if (typeof s.devicePhotosFolder === "string" && s.devicePhotosFolder.trim()) {
+          setPhotoFolderName((prev) => prev ?? s.devicePhotosFolder!.trim());
+        }
+        if (typeof s.deviceScreenshotsFolder === "string" && s.deviceScreenshotsFolder.trim()) {
+          setShotsFolderName((prev) => prev ?? s.deviceScreenshotsFolder!.trim());
+        }
+      })
+      .catch(() => {
+        // offline — local meta/IndexedDB still handle loading
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   // Auto-load path for granted folders. Runs silently at mount AND on
   // card open. When opened from a real tap (fromGesture), a dormant grant
