@@ -24,6 +24,7 @@ export type UserSettings = {
   fontScale: "XSMALL" | "SMALL" | "DEFAULT" | "LARGE" | "XLARGE";
   brand: BrandId;
   pinHeader: boolean;
+  showTopCard?: boolean;
   model: string;
   imageModel?: string;
   videoModel?: string;

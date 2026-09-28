@@ -64,6 +64,7 @@ export const SettingsTab = () => {
       fontScale: "DEFAULT",
       brand: "default" as BrandId,
       pinHeader: false,
+      showTopCard: true,
       appFontSize: APP_FONT_DEFAULT,
       iconScale: ICON_SCALE_DEFAULT,
       model: "default",
@@ -81,6 +82,7 @@ export const SettingsTab = () => {
         theme: "SYSTEM",
         pinHeader: false,
         ...settings,
+        showTopCard: settings.showTopCard ?? true,
         fontScale: toFontStep(settings.fontScale),
         brand: isBrandId(settings.brand) ? settings.brand : "default",
         appFontSize: clampAppFontSize(settings.appFontSize),
@@ -313,6 +315,25 @@ export const SettingsTab = () => {
               <span className="account-check-hint">
                 Keep the top action pill pinned while scrolling. When off,
                 it hides on scroll down and reappears on scroll up.
+              </span>
+            </span>
+          </label>
+        </div>
+        <div>
+          <label className="account-check-row">
+            <input
+              type="checkbox"
+              {...register("showTopCard")}
+              className="account-check-input"
+            />
+            <span className="account-check-body">
+              <span className="account-field-label account-check-label">
+                Show top action card
+              </span>
+              <span className="account-check-hint">
+                Show the top card with the sidebar openers and New chat.
+                When off, that icon card is hidden; everything else stays
+                as it is.
               </span>
             </span>
           </label>

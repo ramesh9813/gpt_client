@@ -2,6 +2,8 @@
   display: flex;
   height: 100%;
   flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .usage-chart-header {
@@ -57,6 +59,8 @@
 .usage-chart-body {
   height: 20rem;
   flex-shrink: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .usage-chart-empty {
@@ -73,6 +77,8 @@
 /* Color-keyed per-model breakdown below the bars. */
 .usage-legend {
   margin-top: 1rem;
+  min-width: 0;
+  overflow-x: auto;
 }
 
 .usage-legend-title {
@@ -119,6 +125,13 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.usage-legend-name {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;

@@ -84,10 +84,10 @@ export const UsageChart = ({ logs }: Props) => {
   const { chartData, models, modelTotals, grandTotal, rangeLabel } = useMemo(() => {
     const now = new Date();
     const totals = new Map<string, number>();
+    // Short labels only — long date labels overflow the card on narrow
+    // screens (weekday for the 7-day view, short month for months).
     const dayFormatter = new Intl.DateTimeFormat(undefined, {
       weekday: "short",
-      month: "short",
-      day: "numeric",
     });
     const monthFormatter = new Intl.DateTimeFormat(undefined, {
       month: "short",
@@ -217,7 +217,7 @@ export const UsageChart = ({ logs }: Props) => {
                 axisLine={false}
                 tickLine={false}
                 interval="preserveStartEnd"
-                minTickGap={24}
+                minTickGap={16}
               />
               <YAxis
                 tick={{ fontSize: 12, fill: "var(--muted)" }}
@@ -276,7 +276,7 @@ export const UsageChart = ({ logs }: Props) => {
                         style={{ backgroundColor: color }}
                         aria-hidden="true"
                       />
-                      <span title={row.model}>{shortModelName(row.model)}</span>
+                      <span title={row.model} className="usage-legend-name">{shortModelName(row.model)}</span>
                     </td>
                     <td
                       className="usage-legend-td-right"

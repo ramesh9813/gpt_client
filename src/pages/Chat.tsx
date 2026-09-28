@@ -162,7 +162,7 @@ const Chat = () => {
 
   const newChatMutation = useNewChat({ cancelRef, setStreaming, setActiveStreamId, setMessages });
 
-  const { handleHeaderToggle, headerHidden, pinHeader, handleScrollDirection } = useChatHeader({
+  const { handleHeaderToggle, headerHidden, pinHeader, showTopCard, handleScrollDirection } = useChatHeader({
     isMobile, sidebarState, toggleDrawer, hideSidebar, showSidebar, streaming,
   });
 
@@ -187,7 +187,9 @@ const Chat = () => {
       />
       <main className="chat-main">
         {/* Floating action pill — hidden while AI generates; reappears only
-            on a deliberate scroll-up (user fought auto-follow to read above). */}
+            on a deliberate scroll-up (user fought auto-follow to read above).
+            Fully hidden when the user turns off "Show top action card". */}
+        {showTopCard ? (
         <header
           className={
             headerHidden && !pinHeader
@@ -236,6 +238,7 @@ const Chat = () => {
             ) : null}
           </div>
         </header>
+        ) : null}
 
         <div className="chat-content">
           <section className="chat-thread">

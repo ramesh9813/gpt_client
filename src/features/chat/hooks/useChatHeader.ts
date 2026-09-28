@@ -39,6 +39,7 @@ export const useChatHeader = ({
   const streamHiddenRef = useRef(false);
   const { data: settingsData } = useSettings();
   const pinHeader = settingsData?.data?.settings?.pinHeader ?? false;
+  const showTopCard = settingsData?.data?.settings?.showTopCard ?? true;
   const handleScrollDirection = useCallback((direction: "up" | "down") => {
     setHeaderHidden(direction === "down");
   }, []);
@@ -76,6 +77,7 @@ export const useChatHeader = ({
     handleHeaderToggle,
     headerHidden,
     pinHeader,
+    showTopCard,
     handleScrollDirection: handleScrollDirectionWithStream,
   };
 };
