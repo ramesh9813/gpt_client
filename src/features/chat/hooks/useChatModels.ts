@@ -106,13 +106,19 @@ export const useChatModels = () => {
     []
   );
   const byokActive = !!byokCfg;
+  const byokProviderId = byokCfg?.provider ?? null;
   const byokProvider = byokCfg ? getByokProvider(byokCfg.provider) : null;
 
   const byokList = useMemo(() => {
-    if (!byokCfg || !byokProvider) return [];
-    const live = byokCfg.models?.[byokProvider.id];
-    return live && live.length > 0 ? live : byokProvider.models;
-  }, [byokCfg, byokProvider]);
+    if (!byokCfg || !byokProviderId) return [];
+    const live = byokCfg.models?.[byokProviderId];
+    if (live && live.length > 0) return live;
+    if (byokProvider) return byokProvider.models;
+    // Custom (owner-added) provider: static registry has no entry, so fall
+    // back to the saved model to keep the dropdown populated even before
+    // the live /v1/models fetch lands.
+    return byokCfg.model ? [byokCfg.model] : [];
+  }, [byokCfg, byokProviderId, byokProvider]);
 
   const byokOptions: ModelOption[] = useMemo(
     () =>
@@ -124,18 +130,18 @@ export const useChatModels = () => {
 
   const [byokFetching, setByokFetching] = useState(false);
   const refreshByokModels = useCallback(async () => {
-    if (!byokCfg || !byokProvider) return;
+    if (!byokCfg || !byokProviderId) return;
     setByokFetching(true);
     try {
       const { models: list, freeIds } = await fetchByokModels(
-        byokProvider.id,
+        byokProviderId,
         byokCfg.apiKey
       );
       if (list.length > 0) {
         saveByokConfig({
           ...byokCfg,
-          models: { ...(byokCfg.models ?? {}), [byokProvider.id]: list },
-          freeModels: { ...(byokCfg.freeModels ?? {}), [byokProvider.id]: freeIds },
+          models: { ...(byokCfg.models ?? {}), [byokProviderId]: list },
+          freeModels: { ...(byokCfg.freeModels ?? {}), [byokProviderId]: freeIds },
         });
       }
     } catch {
@@ -143,26 +149,26 @@ export const useChatModels = () => {
     } finally {
       setByokFetching(false);
     }
-  }, [byokCfg, byokProvider]);
+  }, [byokCfg, byokProviderId]);
 
   // Fetch the provider catalog once per provider+key when none is cached.
   const byokFetchedFor = useRef<string>("");
   useEffect(() => {
-    if (!byokCfg || !byokProvider) return;
-    if ((byokCfg.models?.[byokProvider.id]?.length ?? 0) > 0) return;
-    const key = `${byokProvider.id}:${byokCfg.apiKey.slice(-8)}`;
+    if (!byokCfg || !byokProviderId) return;
+    if ((byokCfg.models?.[byokProviderId]?.length ?? 0) > 0) return;
+    const key = `${byokProviderId}:${byokCfg.apiKey.slice(-8)}`;
     if (byokFetchedFor.current === key) return;
     byokFetchedFor.current = key;
     void refreshByokModels();
-  }, [byokCfg, byokProvider, refreshByokModels]);
+  }, [byokCfg, byokProviderId, refreshByokModels]);
 
   // Keep the stored BYOK model inside the current provider list.
   useEffect(() => {
-    if (!byokCfg || !byokProvider || byokOptions.length === 0) return;
+    if (!byokCfg || !byokProviderId || byokOptions.length === 0) return;
     if (!byokOptions.some((o) => o.value === byokCfg.model)) {
       saveByokConfig({ ...byokCfg, model: byokOptions[0].value });
     }
-  }, [byokCfg, byokProvider, byokOptions]);
+  }, [byokCfg, byokProviderId, byokOptions]);
 
   const setByokModel = useCallback((next: string) => {
     const cfg = getByokConfig();
@@ -372,7 +378,9 @@ export const useChatModels = () => {
   // models, the input card shows the selected provider model, and selections
   // persist to localStorage (never the DB). resolveModelForPrompt collapses to
   // the BYOK model — media prompts stay plain chat on the provider.
-  if (byokActive && byokCfg && byokProvider) {
+  // Custom (owner-added) providers have no static registry entry, so key off
+  // the saved provider id — not byokProvider — or their models never surface.
+  if (byokActive && byokCfg && byokProviderId) {
     const byokModel = byokCfg.model || byokOptions[0]?.value || "";
       return {
         ...base,
