@@ -8,7 +8,6 @@ export const useMessageEdit = (
   const [editingValue, setEditingValue] = useState("");
   const [editingImages, setEditingImages] = useState<string[]>([]);
   const [editingError, setEditingError] = useState<string | null>(null);
-  const [savingId, setSavingId] = useState<string | null>(null);
   const editRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -41,17 +40,23 @@ export const useMessageEdit = (
       setEditingError("Message cannot be empty");
       return;
     }
+    // Immediate send: close the editor at once (no "Saving..." state — the
+    // retried answer streams below like a normal send). On failure the draft
+    // is restored with the error so nothing is silently lost.
+    const id = editingId;
+    const value = trimmed;
+    const images = editingImages;
+    setEditingId(null);
+    setEditingValue("");
+    setEditingImages([]);
     setEditingError(null);
-    setSavingId(editingId);
     try {
-      await onEditSubmit(editingId, trimmed, editingImages);
-      setEditingId(null);
-      setEditingValue("");
-      setEditingImages([]);
+      await onEditSubmit(id, value, images);
     } catch (err: any) {
+      setEditingId(id);
+      setEditingValue(value);
+      setEditingImages(images);
       setEditingError(err?.message || "Failed to update message");
-    } finally {
-      setSavingId(null);
     }
   };
 
@@ -73,7 +78,6 @@ export const useMessageEdit = (
     editingImages,
     removeEditingImage,
     editingError,
-    savingId,
     editRef,
     startEdit,
     cancelEdit,

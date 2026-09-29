@@ -15,7 +15,6 @@ type UserMessageProps = {
   editingImages: string[];
   onRemoveEditingImage: (index: number) => void;
   editingError: string | null;
-  savingId: string | null;
   editRef: RefObject<HTMLTextAreaElement>;
   onEditKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   submitEdit: () => void;
@@ -35,7 +34,6 @@ export const UserMessage = memo(
     editingImages,
     onRemoveEditingImage,
     editingError,
-    savingId,
     editRef,
     onEditKeyDown,
     submitEdit,
@@ -113,7 +111,6 @@ export const UserMessage = memo(
                 <button
                   className="msg-user-edit-cancel"
                   onClick={cancelEdit}
-                  disabled={savingId === message.id}
                   type="button"
                 >
                   Cancel
@@ -121,10 +118,9 @@ export const UserMessage = memo(
                 <button
                   className="msg-user-edit-save"
                   onClick={submitEdit}
-                  disabled={savingId === message.id}
                   type="button"
                 >
-                  {savingId === message.id ? "Saving..." : "Save & run"}
+                  Save & run
                 </button>
               </div>
             </div>
@@ -182,6 +178,5 @@ export const UserMessage = memo(
   prev.editingValue === next.editingValue &&
   prev.editingImages === next.editingImages &&
   prev.editingError === next.editingError &&
-  prev.savingId === next.savingId &&
   prev.editDisabled === next.editDisabled
 );

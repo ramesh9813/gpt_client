@@ -136,7 +136,6 @@ const MessageList = ({
                 editingImages={edit.editingImages}
                 onRemoveEditingImage={edit.removeEditingImage}
                 editingError={edit.editingError}
-                savingId={edit.savingId}
                 editRef={edit.editRef}
                 onEditKeyDown={edit.onEditKeyDown}
                 submitEdit={edit.submitEdit}
