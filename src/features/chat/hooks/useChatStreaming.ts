@@ -37,6 +37,7 @@ export type StreamAssistantArgs = {
   artifact?: boolean;
   webSearch?: boolean;
   think?: boolean;
+  compactHistory?: boolean;
 };
 
 export const useChatStreaming = () => {
@@ -60,6 +61,7 @@ export const useChatStreaming = () => {
       artifact,
       webSearch,
       think,
+      compactHistory,
     }: StreamAssistantArgs
   ) => {
     cancelRef.current = false;
@@ -221,6 +223,7 @@ export const useChatStreaming = () => {
             assistantMessageId: failedAssistantId,
             existingUserMessageId: failedUserId,
             ...(artifact ? { artifact: true } : {}),
+            ...(compactHistory ? { compactHistory: true } : {}),
           }),
         });
         const turn = prep?.data;
@@ -379,6 +382,7 @@ export const useChatStreaming = () => {
         // Always explicit: an explicit OFF must beat the default-ON.
         ...(webSearch === undefined ? {} : { webSearch }),
         ...(think ? { think: true } : {}),
+        ...(compactHistory ? { compactHistory: true } : {}),
       });
       // Auth rides the httpOnly cookie, plus the in-memory bearer as a
       // fallback (the cookie is gone after 15 min idle while JS memory

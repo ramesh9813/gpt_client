@@ -173,6 +173,16 @@ const Chat = () => {
 
   const { handleQuizSelect, handleNextRound } = useChatQuiz({ conversationId, setMessages, sendMessage });
 
+  // Thread size for the composer's live token estimate.
+  const historyChars = useMemo(
+    () =>
+      messages.reduce(
+        (n, m) => n + (typeof m?.content === "string" ? m.content.length : 0),
+        0
+      ),
+    [messages]
+  );
+
   return (
     <div className="chat-root">
       <ConversationSidebar
@@ -291,6 +301,7 @@ const Chat = () => {
               onSortChange={setSortBy}
               streaming={streaming}
               onStop={handleStopStreaming}
+              historyChars={historyChars}
             />
           </section>
           {showCanvas ? (

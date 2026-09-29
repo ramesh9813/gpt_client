@@ -34,6 +34,8 @@ export interface ComposerToolbarProps {
   onWebSearchToggle: () => void;
   thinkingArmed?: boolean;
   onThinkingToggle?: () => void;
+  trimArmed?: boolean;
+  onTrimToggle?: () => void;
   mcqArmed?: boolean;
   disabled?: boolean;
   compressing?: boolean;
@@ -90,6 +92,8 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
     onWebSearchToggle,
     thinkingArmed,
     onThinkingToggle,
+    trimArmed,
+    onTrimToggle,
     mcqArmed,
     disabled,
     compressing,
@@ -157,6 +161,8 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
           onMcqToggle={onQuizClick}
           thinkingArmed={thinkingArmed}
           onThinkingToggle={onThinkingToggle}
+          trimArmed={trimArmed}
+          onTrimToggle={onTrimToggle}
           onFilePick={onFilePick}
         />
       )}

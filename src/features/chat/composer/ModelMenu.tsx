@@ -46,6 +46,8 @@ type ModelMenuProps = {
   onMcqToggle?: () => void;
   thinkingArmed?: boolean;
   onThinkingToggle?: () => void;
+  trimArmed?: boolean;
+  onTrimToggle?: () => void;
   onFilePick?: () => void;
   // Catalog freshness footer (from useChatModels):
   modelsTotal?: number;
@@ -81,6 +83,8 @@ export const ModelMenu = ({
   onMcqToggle,
   thinkingArmed,
   onThinkingToggle,
+  trimArmed,
+  onTrimToggle,
   onFilePick,
   modelsTotal,
   modelsUpdatedAt,
@@ -236,6 +240,21 @@ export const ModelMenu = ({
             <span>Image Generation</span>
           </button>
           )}
+          <button
+            type="button"
+            className="composer-option-btn"
+            aria-pressed={trimArmed === true}
+            onClick={() => {
+              onTrimToggle?.();
+              if (!trimArmed) onCloseMenu();
+            }}
+          >
+            <i className="bi bi-scissors composer-icon-green"></i>
+            <span>Auto-trim history</span>
+            {trimArmed ? (
+              <span className="composer-option-badge">On</span>
+            ) : null}
+          </button>
           <button
             type="button"
             className="composer-option-btn"

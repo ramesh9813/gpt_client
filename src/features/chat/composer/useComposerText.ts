@@ -17,6 +17,17 @@ export const useComposerArmed = () => {
       return false;
     }
   });
+  // Auto-trim history: sticky like quiz; clamps the server history budget
+  // on turns near the provider's input limit. ON by default (saves low-tier
+  // keys from 413s); turning it off keeps full memory at your own risk.
+  const [trimArmed, setTrimArmed] = useState(() => {
+    try {
+      const raw = window.localStorage.getItem("chatapp.trim.armed");
+      return raw === null ? true : raw === "true";
+    } catch {
+      return true;
+    }
+  });
   // Thinking (extended reasoning) mode: sticky like quiz; streams a thinking
   // trace from reasoning-capable models into the collapsible block.
   const [thinkingArmed, setThinkingArmed] = useState(() => {
@@ -41,6 +52,11 @@ export const useComposerArmed = () => {
       window.localStorage.setItem("chatapp.think.armed", String(thinkingArmed));
     } catch {}
   }, [thinkingArmed]);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("chatapp.trim.armed", String(trimArmed));
+    } catch {}
+  }, [trimArmed]);
 
   return {
     researchArmed,
@@ -53,6 +69,8 @@ export const useComposerArmed = () => {
     setMcqArmed,
     thinkingArmed,
     setThinkingArmed,
+    trimArmed,
+    setTrimArmed,
   };
 };
 

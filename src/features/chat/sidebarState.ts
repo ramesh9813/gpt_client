@@ -86,3 +86,18 @@ export const readWebSearchArmed = (): boolean => {
     return false;
   }
 };
+
+// Auto-trim history: ON by default. When a turn is near the provider's
+// input limit, the client sends compactHistory so the server clamps to the
+// emergency budget instead of 413ing. Persists like the other armed modes.
+export const TRIM_ARMED_KEY = "chatapp.trim.armed";
+
+export const readTrimArmed = (): boolean => {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return true;
+    const raw = window.localStorage.getItem(TRIM_ARMED_KEY);
+    return raw === null ? true : raw === "true";
+  } catch {
+    return true;
+  }
+};

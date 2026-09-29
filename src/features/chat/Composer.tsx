@@ -15,6 +15,14 @@ import { useCameraCapture } from "./composer/useCameraCapture";
 import { useComposerArmed, useComposerText } from "./composer/useComposerText";
 import { useComposerFiles } from "./composer/useComposerFiles";
 import FileAttachments from "./composer/FileAttachments";
+import {
+  estimateTokens,
+  estimateTurnChars,
+  formatTokenCount,
+  isNearLimit,
+  providerInputLimit,
+} from "../../lib/tokens";
+import { getActiveByok, subscribeByok } from "../../lib/byok";
 
 
 export type { ModelOption, SortOption };
@@ -43,6 +51,8 @@ export type ComposerProps = {
   inputRef?: MutableRefObject<HTMLTextAreaElement | null>;
   sort?: SortOption;
   onSortChange?: (sort: SortOption) => void;
+  // Thread size for the live token estimate (sum of message content chars).
+  historyChars?: number;
 };
 
 const Composer = ({
@@ -65,7 +75,8 @@ const Composer = ({
   isGeneralUser,
   inputRef,
   sort = "name",
-  onSortChange
+  onSortChange,
+  historyChars = 0
 }: ComposerProps) => {
   const [value, setValue] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -91,7 +102,14 @@ const Composer = ({
     setMcqArmed,
     thinkingArmed,
     setThinkingArmed,
+    trimArmed,
+    setTrimArmed,
   } = useComposerArmed();
+  // Active provider for the live token estimate (re-read on BYOK changes).
+  const [byokTick, setByokTick] = useState(0);
+  useEffect(() => subscribeByok(() => setByokTick((t) => t + 1)), []);
+  void byokTick;
+  const estimateProviderId = getActiveByok()?.provider ?? null;
   const menuRef = useRef<HTMLDivElement>(null);
   const [showRecents, setShowRecents] = useState(false);
 
@@ -228,6 +246,30 @@ const Composer = ({
     baseHandleSend();
   };
 
+  // Live token estimate: capped history + current input + file payload +
+  // system headroom, at ~4 chars/token. Warns near the provider cap and
+  // flags when auto-trim will clamp history on send.
+  const filesChars = files.reduce((n, f) => n + (f.content?.length ?? 0), 0);
+  const estimateInputChars = value.length;
+  const estimateNear = isNearLimit({
+    historyChars,
+    inputChars: estimateInputChars,
+    filesChars,
+    providerId: estimateProviderId,
+  });
+  const estimateChars = estimateTurnChars({
+    historyChars,
+    inputChars: estimateInputChars,
+    filesChars,
+    providerId: estimateProviderId,
+  });
+  const estimateCount = estimateTokens(estimateChars);
+  const estimateLimit = providerInputLimit(estimateProviderId);
+  const estimateLeft =
+    estimateLimit !== undefined
+      ? Math.max(0, estimateLimit - estimateCount)
+      : null;
+
   const currentModelLabel =
     modelOptions.find((o) => o.value === model)?.label || "Model";
 
@@ -287,6 +329,24 @@ const Composer = ({
           listenError={listenError}
         />
 
+        {estimateCount > 0 && (
+          <div
+            className={`composer-token-line${estimateNear && !trimArmed ? " composer-token-line--over" : ""}`}
+            title={
+              estimateLimit !== undefined
+                ? `Estimated request size vs this provider's ${formatTokenCount(estimateLimit)}-token input limit`
+                : "Estimated request size for this turn"
+            }
+          >
+            <span>~{formatTokenCount(estimateCount)} tokens</span>
+            {estimateLeft !== null && (
+              <span> • {formatTokenCount(estimateLeft)} left</span>
+            )}
+            {estimateNear && trimArmed && <span> • auto-trim on</span>}
+            {estimateNear && !trimArmed && <span> • over limit!</span>}
+          </div>
+        )}
+
         <div className="composer-body">
           <textarea
             ref={setTextareaRefs}
@@ -334,6 +394,8 @@ const Composer = ({
             onWebSearchToggle={() => setWebSearchArmed((prev) => !prev)}
             thinkingArmed={thinkingArmed}
             onThinkingToggle={() => setThinkingArmed((prev) => !prev)}
+            trimArmed={trimArmed}
+            onTrimToggle={() => setTrimArmed((prev) => !prev)}
             disabled={disabled}
             compressing={compressing}
             hasRecents={recentPhotos.length + recentScreenshots.length > 0}
