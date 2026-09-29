@@ -348,12 +348,16 @@
   overflow-wrap: anywhere;
 }
 
-/* Collapsible "Sources (n)" list under web-search answers */
+/* Always-visible plain "Sources (n)" list under web-search answers */
 .msg-sources {
   margin-top: 0.5rem;
   border: 1px solid var(--border);
   border-radius: 0.625rem;
   overflow: hidden;
+  background: var(--panel);
+}
+.msg-sources--plain .msg-sources-list {
+  border-top: 0;
 }
 .msg-sources-head {
   display: flex;
@@ -372,11 +376,14 @@
 .msg-sources-head:hover {
   color: var(--text);
 }
-.msg-sources-title {
-  display: inline-flex;
+.msg-sources--plain .msg-sources-title {
+  display: flex;
   align-items: center;
   gap: 0.375rem;
   font-weight: 600;
+  padding: 0.5rem 0.625rem 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
 }
 .msg-sources-icon {
   font-size: 0.875rem;
