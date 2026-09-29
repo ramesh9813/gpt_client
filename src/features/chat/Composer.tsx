@@ -269,6 +269,22 @@ const Composer = ({
     estimateLimit !== undefined
       ? Math.max(0, estimateLimit - estimateCount)
       : null;
+  const tokenLineState =
+    estimateNear && !trimArmed ? "composer-token-line--over" : "";
+  const tokenLineTitle =
+    estimateLimit !== undefined
+      ? `Estimated request size vs this provider's ${formatTokenCount(estimateLimit)}-token input limit`
+      : "Estimated request size for this turn";
+  const tokenLineInner = (
+    <>
+      <span>~{formatTokenCount(estimateCount)} tokens</span>
+      {estimateLeft !== null && (
+        <span> • {formatTokenCount(estimateLeft)} left</span>
+      )}
+      {estimateNear && trimArmed && <span> • auto-trim on</span>}
+      {estimateNear && !trimArmed && <span> • over limit!</span>}
+    </>
+  );
 
   const currentModelLabel =
     modelOptions.find((o) => o.value === model)?.label || "Model";
@@ -331,19 +347,10 @@ const Composer = ({
 
         {estimateCount > 0 && (
           <div
-            className={`composer-token-line${estimateNear && !trimArmed ? " composer-token-line--over" : ""}`}
-            title={
-              estimateLimit !== undefined
-                ? `Estimated request size vs this provider's ${formatTokenCount(estimateLimit)}-token input limit`
-                : "Estimated request size for this turn"
-            }
+            className={`composer-token-line composer-token-line--standalone ${tokenLineState}`}
+            title={tokenLineTitle}
           >
-            <span>~{formatTokenCount(estimateCount)} tokens</span>
-            {estimateLeft !== null && (
-              <span> • {formatTokenCount(estimateLeft)} left</span>
-            )}
-            {estimateNear && trimArmed && <span> • auto-trim on</span>}
-            {estimateNear && !trimArmed && <span> • over limit!</span>}
+            {tokenLineInner}
           </div>
         )}
 
@@ -396,6 +403,9 @@ const Composer = ({
             onThinkingToggle={() => setThinkingArmed((prev) => !prev)}
             trimArmed={trimArmed}
             onTrimToggle={() => setTrimArmed((prev) => !prev)}
+            tokenInline={estimateCount > 0 ? tokenLineInner : undefined}
+            tokenInlineState={tokenLineState}
+            tokenInlineTitle={tokenLineTitle}
             disabled={disabled}
             compressing={compressing}
             hasRecents={recentPhotos.length + recentScreenshots.length > 0}

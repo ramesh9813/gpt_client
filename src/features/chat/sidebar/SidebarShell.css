@@ -228,6 +228,15 @@
   .conv-side--hidden {
     transition: width 220ms ease-out;
   }
+  /* Brand widths (brands.css ID selector) beat plain hide classes and leave
+     a 300px sidebar-colored strip that starves the chat area. This
+     higher-specificity override restores a true 0px hide on desktop only. */
+  [data-brand] aside#conversation-history.conv-side--hidden,
+  [data-brand] aside#conversation-history.conv-side--collapsed {
+    width: 0;
+    min-width: 0;
+    border-right: 0;
+  }
 }
 
 .conv-side-body {

@@ -1,4 +1,4 @@
-import type { MutableRefObject } from "react";
+import type { MutableRefObject, ReactNode } from "react";
 import { Button } from "../../../components/Button";
 import { ModelMenu } from "./ModelMenu";
 import type { ModelOption, SortOption } from "./ModelMenu";
@@ -36,6 +36,9 @@ export interface ComposerToolbarProps {
   onThinkingToggle?: () => void;
   trimArmed?: boolean;
   onTrimToggle?: () => void;
+  tokenInline?: ReactNode;
+  tokenInlineState?: string;
+  tokenInlineTitle?: string;
   mcqArmed?: boolean;
   disabled?: boolean;
   compressing?: boolean;
@@ -94,6 +97,9 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
     onThinkingToggle,
     trimArmed,
     onTrimToggle,
+    tokenInline,
+    tokenInlineState,
+    tokenInlineTitle,
     mcqArmed,
     disabled,
     compressing,
@@ -265,6 +271,14 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
     </span>
 
       <div className="composer-spacer" />
+    {tokenInline ? (
+      <span
+        className={`composer-token-inline ${tokenInlineState ?? ""}`}
+        title={tokenInlineTitle}
+      >
+        {tokenInline}
+      </span>
+    ) : null}
     {speechSupported && (
       <Button
         onClick={onMicClick}
