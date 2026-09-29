@@ -40,9 +40,40 @@ const isInteractiveTarget = (target: EventTarget | null): boolean => {
   }
 };
 
-// Double fast click (desktop) / double tap (touch) on a message copies its
-// text immediately. Returns a transient `copied` flag for feedback plus the
-// handlers to spread onto the message container.
+// Copy scope: the nearest text block (paragraph, list item, heading, table
+// cell, quote, code block) around the tap point. A sentence that wraps
+// across visual lines still lives in ONE <p>, so the whole sentence copies.
+const COPY_BLOCK_SELECTOR =
+  "p, li, h1, h2, h3, h4, h5, h6, td, th, blockquote, pre";
+
+const blockTextAt = (
+  target: EventTarget | null,
+  point?: { x: number; y: number } | null
+): string | null => {
+  const pick = (el: Element | null): string | null => {
+    const block =
+      el instanceof HTMLElement ? el.closest(COPY_BLOCK_SELECTOR) : null;
+    if (!(block instanceof HTMLElement)) return null;
+    const text = (block.innerText ?? block.textContent ?? "").trim();
+    return text ? text : null;
+  };
+  const direct = pick(target instanceof Element ? target : null);
+  if (direct) return direct;
+  // Tap landed between blocks (padding/container): resolve what's under it.
+  if (point && typeof document !== "undefined") {
+    try {
+      return pick(document.elementFromPoint(point.x, point.y));
+    } catch {
+      return null;
+    }
+  }
+  return null;
+};
+
+// Double fast click (desktop) / double tap (touch) on a message copies the
+// clicked line/paragraph only — never the whole response. Returns a transient
+// `copied` flag for feedback plus the handlers to spread onto the message
+// container.
 export const useDoubleCopy = (getText: () => string) => {
   const [copied, setCopied] = useState(false);
   const getTextRef = useRef(getText);
@@ -65,19 +96,24 @@ export const useDoubleCopy = (getText: () => string) => {
     flashTimer.current = setTimeout(() => setCopied(false), 1500);
   }, []);
 
-  const fire = useCallback(() => {
-    const text = getTextRef.current();
-    if (!text.trim()) return;
-    void copyTextNow(text).then((ok) => {
-      if (ok) flash();
-    });
-  }, [flash]);
+  const fire = useCallback(
+    (target: EventTarget | null, point?: { x: number; y: number } | null) => {
+      // Clicked block first; whole message only when no block resolves
+      // (taps on padding/cards with no text block under them).
+      const text = blockTextAt(target, point) ?? getTextRef.current();
+      if (!text.trim()) return;
+      void copyTextNow(text).then((ok) => {
+        if (ok) flash();
+      });
+    },
+    [flash]
+  );
 
   const onDoubleClick = useCallback(
     (e: React.MouseEvent) => {
       if (isInteractiveTarget(e.target)) return;
       e.preventDefault();
-      fire();
+      fire(e.target, { x: e.clientX, y: e.clientY });
     },
     [fire]
   );
@@ -120,7 +156,11 @@ export const useDoubleCopy = (getText: () => string) => {
       }
       if (now - lastTapEnd.current < 350) {
         lastTapEnd.current = 0;
-        fire();
+        const end = e.changedTouches[0];
+        fire(
+          e.target,
+          end ? { x: end.clientX, y: end.clientY } : null
+        );
       } else {
         lastTapEnd.current = now;
       }

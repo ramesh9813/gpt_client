@@ -140,7 +140,7 @@ export const AssistantMessage = memo(
       onDoubleClick={onDoubleClick}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
-      title="Double-click to copy"
+      title="Double-click a line to copy it"
     >
       {copied ? (
         <span className="msg-copy-flash" aria-live="polite">

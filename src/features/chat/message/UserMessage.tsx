@@ -61,7 +61,7 @@ export const UserMessage = memo(
                 onDoubleClick,
                 onTouchStart,
                 onTouchEnd,
-                title: "Double-click to copy",
+                title: "Double-click a line to copy it",
               }
             : {})}
         >
