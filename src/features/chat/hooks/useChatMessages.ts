@@ -287,11 +287,49 @@ export const useChatMessages = ({
     const regenTarget = messages[messageIndex];
     setActiveTurnKind(detectRegenKind(regenTarget, userMessage.content));
 
+    // Resend/regenerate semantics: everything below the retried answer is
+    // dropped so the retry becomes the last chat — for every model
+    // (provider-agnostic: history is rebuilt from DB + sliced at the retried
+    // user turn server-side). Best-effort prune first; the stream itself
+    // still excludes below-turns via existingUserMessageId.
+    try {
+      await apiFetch(
+        `/api/conversations/${conversationId}/messages/${messageId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pruneFollowing: true }),
+        }
+      );
+    } catch {
+      // Older server without prune-only support: fall back to the user-row
+      // prune (no-op content rewrite) when the turn has text.
+      try {
+        if (userMessage.content.trim()) {
+          await apiFetch(
+            `/api/conversations/${conversationId}/messages/${userMessage.id}`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                content: userMessage.content,
+                pruneFollowing: true,
+              }),
+            }
+          );
+        }
+      } catch {
+        // continue anyway — the stream slices history at the retried turn
+      }
+    }
+
     // Optimistically update the UI to show loading state for the assistant message
     setMessages((prev) => {
-      const next = [...prev];
-      next[messageIndex] = {
-        ...next[messageIndex],
+      const index = prev.findIndex((m) => m.id === messageId);
+      if (index === -1) return prev;
+      const next = [...prev.slice(0, index + 1)];
+      next[index] = {
+        ...next[index],
         content: "", // Clear content to show spinner/loading
         status: "STREAMING",
         model: plainModel,
@@ -364,24 +402,44 @@ export const useChatMessages = ({
     }
 
     // No answer row yet (previous attempt died before one was saved):
-    // append a fresh assistant slot and stream this message again.
+    // drop anything below the user turn, then stream it again as last chat.
     const fallbackModel = resolveModelForPrompt
       ? resolveModelForPrompt(userMessage.content)
       : model;
+    try {
+      await apiFetch(
+        `/api/conversations/${conversationId}/messages/${userMessage.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            userMessage.content.trim()
+              ? { content: userMessage.content, pruneFollowing: true }
+              : { pruneFollowing: true }
+          ),
+        }
+      );
+    } catch {
+      // best-effort — the fresh slot below is already last locally
+    }
     setStreaming(true);
     const tempAssistantId = `local-assistant-${Date.now()}`;
     setActiveStreamId(tempAssistantId);
     setActiveTurnKind(detectTurnKind(userMessage.content));
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: tempAssistantId,
-        role: "ASSISTANT",
-        content: "",
-        status: "STREAMING",
-        model: fallbackModel === "default" ? "default" : fallbackModel,
-      },
-    ]);
+    setMessages((prev) => {
+      const at = prev.findIndex((m) => m.id === userMessage.id);
+      const base = at === -1 ? prev : [...prev.slice(0, at + 1)];
+      return [
+        ...base,
+        {
+          id: tempAssistantId,
+          role: "ASSISTANT",
+          content: "",
+          status: "STREAMING",
+          model: fallbackModel === "default" ? "default" : fallbackModel,
+        },
+      ];
+    });
     try {
       await streamAssistant(setMessages, {
         tempAssistantId,
