@@ -345,6 +345,28 @@ pre code {
   padding-bottom: 0.1em;
 }
 
+/* AI collapsibles (<details>/<summary>): theme-aware, touch-friendly.
+   Rendered from literal details blocks in model output; summary is plain
+   text, body is full markdown. */
+.markdown .msg-details {
+  margin: 0.5em 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.375rem 0.625rem;
+  background: transparent;
+}
+.markdown .msg-summary {
+  cursor: pointer;
+  font-weight: 600;
+  list-style-position: inside;
+}
+.markdown .msg-summary::-webkit-details-marker {
+  color: var(--accent);
+}
+.markdown .msg-summary::marker {
+  color: var(--accent);
+}
+
 /* DeepSeek-style history sidebar: smooth width/transform, a11y focus, reduced-motion */
 #conversation-history {
   min-width: 0;

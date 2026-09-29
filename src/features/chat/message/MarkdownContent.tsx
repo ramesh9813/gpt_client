@@ -124,61 +124,139 @@ const MarkdownImage = ({ src, alt }: { src: string; alt: string }) => {
   );
 };
 
-export const MarkdownContent = ({ content }: { content: string }) => {
+const markdownComponents = {
+  a(props: any) {
+    const { children, node, ...rest } = props as any;
+    const safeHref = sanitizeHref(rest.href);
+    if (!safeHref) {
+      return <span className="msg-link-blocked">{children}</span>;
+    }
+    const isExternal = /^https?:\/\//i.test(safeHref);
+    return (
+      <a
+        {...rest}
+        href={safeHref}
+        target={isExternal ? "_blank" : undefined}
+        rel={isExternal ? "noopener noreferrer" : undefined}
+      >
+        {children}
+      </a>
+    );
+  },
+  img(props: any) {
+    const safeSrc = sanitizeImgSrc(props.src as string | undefined);
+    if (!safeSrc) return null;
+    const alt = typeof props.alt === "string" ? props.alt : "";
+    return <MarkdownImage src={safeSrc} alt={alt} />;
+  },
+  pre(props: any) {
+    return <div className="msg-md-pre">{props.children}</div>;
+  },
+  code(props: any) {
+    const { children, className, node, ...rest } = props;
+    if (className && /language-math|math-(inline|display)/.test(className)) {
+      return (
+        <code {...rest} className={className}>
+          {children}
+        </code>
+      );
+    }
+    const match = /language-(\w+)/.exec(className || "");
+    return match ? (
+      <CodeBlockWithRun language={match[1]} code={String(children)} />
+    ) : (
+      <code {...rest} className={className}>
+        {children}
+      </code>
+    );
+  },
+};
+
+const MarkdownBody = ({ content }: { content: string }) => {
   const normalized = useMemo(() => normalizeMath(content), [content]);
   return (
     <ReactMarkdown
       remarkPlugins={[remarkMath, remarkGfm]}
       rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]] as any}
-      components={{
-        a(props) {
-          const { children, node, ...rest } = props as any;
-          const safeHref = sanitizeHref(rest.href);
-          if (!safeHref) {
-            return <span className="msg-link-blocked">{children}</span>;
-          }
-          const isExternal = /^https?:\/\//i.test(safeHref);
-          return (
-            <a
-              {...rest}
-              href={safeHref}
-              target={isExternal ? "_blank" : undefined}
-              rel={isExternal ? "noopener noreferrer" : undefined}
-            >
-              {children}
-            </a>
-          );
-        },
-        img(props) {
-          const safeSrc = sanitizeImgSrc(props.src as string | undefined);
-          if (!safeSrc) return null;
-          const alt = typeof props.alt === "string" ? props.alt : "";
-          return <MarkdownImage src={safeSrc} alt={alt} />;
-        },
-        pre(props) {
-          return <div className="msg-md-pre">{props.children}</div>;
-        },
-        code(props) {
-          const { children, className, node, ...rest } = props;
-          if (className && /language-math|math-(inline|display)/.test(className)) {
-            return (
-              <code {...rest} className={className}>
-                {children}
-              </code>
-            );
-          }
-          const match = /language-(\w+)/.exec(className || "");
-          return match ? (
-            <CodeBlockWithRun language={match[1]} code={String(children)} />
-          ) : (
-            <code {...rest} className={className}>
-              {children}
-            </code>
-          );
-        }
-      }}
+      components={markdownComponents as any}
     >
       {normalized}
     </ReactMarkdown>
+  );
+};
+
+/**
+ * <details>/<summary> collapsibles: react-markdown escapes raw HTML, so AI
+ * answers using details blocks render as literal "<details>" text. Split
+ * them out and render real <details> elements instead — summary as plain
+ * text (tags stripped, no attributes survive), body as full markdown
+ * (recursion handles nesting). Unclosed/malformed tags match nothing and
+ * keep the old literal-text behavior.
+ */
+const DETAILS_RE = /<details\b[^>]*>[\s\S]*?<\/details\s*>/gi;
+
+type DetailsPart = { open: boolean; summary: string; body: string };
+
+const parseDetails = (block: string): DetailsPart | null => {
+  const m = block.match(/^<details\b([^>]*)>([\s\S]*?)<\/details\s*>$/i);
+  if (!m) return null;
+  const open = /\bopen\b/i.test(m[1]);
+  const inner = m[2];
+  const s = inner.match(/<summary\b[^>]*>([\s\S]*?)<\/summary\s*>/i);
+  const summary =
+    (s ? s[1].replace(/<[^<>]*>/g, "") : "").trim() || "Details";
+  const body = (s ? inner.replace(s[0], "") : inner).trim();
+  return { open, summary, body };
+};
+
+type ContentPart = { key: string; text: string; details: DetailsPart | null };
+
+const splitDetails = (content: string): ContentPart[] => {
+  DETAILS_RE.lastIndex = 0;
+  const out: ContentPart[] = [];
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let i = 0;
+  while ((m = DETAILS_RE.exec(content)) !== null) {
+    if (m.index > last) {
+      out.push({ key: `t${i++}`, text: content.slice(last, m.index), details: null });
+    }
+    const parsed = parseDetails(m[0]);
+    out.push({
+      key: `d${i++}`,
+      text: "",
+      details: parsed ?? { open: false, summary: "Details", body: "" },
+    });
+    last = m.index + m[0].length;
+  }
+  if (last < content.length) {
+    out.push({ key: `t${i++}`, text: content.slice(last), details: null });
+  }
+  return out.length > 0 ? out : [{ key: "t0", text: content, details: null }];
+};
+
+export const MarkdownContent = ({ content }: { content: string }) => {
+  const parts = useMemo(() => splitDetails(content), [content]);
+  // No <details> tags → single markdown part → output identical to before.
+  if (parts.length === 1 && !parts[0].details) {
+    return <MarkdownBody content={parts[0].text} />;
+  }
+  return (
+    <>
+      {parts.map((p) =>
+        p.details ? (
+          <details
+            key={p.key}
+            className="msg-details"
+            open={p.details.open || undefined}
+          >
+            <summary className="msg-summary">{p.details.summary}</summary>
+            <MarkdownBody content={p.details.body} />
+          </details>
+        ) : (
+          <MarkdownBody key={p.key} content={p.text} />
+        )
+      )}
+    </>
   );
 };
