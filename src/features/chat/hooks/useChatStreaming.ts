@@ -555,13 +555,16 @@ export const useChatStreaming = () => {
     cancelRef.current = true;
     abortControllerRef.current?.abort();
     setStreaming(false);
-    if (activeStreamId) {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === activeStreamId ? { ...m, status: "COMPLETE" } : m
-        )
-      );
-    }
+    // Fully interrupted: clear EVERY streaming row, not just the active id.
+    // A background refetch can swap temp ids for real ones mid-stream, which
+    // would orphan the stop target and leave three-dot animations forever.
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === activeStreamId || m.status === "STREAMING"
+          ? { ...m, status: "COMPLETE" }
+          : m
+      )
+    );
     setActiveStreamId(null);
   };
 

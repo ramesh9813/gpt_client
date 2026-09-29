@@ -71,6 +71,11 @@ export const useChatMessages = ({
     staleTime: 1000 * 30,
     gcTime: 1000 * 60 * 10,
     refetchOnMount: true,
+    // Never refetch under a live stream (e.g. app-switch focus): the DB rows
+    // carry real ids while local rows carry temp ids, so a mid-stream swap
+    // orphans both the token target and the stop target — tokens vanish and
+    // the typing dots can never clear. Settles reconcile via invalidate.
+    refetchOnWindowFocus: false,
   });
 
   useEffect(() => {
