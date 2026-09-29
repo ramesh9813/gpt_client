@@ -1,6 +1,6 @@
 // File chat helpers — client side.
-// 20MB per file, 5 files max. Reads text/code directly; binary (pdf/audio)
-// is summarized so every pick still chats without breaking.
+// 20MB per file, 5 files max. Reads text/code directly; PDFs via pdfjs-dist
+// text extraction, audio via on-device Whisper transcription.
 
 export const MAX_FILE_SIZE = 20 * 1024 * 1024;
 export const MAX_FILES = 5;
@@ -53,6 +53,68 @@ const readAsArrayBuffer = (file: File): Promise<ArrayBuffer> =>
     r.readAsArrayBuffer(file);
   });
 
+// Real PDF text extraction via pdfjs-dist (handles compressed/encoded PDFs
+// the naive byte-decode below cannot read). Lazy-imported so the pdf chunk
+// only loads on first PDF attach. Caps pages for mobile safety.
+const extractPdfText = async (buf: ArrayBuffer): Promise<string> => {
+  const pdfjs = (await import("pdfjs-dist")) as any;
+  if (!pdfjs?.GlobalWorkerOptions?.workerSrc) {
+    const workerMod = (await import(
+      "pdfjs-dist/build/pdf.worker.min.mjs?url"
+    )) as any;
+    pdfjs.GlobalWorkerOptions.workerSrc =
+      workerMod?.default ?? workerMod;
+  }
+  const doc = await pdfjs.getDocument({ data: new Uint8Array(buf.slice(0)) }).promise;
+  try {
+    const parts: string[] = [];
+    const pages = Math.min(doc.numPages ?? 0, 50);
+    for (let i = 1; i <= pages; i++) {
+      const page = await doc.getPage(i);
+      try {
+        const tc = await page.getTextContent();
+        const line = (tc?.items ?? [])
+          .map((it: any) => (typeof it?.str === "string" ? it.str : ""))
+          .join(" ");
+        if (line.trim()) parts.push(line);
+      } finally {
+        try {
+          page.cleanup?.();
+        } catch {}
+      }
+      if (parts.join("\n").length >= 80_000) break;
+    }
+    return parts.join("\n\n").replace(/[ \t]+\n/g, "\n").trim();
+  } finally {
+    try {
+      await doc.destroy?.();
+    } catch {}
+  }
+};
+
+// Audio understanding: transcribe the file on-device with the same Whisper
+// (WASM) pipeline the mic uses — no key, no upload. First 3 min only for
+// mobile RAM safety; null when undecodable so the caller keeps the old
+// meta-only placeholder instead of failing the attach.
+const transcribeAudioFile = async (file: File): Promise<string | null> => {
+  try {
+    const { blobToSpeechAudio, transcribeSpeechAudio } = await import(
+      "../features/chat/voice/whisper"
+    );
+    const audio = await blobToSpeechAudio(file);
+    if (!audio || audio.length === 0) return null;
+    const MAX_SAMPLES = 16000 * 180;
+    const slice =
+      audio.length > MAX_SAMPLES ? audio.slice(0, MAX_SAMPLES) : audio;
+    const text = await transcribeSpeechAudio(slice);
+    if (!text || !text.trim()) return null;
+    const truncated = audio.length > MAX_SAMPLES ? " (first 3 min)" : "";
+    return `[transcribed audio${truncated}]: ${text.trim()}`.slice(0, 80_000);
+  } catch {
+    return null;
+  }
+};
+
 // Heuristic: >10% replacement chars or >5% NUL => binary
 const looksBinary = (s: string): boolean => {
   if (s.includes("\u0000")) return true;
@@ -69,15 +131,31 @@ export const readFileAttachment = async (file: File): Promise<FileAttachment> =>
   if (size > MAX_FILE_SIZE) throw new Error(`"${name}" exceeds 20MB`);
   if (name.length > MAX_FILE_NAME_LENGTH) throw new Error("Filename too long");
 
-  // Audio: keep as meta-only — no transcription here.
+  // Audio: transcribe on-device (same Whisper pipeline as mic input) so the
+  // model actually understands the clip. Falls back to the meta-only note
+  // when undecodable or transcription unavailable.
   if (mime.startsWith("audio/") || ["mp3","wav","m4a","ogg","flac","aac","wma","opus"].includes(extOf(name))) {
-    return { name, mime, size, content: `[audio file: ${name} (${mime}, ${Math.round(size / 1024)}KB) — audio content not transcribed; describe what you need about it]` };
+    const transcript = await transcribeAudioFile(file);
+    if (transcript) {
+      return { name, mime, size, content: `[audio file: ${name} (${mime}, ${Math.round(size / 1024)}KB)]\n${transcript}` };
+    }
+    return { name, mime, size, content: `[audio file: ${name} (${mime}, ${Math.round(size / 1024)}KB) — audio could not be transcribed on this device; describe what you need about it]` };
   }
 
-  // PDF: try text decode; fall back to meta note
+  // PDF: real text extraction via pdfjs-dist first; naive byte-decode, then
+  // meta note, as fallbacks.
   if (mime === "application/pdf" || extOf(name) === "pdf") {
     try {
       const buf = await readAsArrayBuffer(file);
+      try {
+        const text = await extractPdfText(buf);
+        if (text.trim().length >= 24) {
+          const cleaned = text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+          return { name, mime, size, content: `[PDF: ${name}]\n${cleaned.slice(0, 80_000)}` };
+        }
+      } catch {
+        // fall through to naive decode below
+      }
       const dec = new TextDecoder("utf-8", { fatal: false }).decode(buf);
       // Naive: extract strings between parentheses / after Tj — good enough for chat context
       // If mostly binary, keep short placeholder.
