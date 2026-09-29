@@ -333,6 +333,17 @@ pre code {
 .katex .mpunct {
   color: inherit;
 }
+/* Fraction breathing room: superscripts in a numerator/denominator
+   (e.g. the 2 in r^2 for F = Gmm/r^2) must clear the vinculum — never
+   touch/overlap it. Margins (not inline-styled by KaTeX) push the rows apart. */
+.markdown .katex .mfrac .frac-line {
+  margin-top: 0.09em;
+  margin-bottom: 0.09em;
+}
+.markdown .katex .mfrac > .vlist-t {
+  padding-top: 0.1em;
+  padding-bottom: 0.1em;
+}
 
 /* DeepSeek-style history sidebar: smooth width/transform, a11y focus, reduced-motion */
 #conversation-history {
