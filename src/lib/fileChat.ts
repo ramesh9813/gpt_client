@@ -92,24 +92,17 @@ const extractPdfText = async (buf: ArrayBuffer): Promise<string> => {
   }
 };
 
-// Audio understanding: transcribe the file on-device with the same Whisper
-// (WASM) pipeline the mic uses — no key, no upload. First 3 min only for
-// mobile RAM safety; null when undecodable so the caller keeps the old
-// meta-only placeholder instead of failing the attach.
+// Audio understanding: chosen cloud transcriber when one is set + keyed,
+// else the on-device default (same pipeline as the mic). First 3 min only
+// for device-side mobile RAM safety; null when undecodable so the caller
+// keeps the old meta-only placeholder instead of failing the attach.
 const transcribeAudioFile = async (file: File): Promise<string | null> => {
   try {
-    const { blobToSpeechAudio, transcribeSpeechAudio } = await import(
-      "../features/chat/voice/whisper"
-    );
-    const audio = await blobToSpeechAudio(file);
-    if (!audio || audio.length === 0) return null;
-    const MAX_SAMPLES = 16000 * 180;
-    const slice =
-      audio.length > MAX_SAMPLES ? audio.slice(0, MAX_SAMPLES) : audio;
-    const text = await transcribeSpeechAudio(slice);
-    if (!text || !text.trim()) return null;
-    const truncated = audio.length > MAX_SAMPLES ? " (first 3 min)" : "";
-    return `[transcribed audio${truncated}]: ${text.trim()}`.slice(0, 80_000);
+    const { transcribeAudioBlob } = await import("./transcribe");
+    const result = await transcribeAudioBlob(file);
+    if (!result) return null;
+    const truncated = result.truncated ? " (first 3 min)" : "";
+    return `[transcribed audio${truncated}]: ${result.text}`.slice(0, 80_000);
   } catch {
     return null;
   }

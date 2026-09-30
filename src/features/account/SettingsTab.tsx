@@ -38,6 +38,7 @@ import {
 import { useSettingsModels } from "./useSettingsModels";
 import { SettingsModelsFields } from "./SettingsModelsFields";
 import { ByokCard } from "./ByokCard";
+import { TranscribeCard } from "./TranscribeCard";
 
 export type { SettingsFormValues } from "./settingsForm";
 
@@ -150,6 +151,7 @@ export const SettingsTab = () => {
           saves to the DB). Shown right under the header since it also drives
           which model list the chat composer displays. */}
       <ByokCard />
+      <TranscribeCard />
       <form onSubmit={handleSubmit(onSubmit)} className="account-stack-lg">
         <div className="account-card">
           <h3 className="account-card-title">Appearance</h3>

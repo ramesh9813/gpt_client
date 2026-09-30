@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  blobToSpeechAudio,
-  loadTranscriber,
-  transcribeSpeechAudio,
-} from "../voice/whisper";
+  getActiveTranscriber,
+  savedKeyForProvider,
+  transcribeAudioBlob,
+} from "../../../lib/transcribe";
+import { loadTranscriber } from "../voice/whisper";
 
 export type VoicePhase = "idle" | "loading" | "recording" | "processing";
 
@@ -53,15 +54,23 @@ export const useVoiceInput = ({
     }
     setError(null);
 
-    // 1. Model first (one-time ~150MB download, cached afterwards).
-    setPhase("loading");
-    setProgress(0);
-    try {
-      await loadTranscriber((p) => setProgress(p));
-    } catch {
-      setPhase("idle");
-      setError("Could not load the speech model. Check connection and retry.");
-      return;
+    // Cloud transcriber chosen (provider + key saved) needs no local model —
+    // skip the ~150MB download and go straight to the mic.
+    const cloudActive = (() => {
+      const active = getActiveTranscriber();
+      return !!active && !!savedKeyForProvider(active.provider);
+    })();
+    if (!cloudActive) {
+      // 1. Model first (one-time ~150MB download, cached afterwards).
+      setPhase("loading");
+      setProgress(0);
+      try {
+        await loadTranscriber((p) => setProgress(p));
+      } catch {
+        setPhase("idle");
+        setError("Could not load the speech model. Check connection and retry.");
+        return;
+      }
     }
 
     // 2. Then the mic.
@@ -98,11 +107,11 @@ export const useVoiceInput = ({
     });
     stopStream();
     try {
-      const audio = await blobToSpeechAudio(blob);
-      const text = await transcribeSpeechAudio(audio);
+      // Cloud transcriber when one is chosen + keyed, else on-device default.
+      const result = await transcribeAudioBlob(blob);
       setPhase("idle");
-      if (text) {
-        onTranscriptRef.current(text);
+      if (result?.text) {
+        onTranscriptRef.current(result.text);
       } else {
         setError("Could not hear anything. Try again.");
       }
