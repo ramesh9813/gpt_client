@@ -61,37 +61,57 @@ export const AdminUsersTab = ({ selfId }: { selfId?: string }) => {
           <span className="account-check-hint">Loading users…</span>
         ) : isError ? (
           <span className="account-check-hint">Could not load users.</span>
-        ) : users.length === 0 ? (
-          <span className="account-check-hint">No users found.</span>
         ) : (
-          <div className="admin-user-list">
-            {users.map((u) => (
-              <div key={u.id} className="account-card admin-user-row">
-                <div className="admin-user-info">
-                  <div className="account-profile-name">{u.name || u.email}</div>
-                  <div className="account-profile-email">{u.email}</div>
-                </div>
-                {u.role === "owner" || u.id === selfId ? (
-                  <span className="admin-user-role-pill">owner</span>
+          <div className="account-table-wrap">
+            <table className="account-table">
+              <thead className="account-table-head">
+                <tr>
+                  <th className="account-table-th">Name / Email</th>
+                  <th className="account-table-th">Role</th>
+                </tr>
+              </thead>
+              <tbody className="account-table-body">
+                {users.length === 0 ? (
+                  <tr>
+                    <td colSpan={2} className="account-table-empty">
+                      No users found.
+                    </td>
+                  </tr>
                 ) : (
-                  <select
-                    className="account-select admin-user-role-select"
-                    value={u.role}
-                    disabled={mutation.isPending}
-                    aria-label={`Role for ${u.email}`}
-                    onChange={(e) =>
-                      mutation.mutate({
-                        id: u.id,
-                        role: e.target.value as "user" | "admin",
-                      })
-                    }
-                  >
-                    <option value="user">user</option>
-                    <option value="admin">admin</option>
-                  </select>
+                  users.map((u) => (
+                    <tr key={u.id} className="account-table-row">
+                      <td className="account-table-td">
+                        <div className="account-profile-name">
+                          {u.name || u.email}
+                        </div>
+                        <div className="account-profile-email">{u.email}</div>
+                      </td>
+                      <td className="account-table-td">
+                        {u.role === "owner" || u.id === selfId ? (
+                          <span className="admin-user-role-pill">owner</span>
+                        ) : (
+                          <select
+                            className="account-select admin-user-role-select"
+                            value={u.role}
+                            disabled={mutation.isPending}
+                            aria-label={`Role for ${u.email}`}
+                            onChange={(e) =>
+                              mutation.mutate({
+                                id: u.id,
+                                role: e.target.value as "user" | "admin",
+                              })
+                            }
+                          >
+                            <option value="user">user</option>
+                            <option value="admin">admin</option>
+                          </select>
+                        )}
+                      </td>
+                    </tr>
+                  ))
                 )}
-              </div>
-            ))}
+              </tbody>
+            </table>
           </div>
         )}
         {mutation.isError ? (

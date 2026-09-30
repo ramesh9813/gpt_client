@@ -163,6 +163,31 @@
   z-index: 30;
 }
 
+/* Folder three-dot menu reuses the same 8px gap-bridge concept so the
+   pointer can travel from the button down to the pop card without leaving
+   the menu container. The wider ~80px / ~350ms hover tolerance itself lives
+   in JS (FolderSection FolderMenu + ConversationRow) and is scoped to
+   hover-capable pointers; this invisible bridge only covers the physical
+   gap and never changes menu contents or positioning. */
+.conv-side-folder-menu-bridge {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  height: 8px;
+  background: transparent;
+  z-index: 30;
+}
+
+/* Touch devices keep exact tap behavior: hide the folder-only bridge there
+   (the folder menu had no bridge before), while the pre-existing conv
+   bridge is left untouched. */
+@media (hover: none) {
+  .conv-side-folder-menu-bridge {
+    display: none;
+  }
+}
+
 .conv-side-conv-dropdown {
   margin-top: 0;
 }

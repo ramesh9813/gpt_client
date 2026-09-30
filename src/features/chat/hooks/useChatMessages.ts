@@ -44,7 +44,7 @@ export const useChatMessages = ({
   // Live phase of the in-flight turn for the "what is happening" status.
   const [activeTurnKind, setActiveTurnKind] = useState<TurnKind | null>(null);
   const messageSchema = useMemo(
-    () => z.string().min(1, "Message is required").max(8000, "Message too long"),
+    () => z.string().min(1, "Message is required"),
     []
   );
 

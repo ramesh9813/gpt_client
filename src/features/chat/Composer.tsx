@@ -10,7 +10,7 @@ import type { ModelOption, SortOption } from "./composer/ModelMenu";
 import { useComposerImages } from "./composer/useComposerImages";
 import { useDeviceImages } from "./composer/useDeviceImages";
 import { requestListScroll, subscribeListScrollState, type ListScrollState } from "./messagelist/scrollBus";
-import { useVoiceInput } from "./composer/useVoiceInput";
+import { useVoiceInput } from "./hooks/useVoiceInput";
 import { useCameraCapture } from "./composer/useCameraCapture";
 import { useComposerArmed, useComposerText } from "./composer/useComposerText";
 import { useComposerFiles } from "./composer/useComposerFiles";
@@ -171,15 +171,27 @@ const Composer = ({
     if (showRecents) void ensureDeviceImages(true);
   }, [showRecents, ensureDeviceImages]);
 
-  const { listening, listenError, speechSupported, startListening, stopListening } =
-    useVoiceInput({
-      disabled,
-      streaming,
-      compressing,
-      onTranscript: (text) => {
-        setValue(text);
-      },
-    });
+  // Record-then-transcribe (on-device Whisper): tap mic → RECORDING,
+  // tap mic again → PROCESSING (whole clip decoded + transcribed), then the
+  // full transcript lands in the textarea for review before send.
+  const {
+    phase: voicePhase,
+    progress: voiceProgress,
+    error: voiceError,
+    supported: speechSupported,
+    start: startVoice,
+    stop: stopVoice,
+  } = useVoiceInput({
+    disabled,
+    streaming,
+    compressing,
+    onTranscript: (text) => {
+      setValue(text);
+    },
+  });
+  const voiceRecording = voicePhase === "recording";
+  const voiceProcessing =
+    voicePhase === "processing" || voicePhase === "loading";
   const {
     videoRef,
     cameraOpen,
@@ -340,9 +352,11 @@ const Composer = ({
         <input ref={filePickRef} type="file" multiple hidden aria-hidden="true" tabIndex={-1} onChange={(e) => void addFiles(e.target.files)} />
 
         <ComposerStatus
-          listening={listening}
+          listening={voiceRecording}
+          processing={voiceProcessing}
+          progress={voiceProgress}
           error={error}
-          listenError={listenError}
+          listenError={voiceError}
         />
 
         {estimateCount > 0 && (
@@ -418,9 +432,16 @@ const Composer = ({
             onCameraToggle={() => setCameraOpen((prev) => !prev)}
             mcqArmed={mcqArmed}
             onQuizClick={() => setMcqArmed((prev) => !prev)}
-            listening={listening}
+            listening={voiceRecording}
+            processing={voiceProcessing}
             speechSupported={speechSupported}
-            onMicClick={() => (listening ? stopListening() : startListening())}
+            onMicClick={() =>
+              voiceRecording
+                ? void stopVoice()
+                : voicePhase === "idle"
+                  ? void startVoice()
+                  : undefined
+            }
             canSend={canSend}
             streaming={streaming}
             onStop={onStop}

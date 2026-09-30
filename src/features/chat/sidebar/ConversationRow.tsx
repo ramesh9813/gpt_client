@@ -1,7 +1,28 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Dropdown } from "../../../components/Dropdown";
 import { IconButton } from "../../../components/IconButton";
 import type { Conversation, Folder } from "./types";
+
+// Hover tolerance for laptop/desktop fine pointers: the three-dot button and
+// the pop card are separated by a small gap, so a straight `onMouseLeave`
+// close fires while the pointer is still en route. We keep the menu open for
+// a short delay and cancel the close while the pointer stays within an
+// expanded (~80px) zone around the menu/button area. Touch devices
+// (`hover: none`) bypass all of this and close immediately, as before.
+const CONV_MENU_HOVER_TOLERANCE_PX = 80;
+const CONV_MENU_CLOSE_DELAY_MS = 350;
+
+function isHoverCapablePointer(): boolean {
+  try {
+    return (
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(hover: hover)").matches
+    );
+  } catch {
+    return false;
+  }
+}
 
 export interface ConversationRowProps {
   conversation: Conversation;
@@ -38,6 +59,65 @@ export function ConversationRow({
   useEffect(() => {
     if (!isOpen) setMoveOpen(false);
   }, [isOpen]);
+
+  // Delayed, proximity-tolerant close for hover pointers only.
+  const menuRef = useRef<HTMLDivElement>(null);
+  const closeTimerRef = useRef<number | null>(null);
+  const moveListenerRef = useRef<((e: MouseEvent) => void) | null>(null);
+
+  const cancelPendingClose = () => {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    if (moveListenerRef.current) {
+      window.removeEventListener("mousemove", moveListenerRef.current);
+      moveListenerRef.current = null;
+    }
+  };
+
+  // Drop any pending close when the menu closes externally or unmounts.
+  useEffect(() => {
+    if (!isOpen) cancelPendingClose();
+  }, [isOpen]);
+  useEffect(() => {
+    return () => cancelPendingClose();
+  }, []);
+
+  const handleMenuMouseEnter = () => {
+    if (!isHoverCapablePointer()) return;
+    cancelPendingClose();
+  };
+
+  const handleMenuMouseLeave = () => {
+    // Touch: preserve exact tap behavior (immediate close).
+    if (!isHoverCapablePointer()) {
+      onCloseMenu();
+      return;
+    }
+    cancelPendingClose();
+    const onMove = (e: MouseEvent) => {
+      const el = menuRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const within =
+        e.clientX >= r.left - CONV_MENU_HOVER_TOLERANCE_PX &&
+        e.clientX <= r.right + CONV_MENU_HOVER_TOLERANCE_PX &&
+        e.clientY >= r.top - CONV_MENU_HOVER_TOLERANCE_PX &&
+        e.clientY <= r.bottom + CONV_MENU_HOVER_TOLERANCE_PX;
+      if (within) cancelPendingClose();
+    };
+    moveListenerRef.current = onMove;
+    window.addEventListener("mousemove", onMove);
+    closeTimerRef.current = window.setTimeout(() => {
+      if (moveListenerRef.current) {
+        window.removeEventListener("mousemove", moveListenerRef.current);
+        moveListenerRef.current = null;
+      }
+      closeTimerRef.current = null;
+      onCloseMenu();
+    }, CONV_MENU_CLOSE_DELAY_MS);
+  };
   return (
     <div
       key={conversation.id}
@@ -67,8 +147,10 @@ export function ConversationRow({
         <span className="conv-tuning-dot conv-tuning-dot--placeholder" aria-hidden="true" />
       )}
       <div
+        ref={menuRef}
         className={`conv-side-conv-menu ${menuOpen === conversation.id ? "conv-side-conv-menu--open" : "conv-side-conv-menu--closed"}`}
-        onMouseLeave={onCloseMenu}
+        onMouseEnter={handleMenuMouseEnter}
+        onMouseLeave={handleMenuMouseLeave}
       >
         <IconButton
           onClick={() => onToggleMenu(conversation.id)}

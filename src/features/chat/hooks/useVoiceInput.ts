@@ -5,15 +5,26 @@ import {
   transcribeSpeechAudio,
 } from "../voice/whisper";
 
-export type VoicePhase = "idle" | "loading" | "recording" | "transcribing";
+export type VoicePhase = "idle" | "loading" | "recording" | "processing";
 
 type UseVoiceInputOptions = {
   onTranscript: (text: string) => void;
+  disabled?: boolean;
+  streaming?: boolean;
+  compressing?: boolean;
 };
 
+// Record-then-transcribe: tap mic → RECORDING, tap mic/stop again →
+// PROCESSING (decode + transcribe the WHOLE clip), then the full transcript
+// is placed into the composer via onTranscript for review before send.
 // Offline push-to-talk: MediaRecorder captures mic audio, Whisper (WASM,
 // on-device) transcribes it. No Google service involved, so no system toasts.
-export const useVoiceInput = ({ onTranscript }: UseVoiceInputOptions) => {
+export const useVoiceInput = ({
+  onTranscript,
+  disabled,
+  streaming,
+  compressing,
+}: UseVoiceInputOptions) => {
   const [phase, setPhase] = useState<VoicePhase>("idle");
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +45,8 @@ export const useVoiceInput = ({ onTranscript }: UseVoiceInputOptions) => {
   };
 
   const start = async () => {
+    if (disabled || streaming || compressing) return;
+    if (recorderRef.current?.state === "recording") return;
     if (!supported) {
       setError("Voice input is not supported on this device.");
       return;
@@ -72,7 +85,8 @@ export const useVoiceInput = ({ onTranscript }: UseVoiceInputOptions) => {
   const stop = async () => {
     const recorder = recorderRef.current;
     if (!recorder || recorder.state === "inactive") return;
-    setPhase("transcribing");
+    // Recording stopped → PROCESSING: decode + transcribe the WHOLE clip.
+    setPhase("processing");
     const blob = await new Promise<Blob>((resolve) => {
       recorder.onstop = () =>
         resolve(

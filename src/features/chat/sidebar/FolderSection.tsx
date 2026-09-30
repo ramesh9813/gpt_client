@@ -1,8 +1,122 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Input } from "../../../components/Input";
 import { Dropdown } from "../../../components/Dropdown";
 import { IconButton } from "../../../components/IconButton";
 import type { Conversation, Folder } from "./types";
+
+// Hover tolerance for laptop/desktop fine pointers (mirrors ConversationRow):
+// keep the folder pop card open while the pointer is within ~80px of the
+// menu/button area, plus a short ~350ms close delay cancelled on re-enter.
+// Touch devices (`hover: none`) close immediately, exactly as before.
+const FOLDER_MENU_HOVER_TOLERANCE_PX = 80;
+const FOLDER_MENU_CLOSE_DELAY_MS = 350;
+
+function isHoverCapablePointer(): boolean {
+  try {
+    return (
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(hover: hover)").matches
+    );
+  } catch {
+    return false;
+  }
+}
+
+function FolderMenu({
+  folderId,
+  isOpen,
+  onToggle,
+  onClose,
+  children,
+}: {
+  folderId: string;
+  isOpen: boolean;
+  onToggle: (id: string) => void;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const closeTimerRef = useRef<number | null>(null);
+  const moveListenerRef = useRef<((e: MouseEvent) => void) | null>(null);
+
+  const cancelPendingClose = () => {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    if (moveListenerRef.current) {
+      window.removeEventListener("mousemove", moveListenerRef.current);
+      moveListenerRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen) cancelPendingClose();
+  }, [isOpen]);
+  useEffect(() => {
+    return () => cancelPendingClose();
+  }, []);
+
+  const handleMouseEnter = () => {
+    if (!isHoverCapablePointer()) return;
+    cancelPendingClose();
+  };
+
+  const handleMouseLeave = () => {
+    // Touch: preserve exact tap behavior (immediate close).
+    if (!isHoverCapablePointer()) {
+      onClose();
+      return;
+    }
+    cancelPendingClose();
+    const onMove = (e: MouseEvent) => {
+      const el = menuRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const within =
+        e.clientX >= r.left - FOLDER_MENU_HOVER_TOLERANCE_PX &&
+        e.clientX <= r.right + FOLDER_MENU_HOVER_TOLERANCE_PX &&
+        e.clientY >= r.top - FOLDER_MENU_HOVER_TOLERANCE_PX &&
+        e.clientY <= r.bottom + FOLDER_MENU_HOVER_TOLERANCE_PX;
+      if (within) cancelPendingClose();
+    };
+    moveListenerRef.current = onMove;
+    window.addEventListener("mousemove", onMove);
+    closeTimerRef.current = window.setTimeout(() => {
+      if (moveListenerRef.current) {
+        window.removeEventListener("mousemove", moveListenerRef.current);
+        moveListenerRef.current = null;
+      }
+      closeTimerRef.current = null;
+      onClose();
+    }, FOLDER_MENU_CLOSE_DELAY_MS);
+  };
+
+  return (
+    <div
+      ref={menuRef}
+      className={`conv-side-folder-menu ${isOpen ? "conv-side-folder-menu--open" : "conv-side-folder-menu--closed"}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <IconButton
+        className="conv-side-folder-menu-btn"
+        onClick={() => onToggle(folderId)}
+        aria-label="Folder options"
+        title="Folder options"
+      >
+        <i className="bi bi-three-dots"></i>
+      </IconButton>
+      {isOpen && (
+        <div className="conv-side-menu-bridge conv-side-folder-menu-bridge" aria-hidden="true" />
+      )}
+      <Dropdown open={isOpen} className="conv-side-folder-dropdown">
+        {children}
+      </Dropdown>
+    </div>
+  );
+}
 
 export interface FolderSectionProps {
   folders: Folder[];
@@ -144,17 +258,12 @@ export function FolderSection({
                   </span>
                 )}
               </div>
-              <div className={`conv-side-folder-menu ${folderMenuOpen === folder.id ? "conv-side-folder-menu--open" : "conv-side-folder-menu--closed"}`}
-                onMouseLeave={onCloseFolderMenu}>
-                <IconButton
-                  className="conv-side-folder-menu-btn"
-                  onClick={() => onToggleFolderMenu(folder.id)}
-                  aria-label="Folder options"
-                  title="Folder options"
-                >
-                  <i className="bi bi-three-dots"></i>
-                </IconButton>
-                <Dropdown open={folderMenuOpen === folder.id} className="conv-side-folder-dropdown">
+              <FolderMenu
+                folderId={folder.id}
+                isOpen={folderMenuOpen === folder.id}
+                onToggle={onToggleFolderMenu}
+                onClose={onCloseFolderMenu}
+              >
                   <button
                     className="conv-side-dropdown-item conv-side-dropdown-item--with-icon"
                     onClick={() => {
@@ -187,8 +296,7 @@ export function FolderSection({
                   >
                     Delete folder
                   </button>
-                </Dropdown>
-              </div>
+              </FolderMenu>
             </div>
             {isOpen && (
               <div className="conv-side-folder-children">

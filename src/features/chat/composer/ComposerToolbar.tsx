@@ -50,6 +50,7 @@ export interface ComposerToolbarProps {
   onCameraToggle: () => void;
   onQuizClick: () => void;
   listening: boolean;
+  processing?: boolean;
   speechSupported: boolean;
   onMicClick: () => void;
   canSend: boolean;
@@ -111,6 +112,7 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
     onCameraToggle,
     onQuizClick,
     listening,
+    processing = false,
     speechSupported,
     onMicClick,
     canSend,
@@ -282,16 +284,39 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
     {speechSupported && (
       <Button
         onClick={onMicClick}
-        disabled={disabled || streaming || compressing}
+        disabled={disabled || streaming || compressing || processing}
         variant="ghost"
         className={`composer-mic-btn ${
           listening ? "composer-mic-btn-listening" : ""
-        }`}
-        aria-label={listening ? "Stop listening" : "Voice input"}
-        title={listening ? "Stop listening" : "Voice input"}
+        }${processing ? " composer-mic-btn-listening" : ""}`}
+        aria-label={
+          processing
+            ? "Processing voice input"
+            : listening
+              ? "Stop recording"
+              : "Voice input"
+        }
+        title={
+          processing
+            ? "Processing voice input"
+            : listening
+              ? "Stop recording"
+              : "Voice input"
+        }
         type="button"
       >
-        <i className={`bi ${listening ? "bi-mic-fill" : "bi-mic"} composer-mic-icon`} aria-hidden="true" />
+        {/* RECORDING → red pulsing mic; PROCESSING → visible spinner icon
+            while the whole clip is decoded + transcribed; idle → mic. */}
+        <i
+          className={`bi ${
+            processing
+              ? "bi-hourglass-split"
+              : listening
+                ? "bi-mic-fill"
+                : "bi-mic"
+          } composer-mic-icon`}
+          aria-hidden="true"
+        />
       </Button>
     )}
     {streaming ? (
