@@ -171,10 +171,10 @@ export const ByokCard = () => {
         : effectiveSupported
           ? apiKey.trim()
           : undefined;
-    if (!provider.modelsPublic && !withKey) {
-      setModelsNote(`Enter your ${provider.name} API key (format is checked live) to load its live model list.`);
-      return;
-    }
+    // Always attempt the live list on select — many OpenAI-compatible
+    // endpoints serve /models openly, so URL-added providers (which carry
+    // no fallback list) populate with zero typing. The key prompt below
+    // only shows when truly empty-handed.
     const seq = ++fetchSeq.current;
     setModelsLoading(true);
     setModelsNote(null);
@@ -187,7 +187,12 @@ export const ByokCard = () => {
           setFreeModelsByProvider((prev) => ({ ...prev, [provider.id]: fetchedFree }));
           setModel((prev) => (models.includes(prev) ? prev : models[0]));
         } else {
-          setModelsNote(message ?? "Could not load the live list — showing a built-in shortlist.");
+          setModelsNote(
+            message ??
+              (!withKey && !provider.modelsPublic
+                ? `Enter your ${provider.name} API key (format is checked live) to load its live model list.`
+                : "Could not load the live list — showing a built-in shortlist.")
+          );
           if (provider.models.length > 0) setModel((prev) => prev || provider.models[0]);
         }
       })
