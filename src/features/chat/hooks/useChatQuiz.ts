@@ -31,10 +31,12 @@ export const useChatQuiz = ({
     [conversationId, setMessages]
   );
 
+  // Next round sends only the short continuation text — the server
+  // resolves the topic from this conversation's latest quiz (history binds
+  // the context), so the full prompt is never re-sent by the client.
   const handleNextRound = useCallback(
-    (topic: string) => {
-      const t = topic?.trim() ?? "";
-      void sendMessage(t ? `mcq ${t}` : "mcq");
+    (_topic: string) => {
+      void sendMessage("mcq next round");
     },
     [sendMessage]
   );
