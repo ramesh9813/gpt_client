@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "../../components/Button";
 import { apiFetch, ApiResponse } from "../../lib/api";
 import { UsageChart, UsageLog } from "../settings/UsageChart";
+import { ProviderUsageChart } from "../settings/ProviderUsageChart";
 
 export const UsageTab = () => {
   const { data: usageData } = useQuery({
@@ -118,6 +119,10 @@ export const UsageTab = () => {
 
       <div className="account-chart-card">
         <UsageChart logs={logs} />
+      </div>
+
+      <div className="account-chart-card">
+        <ProviderUsageChart logs={logs} />
       </div>
 
       <div>
