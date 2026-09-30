@@ -19,25 +19,45 @@ type ProviderRow = {
 };
 
 const emptyForm = {
-  id: "",
-  name: "",
   baseUrl: "",
   kind: "openai" as "openai" | "gemini" | "anthropic",
-  keyHint: "",
-  keyPattern: "",
-  keylessModels: false,
-  modelsText: "",
-  streamUsage: false,
-  allModelsFree: false,
-  isActive: true,
 };
 
-const parseModelsText = (text: string): string[] =>
-  text
-    .split(/[\n,]+/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .slice(0, 200);
+// One input does it all: derive the provider id + display name from the
+// base URL's hostname. https://aigpt.com/api/v1 → id "aigpt", name "aigpt".
+// Subdomain noise (www/api) and ports are stripped; anything unusable
+// falls back to "custom-provider" so saving never blocks on parsing.
+const deriveProviderIdentity = (rawUrl: string): { id: string; name: string } => {
+  const fallback = { id: "custom-provider", name: "custom-provider" };
+  let host = "";
+  try {
+    host = new URL(rawUrl.trim()).hostname.toLowerCase();
+  } catch {
+    return fallback;
+  }
+  if (!host) return fallback;
+  const labels = host.split(".").filter(Boolean);
+  const NOISE = new Set(["www", "www2", "api", "api2", "apis", "gateway", "v1", "v2"]);
+  while (labels.length > 1 && NOISE.has(labels[0])) labels.shift();
+  // Prefer the registrable part: last two labels (aigpt.com → aigpt),
+  // single-label hosts (localhost, IPs) stay whole.
+  const core = labels.length >= 2 ? labels[labels.length - 2] : labels[0];
+  const slug = core
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 30);
+  if (!/^[a-z0-9][a-z0-9_-]{1,30}$/.test(slug)) return fallback;
+  return { id: slug, name: slug };
+};
+
+const isHttpUrl = (raw: string): boolean => {
+  try {
+    const u = new URL(raw.trim());
+    return u.protocol === "https:" || u.protocol === "http:";
+  } catch {
+    return false;
+  }
+};
 
 // Admin/owner-only: add or edit BYOK providers (more provider). Every row
 // here becomes a provider every user can immediately use with their own API
@@ -47,6 +67,8 @@ export const AdminProvidersTab = () => {
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [verifyState, setVerifyState] = useState<{ ok: boolean; message: string } | null>(null);
+  const [verifying, setVerifying] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["admin-providers"],
@@ -56,19 +78,47 @@ export const AdminProvidersTab = () => {
 
   const providers = data?.data?.providers ?? [];
 
+  // Live preview of what the single URL input will save as.
+  const derived = deriveProviderIdentity(form.baseUrl);
+  const urlValid = isHttpUrl(form.baseUrl);
+
+  // Verify on click: URL shape first, then a live reachability probe of
+  // <baseUrl>/models. Any HTTP answer (even 401/404) means the endpoint is
+  // alive; a network throw usually means unreachable or browser CORS — the
+  // provider can still be saved, chat-time calls go server-side.
+  const verify = async () => {
+    if (!urlValid) {
+      setVerifyState({ ok: false, message: "Enter a valid http(s) base URL first." });
+      return;
+    }
+    setVerifying(true);
+    setVerifyState(null);
+    try {
+      const base = form.baseUrl.trim().replace(/\/+$/, "");
+      const res = await fetch(`${base}/models`, { signal: AbortSignal.timeout(8000) });
+      setVerifyState({
+        ok: true,
+        message:
+          res.status === 401 || res.status === 403
+            ? `Reachable — it asks for a key (HTTP ${res.status}), which users paste at chat time. Will save as "${derived.name}" (${derived.id}).`
+            : `Reachable (HTTP ${res.status}). Will save as "${derived.name}" (${derived.id}).`,
+      });
+    } catch {
+      setVerifyState({
+        ok: false,
+        message: `Could not reach it from this browser (offline or CORS-blocked) — will still save as "${derived.name}" (${derived.id}).`,
+      });
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   const upsert = useMutation({
     mutationFn: async () => {
       const payload: Record<string, unknown> = {
-        name: form.name.trim(),
-        baseUrl: form.baseUrl.trim(),
+        name: derived.name,
+        baseUrl: form.baseUrl.trim().replace(/\/+$/, ""),
         kind: form.kind,
-        keyHint: form.keyHint.trim() || undefined,
-        keyPattern: form.keyPattern.trim() || undefined,
-        keylessModels: form.keylessModels,
-        models: parseModelsText(form.modelsText),
-        streamUsage: form.streamUsage,
-        allModelsFree: form.allModelsFree,
-        isActive: form.isActive,
       };
       if (editId) {
         return apiFetch(`/api/providers/${editId}`, {
@@ -80,7 +130,7 @@ export const AdminProvidersTab = () => {
       return apiFetch("/api/providers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: form.id.trim().toLowerCase(), ...payload }),
+        body: JSON.stringify({ id: derived.id, ...payload }),
       });
     },
     onSuccess: () => {
@@ -89,6 +139,7 @@ export const AdminProvidersTab = () => {
       setNotice(editId ? "Provider updated." : "Provider added — available to all users now.");
       setEditId(null);
       setForm(emptyForm);
+      setVerifyState(null);
     },
     onError: (e: any) => {
       setNotice(e?.error?.message || e?.message || "Could not save provider.");
@@ -109,19 +160,11 @@ export const AdminProvidersTab = () => {
   const startEdit = (row: ProviderRow) => {
     setEditId(row.id);
     setForm({
-      id: row.id,
-      name: row.name,
       baseUrl: row.baseUrl,
       kind: (row.kind as any) || "openai",
-      keyHint: row.keyHint ?? "",
-      keyPattern: row.keyPattern ?? "",
-      keylessModels: row.keylessModels,
-      modelsText: (row.models ?? []).join(", "),
-      streamUsage: row.streamUsage,
-      allModelsFree: row.allModelsFree,
-      isActive: row.isActive,
     });
     setNotice(null);
+    setVerifyState(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -129,44 +172,34 @@ export const AdminProvidersTab = () => {
     <div className="account-narrow">
       <h2 className="account-section-title">More providers</h2>
       <p className="account-card-desc">
-        Add any OpenAI-compatible provider (provider id + base URL). Once saved,
-        it appears for every user in Settings → AI provider — they paste their
-        own API key for that provider and can immediately chat with it. Only
-        admins and owners can manage providers.
+        Paste one base URL — the provider id and name are set from it
+        automatically (https://aigpt.com/api/v1 → aigpt), OpenAI-compatible
+        unless you pick otherwise. Once saved, every user pastes their own
+        API key for it in Settings → AI provider and can immediately chat.
+        Only admins and owners can manage providers.
       </p>
 
       <div className="account-card" style={{ marginTop: 16 }}>
         <h3 className="account-card-title">{editId ? `Edit ${editId}` : "Add a provider"}</h3>
         <div className="account-fields">
           <div>
-            <label className="account-field-label" htmlFor="prov-id">
-              Provider id <span className="account-font-size-value">lowercase slug, e.g. my-provider</span>
-            </label>
-            <Input
-              id="prov-id"
-              value={form.id}
-              disabled={Boolean(editId)}
-              onChange={(e) => setForm((s) => ({ ...s, id: e.target.value.toLowerCase() }))}
-              placeholder="my-provider"
-              spellCheck={false}
-              autoComplete="off"
-            />
-          </div>
-          <div>
-            <label className="account-field-label" htmlFor="prov-name">Display name</label>
-            <Input id="prov-name" value={form.name} onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))} placeholder="My Provider" />
-          </div>
-          <div>
             <label className="account-field-label" htmlFor="prov-url">Base URL</label>
             <Input
               id="prov-url"
               value={form.baseUrl}
-              onChange={(e) => setForm((s) => ({ ...s, baseUrl: e.target.value }))}
-              placeholder="https://api.example.com/v1"
+              onChange={(e) => {
+                setForm((s) => ({ ...s, baseUrl: e.target.value }));
+                setVerifyState(null);
+              }}
+              placeholder="https://aigpt.com/api/v1"
               spellCheck={false}
               autoComplete="off"
             />
-            <span className="account-check-hint">Must be a valid https URL. Shown to users only as transport, never logged.</span>
+            <span className="account-check-hint">
+              {urlValid
+                ? `Will save as "${derived.name}" (${derived.id}). No key asked here — users bring their own.`
+                : "Must be a valid https URL. Shown to users only as transport, never logged."}
+            </span>
           </div>
           <div>
             <label className="account-field-label" htmlFor="prov-kind">API kind</label>
@@ -181,61 +214,24 @@ export const AdminProvidersTab = () => {
               <option value="anthropic">Anthropic</option>
             </select>
           </div>
-          <div>
-            <label className="account-field-label" htmlFor="prov-hint">Key hint</label>
-            <Input id="prov-hint" value={form.keyHint} onChange={(e) => setForm((s) => ({ ...s, keyHint: e.target.value }))} placeholder="sk-... or your API key" />
-          </div>
-          <div>
-            <label className="account-field-label" htmlFor="prov-pattern">Key pattern (RegExp, optional)</label>
-            <Input
-              id="prov-pattern"
-              value={form.keyPattern}
-              onChange={(e) => setForm((s) => ({ ...s, keyPattern: e.target.value }))}
-              placeholder="^sk-[A-Za-z0-9]{20,}$  (leave blank for permissive)"
-              spellCheck={false}
-            />
-            <span className="account-check-hint">Instant format check before any network call. Blank = accept any non-empty key and let Verify hit /v1/models.</span>
-          </div>
-          <div>
-            <label className="account-field-label" htmlFor="prov-models">Fallback models (comma or newline separated, optional)</label>
-            <textarea
-              id="prov-models"
-              className="account-select"
-              style={{ minHeight: 72, padding: 10, resize: "vertical" }}
-              value={form.modelsText}
-              onChange={(e) => setForm((s) => ({ ...s, modelsText: e.target.value }))}
-              placeholder="gpt-4o, gpt-4o-mini"
-            />
-            <span className="account-check-hint">Live /v1/models always wins when reachable. This keeps the dropdown usable offline.</span>
-          </div>
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            <label className="account-check-row" style={{ flex: "1 1 160px" }}>
-              <input type="checkbox" checked={form.keylessModels} onChange={(e) => setForm((s) => ({ ...s, keylessModels: e.target.checked }))} />
-              <span className="account-check-hint" style={{ margin: 0 }}>List models without a key</span>
-            </label>
-            <label className="account-check-row" style={{ flex: "1 1 160px" }}>
-              <input type="checkbox" checked={form.streamUsage} onChange={(e) => setForm((s) => ({ ...s, streamUsage: e.target.checked }))} />
-              <span className="account-check-hint" style={{ margin: 0 }}>Send stream_options usage</span>
-            </label>
-            <label className="account-check-row" style={{ flex: "1 1 160px" }}>
-              <input type="checkbox" checked={form.allModelsFree} onChange={(e) => setForm((s) => ({ ...s, allModelsFree: e.target.checked }))} />
-              <span className="account-check-hint" style={{ margin: 0 }}>All models free</span>
-            </label>
-            <label className="account-check-row" style={{ flex: "1 1 160px" }}>
-              <input type="checkbox" checked={form.isActive} onChange={(e) => setForm((s) => ({ ...s, isActive: e.target.checked }))} />
-              <span className="account-check-hint" style={{ margin: 0 }}>Active (visible to users)</span>
-            </label>
-          </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Button type="button" onClick={() => upsert.mutate()} disabled={upsert.isPending || !form.name.trim() || !form.baseUrl.trim() || (!editId && !form.id.trim())}>
+            <Button type="button" variant="outline" onClick={() => void verify()} disabled={verifying || !urlValid}>
+              {verifying ? "Verifying..." : "Verify"}
+            </Button>
+            <Button type="button" onClick={() => upsert.mutate()} disabled={upsert.isPending || !urlValid}>
               {upsert.isPending ? "Saving..." : editId ? "Save changes" : "Add provider"}
             </Button>
             {editId ? (
-              <Button type="button" variant="outline" onClick={() => { setEditId(null); setForm(emptyForm); setNotice(null); }}>
+              <Button type="button" variant="outline" onClick={() => { setEditId(null); setForm(emptyForm); setNotice(null); setVerifyState(null); }}>
                 Cancel
               </Button>
             ) : null}
           </div>
+          {verifyState ? (
+            <span className={`byok-key-status ${verifyState.ok ? "byok-key-status--ok" : "byok-key-status--bad"}`}>
+              {verifyState.message}
+            </span>
+          ) : null}
           {notice ? (
             <span className={notice.toLowerCase().includes("could not") || notice.toLowerCase().includes("already") ? "account-check-hint" : "byok-key-status byok-key-status--ok"}>
               {notice}
