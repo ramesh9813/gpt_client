@@ -188,6 +188,10 @@ const Composer = ({
     onTranscript: (text) => {
       setValue(text);
     },
+    // Live chunks while PROCESSING: append each finished slice, keep past text.
+    onPartialTranscript: (text) => {
+      setValue((prev) => (prev ? `${prev} ${text}` : text));
+    },
   });
   const voiceRecording = voicePhase === "recording";
   const voiceProcessing =

@@ -10,6 +10,8 @@ export type VoicePhase = "idle" | "loading" | "recording" | "processing";
 
 type UseVoiceInputOptions = {
   onTranscript: (text: string) => void;
+  // Live chunk text while PROCESSING — append, never replace.
+  onPartialTranscript?: (text: string) => void;
   disabled?: boolean;
   streaming?: boolean;
   compressing?: boolean;
@@ -22,6 +24,7 @@ type UseVoiceInputOptions = {
 // on-device) transcribes it. No Google service involved, so no system toasts.
 export const useVoiceInput = ({
   onTranscript,
+  onPartialTranscript,
   disabled,
   streaming,
   compressing,
@@ -34,6 +37,8 @@ export const useVoiceInput = ({
   const streamRef = useRef<MediaStream | null>(null);
   const onTranscriptRef = useRef(onTranscript);
   onTranscriptRef.current = onTranscript;
+  const onPartialRef = useRef(onPartialTranscript);
+  onPartialRef.current = onPartialTranscript;
 
   const supported =
     typeof window !== "undefined" &&
@@ -107,11 +112,20 @@ export const useVoiceInput = ({
     });
     stopStream();
     try {
-      // Cloud transcriber when one is chosen + keyed, else on-device default.
-      const result = await transcribeAudioBlob(blob);
+      // Chunked streaming: each finished 15s slice types into the textarea
+      // immediately (append-only); past text is never touched.
+      let streamed = false;
+      const result = await transcribeAudioBlob(blob, {
+        onPartial: (t) => {
+          streamed = true;
+          onPartialRef.current?.(t);
+        },
+        onProgress: (done, total) =>
+          setProgress(Math.round((done / Math.max(1, total)) * 100)),
+      });
       setPhase("idle");
       if (result?.text) {
-        onTranscriptRef.current(result.text);
+        if (!streamed) onTranscriptRef.current(result.text);
       } else {
         setError("Could not hear anything. Try again.");
       }
