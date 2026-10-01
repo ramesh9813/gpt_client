@@ -39,6 +39,7 @@ import { useSettingsModels } from "./useSettingsModels";
 import { SettingsModelsFields } from "./SettingsModelsFields";
 import { ByokCard } from "./ByokCard";
 import { TranscribeCard } from "./TranscribeCard";
+import { MediaAnalysisCard } from "./MediaAnalysisCard";
 
 export type { SettingsFormValues } from "./settingsForm";
 
@@ -154,6 +155,7 @@ export const SettingsTab = () => {
           which model list the chat composer displays. */}
       <ByokCard />
       <TranscribeCard />
+      <MediaAnalysisCard />
       <form onSubmit={handleSubmit(onSubmit)} className="account-stack-lg">
         <div className="account-card">
           <h3 className="account-card-title">Appearance</h3>

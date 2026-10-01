@@ -5,6 +5,7 @@ import { apiFetch, ApiResponse } from "../../../lib/api";
 import { getActiveByok, stripProviderPrefix } from "../../../lib/byok";
 import { readPromptOnlyArmed, readTrimArmed, readWebSearchArmed } from "../sidebarState";
 import { shouldCompactHistory, threadChars } from "../../../lib/tokens";
+import { getMediaTurnOverride } from "../../../lib/mediaModels";
 
 // Thinking mode mirrors webSearch: sticky localStorage flag honored by
 // edits and regenerations too, not just fresh sends.
@@ -137,6 +138,13 @@ export const useChatMessages = ({
       hasFiles ? (opts!.files as any[]).reduce((n, f: any) => n + (f?.content?.length ?? 0), 0) : 0
     );
 
+    // Photo/video analysis cards: this turn alone rides the card's
+    // provider+model; the chat model stays untouched.
+    const mediaOverride = getMediaTurnOverride({
+      images: hasImages ? images : undefined,
+      files: hasFiles ? (opts as any).files : undefined,
+    });
+
     setMessages((prev) => [
       ...prev,
       {
@@ -172,6 +180,7 @@ export const useChatMessages = ({
         webSearch: searchOn,
         ...(compact ? { compactHistory: true as const } : {}),
         ...((opts?.promptOnly ?? readPromptOnlyArmed()) ? { promptOnly: true as const } : {}),
+        ...(mediaOverride ? { byokOverride: mediaOverride } : {}),
       });
     } catch (err: any) {
       if (cancelRef.current) {
@@ -260,6 +269,9 @@ export const useChatMessages = ({
         think: readThinkingArmed(),
         ...(compactFor(messages, text.length) ? { compactHistory: true as const } : {}),
         ...(readPromptOnlyArmed() ? { promptOnly: true as const } : {}),
+        ...(getMediaTurnOverride({ images })
+          ? { byokOverride: getMediaTurnOverride({ images }) as { provider: string; model: string } }
+          : {}),
       });
     } catch (err: any) {
       if (cancelRef.current) {
@@ -378,6 +390,17 @@ export const useChatMessages = ({
           ? { compactHistory: true as const }
           : {}),
         ...(readPromptOnlyArmed() ? { promptOnly: true as const } : {}),
+        ...(getMediaTurnOverride({
+          images: userMessage.images,
+          files: (userMessage as any).files,
+        })
+          ? {
+              byokOverride: getMediaTurnOverride({
+                images: userMessage.images,
+                files: (userMessage as any).files,
+              }) as { provider: string; model: string },
+            }
+          : {}),
       });
     } catch (err: any) {
       if (cancelRef.current) {
@@ -483,6 +506,17 @@ export const useChatMessages = ({
           ? { compactHistory: true as const }
           : {}),
         ...(readPromptOnlyArmed() ? { promptOnly: true as const } : {}),
+        ...(getMediaTurnOverride({
+          images: userMessage.images,
+          files: (userMessage as any).files,
+        })
+          ? {
+              byokOverride: getMediaTurnOverride({
+                images: userMessage.images,
+                files: (userMessage as any).files,
+              }) as { provider: string; model: string },
+            }
+          : {}),
       });
     } catch (err: any) {
       if (cancelRef.current) {

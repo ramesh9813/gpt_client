@@ -518,3 +518,32 @@ export const deactivateByok = () => {
     freeOnly: cfg?.freeOnly,
   });
 };
+
+// Per-turn provider override for media sends (image/video analysis cards):
+// headers for an explicitly chosen provider+model, keyed from the saved
+// per-provider keys. Empty object when the key is missing — callers then
+// fall back to the normal active-provider headers.
+export const getByokHeadersFor = (
+  providerId: string,
+  model: string
+): Record<string, string> => {
+  const pid = providerId.trim().toLowerCase();
+  const cleanModel = model.trim();
+  if (!pid || !cleanModel) return {};
+  let apiKey = "";
+  try {
+    const cfg = getByokConfig();
+    const fromMap = cfg?.apiKeys?.[pid];
+    apiKey =
+      (typeof fromMap === "string" && fromMap.trim()) ||
+      (cfg?.provider === pid ? cfg?.apiKey ?? "" : "");
+  } catch {
+    apiKey = "";
+  }
+  if (!apiKey.trim()) return {};
+  return {
+    "x-byok-provider": pid,
+    "x-byok-model": cleanModel,
+    "x-byok-key": apiKey.trim(),
+  };
+};

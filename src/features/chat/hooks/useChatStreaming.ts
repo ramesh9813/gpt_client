@@ -4,6 +4,7 @@ import { apiFetch, getCsrfToken, getInMemoryAccessToken, refreshSessionNow, type
 import {
   getActiveByok,
   getByokHeaders,
+  getByokHeadersFor,
   getByokProvider,
 } from "../../../lib/byok";
 import {
@@ -39,6 +40,9 @@ export type StreamAssistantArgs = {
   think?: boolean;
   compactHistory?: boolean;
   promptOnly?: boolean;
+  // One-turn media routing (photo/video analysis cards): this provider+key
+  // serves the turn while the chat model stays untouched.
+  byokOverride?: { provider: string; model: string };
 };
 
 export const useChatStreaming = () => {
@@ -64,6 +68,7 @@ export const useChatStreaming = () => {
       think,
       compactHistory,
       promptOnly,
+      byokOverride,
     }: StreamAssistantArgs
   ) => {
     cancelRef.current = false;
@@ -202,7 +207,15 @@ export const useChatStreaming = () => {
         // 1. Server prepares the exact turn payload + resets the failed row.
         // The key travels in x-byok-* headers as on every turn; the server
         // verifies ownership but never needs to call the provider itself.
-        const byokHeaders = getByokHeaders(selectedModel);
+        // Media-card overrides ride along so the retry stays on that model.
+        const overrideHeaders =
+          byokOverride && byokOverride.provider && byokOverride.model
+            ? getByokHeadersFor(byokOverride.provider, byokOverride.model)
+            : {};
+        const byokHeaders =
+          Object.keys(overrideHeaders).length > 0
+            ? overrideHeaders
+            : getByokHeaders(selectedModel);
         const prep = await apiFetch<
           ApiResponse<{
             assistantMessageId: string;
@@ -367,8 +380,16 @@ export const useChatStreaming = () => {
       // BYOK: user-configured provider key (Settings > AI provider). When
       // active, headers steer the server's chat turn to that provider; the
       // composer's selected (provider) model travels in the header instead of
-      // the OpenRouter body field.
-      const byokHeaders = getByokHeaders(selectedModel);
+      // the OpenRouter body field. A media-card override (photo/video
+      // analysis) wins for its turn so the chat model stays untouched.
+      const overrideHeaders =
+        byokOverride && byokOverride.provider && byokOverride.model
+          ? getByokHeadersFor(byokOverride.provider, byokOverride.model)
+          : {};
+      const byokHeaders =
+        Object.keys(overrideHeaders).length > 0
+          ? overrideHeaders
+          : getByokHeaders(selectedModel);
       const byokActive = Object.keys(byokHeaders).length > 0;
       const streamBody = JSON.stringify({
         conversationId,
