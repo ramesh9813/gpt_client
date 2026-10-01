@@ -1,9 +1,18 @@
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ModelSearch } from "./ModelSearch";
 import { ModelMenuFooter } from "./ModelMenuFooter";
 import { ModelSortMenu } from "./ModelSortMenu";
+import { ModelProviderMenu } from "./ModelProviderMenu";
 import { useModelMenuList } from "./useModelMenuList";
 import { formatUpdatedAgo } from "../utils/formatUpdatedAgo";
-import { getActiveByok } from "../../../lib/byok";
+import {
+  fetchByokModels,
+  getActiveByok,
+  getByokConfig,
+  getByokProvider,
+  saveByokConfig,
+  savedByokProviders,
+} from "../../../lib/byok";
 import "./ModelMenu.css";
 
 export type ModelOption = {
@@ -24,6 +33,10 @@ type ModelMenuProps = {
   sort?: SortOption;
   onSortChange?: (sort: SortOption) => void;
   onModelChange: (value: string) => void;
+  // Hierarchical picker: provider id driving this chat (null = built-in),
+  // plus provider-scoped activation (switches provider AND model together).
+  activeProviderId?: string | null;
+  onProviderModelChange?: (providerId: string, model: string) => void;
   currentModelLabel: string;
   modelMenuOpen: boolean;
   menuOpen: boolean;
@@ -86,6 +99,8 @@ export const ModelMenu = ({
   trimArmed,
   onTrimToggle,
   onFilePick,
+  activeProviderId,
+  onProviderModelChange,
   modelsTotal,
   modelsUpdatedAt,
   modelsStale,
@@ -93,6 +108,93 @@ export const ModelMenu = ({
   onRefreshModels,
   modelsRefreshing = false,
 }: ModelMenuProps) => {
+  // Hierarchical picker: keyed providers only. Picking one swaps the card to
+  // that provider's models (cached first, live-refreshed); picking a model
+  // activates provider+model together for ongoing chats.
+  const keyedProviders = useMemo(() => {
+    const saved = savedByokProviders();
+    return saved.map(({ id }) => ({
+      id,
+      name: getByokProvider(id)?.name ?? id,
+    }));
+  }, [menuOpen, modelMenuOpen]);
+  const [providerPick, setProviderPick] = useState("");
+  const [providerOpen, setProviderOpen] = useState(false);
+  const [providerModels, setProviderModels] = useState<string[]>([]);
+  const [providerLoading, setProviderLoading] = useState(false);
+  const providerFetchSeq = useRef(0);
+
+  useEffect(() => {
+    if (!menuOpen && !modelMenuOpen) {
+      setProviderPick("");
+      setProviderOpen(false);
+      setProviderModels([]);
+      setProviderLoading(false);
+    }
+  }, [menuOpen, modelMenuOpen]);
+
+  const activePick = providerPick || activeProviderId || "";
+  const pickedKey = keyedProviders.some((p) => p.id === activePick)
+    ? keyedProviders.find((p) => p.id === activePick)!
+    : null;
+
+  const loadProviderModels = (pid: string) => {
+    const cfg = getByokConfig();
+    const live = cfg?.models?.[pid];
+    const base =
+      live && live.length > 0
+        ? live
+        : (getByokProvider(pid)?.models ?? []);
+    setProviderModels([...base].sort((a, b) => a.localeCompare(b)));
+    const key = cfg?.apiKeys?.[pid] ?? (cfg?.provider === pid ? cfg.apiKey : "");
+    if (!key) return;
+    const seq = ++providerFetchSeq.current;
+    setProviderLoading(true);
+    void fetchByokModels(pid, key)
+      .then(({ models: list, freeIds }) => {
+        if (providerFetchSeq.current !== seq) return;
+        setProviderLoading(false);
+        if (list.length > 0) {
+          const latest = getByokConfig();
+          saveByokConfig({
+            ...(latest ?? { provider: null, model: "", apiKey: "" }),
+            models: { ...(latest?.models ?? {}), [pid]: list },
+            freeModels: { ...(latest?.freeModels ?? {}), [pid]: freeIds },
+          });
+          setProviderModels([...list].sort((a, b) => a.localeCompare(b)));
+        }
+      })
+      .catch(() => {
+        if (providerFetchSeq.current !== seq) return;
+        setProviderLoading(false);
+      });
+  };
+
+  const handleProviderSelect = (pid: string) => {
+    setProviderPick(pid);
+    setProviderOpen(false);
+    if (pid) loadProviderModels(pid);
+    else {
+      setProviderModels([]);
+      setProviderLoading(false);
+    }
+  };
+
+  const providerDisplayOptions: ModelOption[] = useMemo(() => {
+    if (!pickedKey) return modelOptions;
+    return providerModels.map((id) => ({ label: id, value: id }));
+  }, [pickedKey, providerModels, modelOptions]);
+
+  const handleSelectModel = (value: string) => {
+    if (pickedKey && pickedKey.id !== (activeProviderId ?? "") && onProviderModelChange) {
+      onProviderModelChange(pickedKey.id, value);
+      setProviderPick("");
+      setProviderModels([]);
+    } else {
+      onModelChange(value);
+    }
+  };
+
   const {
     modelQuery,
     setModelQuery,
@@ -108,21 +210,25 @@ export const ModelMenu = ({
     selectModel,
     selectArtifact,
   } = useModelMenuList({
-    modelOptions,
+    modelOptions: providerDisplayOptions,
     menuOpen,
     modelMenuOpen,
-    onModelChange,
+    onModelChange: handleSelectModel,
     onModelMenuOpenChange,
     onCloseMenu,
     onResearchSelect,
     onArtifactSelect,
   });
+  const showProviderDropdown = keyedProviders.length > 0;
 
   const updatedAgo =
     modelsStale?.updatedAgo ?? formatUpdatedAgo(modelsUpdatedAt ?? null);
   const offline = modelsStale?.offline ?? false;
-  const total =
-    typeof modelsTotal === "number" ? modelsTotal : modelOptions.length;
+  const total = pickedKey
+    ? providerDisplayOptions.length
+    : typeof modelsTotal === "number"
+      ? modelsTotal
+      : modelOptions.length;
   const showFooter = modelMenuOpen;
 
   // Built-in (server-key) features are owner/admin only: the model picker is
@@ -279,6 +385,17 @@ export const ModelMenu = ({
               <i className="bi bi-chevron-left composer-chevron-icon"></i>
               <span>Back</span>
             </button>
+            {showProviderDropdown && (
+              <ModelProviderMenu
+                providers={keyedProviders}
+                value={activePick}
+                allLabel="All"
+                open={providerOpen}
+                onToggle={() => setProviderOpen((prev) => !prev)}
+                onSelect={handleProviderSelect}
+                onClose={() => setProviderOpen(false)}
+              />
+            )}
             {onSortChange && (
               <ModelSortMenu
                 sort={sort}
@@ -328,15 +445,19 @@ export const ModelMenu = ({
             })}
             {filtered.length === 0 && (
               <div className="composer-model-empty">
-                {modelsLoading
+                {providerLoading
                   ? "Loading models…"
-                  : researchOnly
-                    ? "No deep-research models available on your plan"
-                    : imageOnly
-                      ? "No image generation models found"
-                      : modelQuery.trim()
-                        ? "No models found"
-                        : "No models available"}
+                  : modelsLoading
+                    ? "Loading models…"
+                    : researchOnly
+                      ? "No deep-research models available on your plan"
+                      : imageOnly
+                        ? "No image generation models found"
+                        : modelQuery.trim()
+                          ? "No models found"
+                          : pickedKey
+                            ? "No models for this provider yet"
+                            : "No models available"}
               </div>
             )}
           </div>

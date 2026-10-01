@@ -45,6 +45,14 @@
   z-index: 60;
 }
 
+/* Provider dropdown menu: same tokens as sort, wider for provider names. */
+.composer-provider-menu {
+  width: 9rem;
+  max-height: 12rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
 .composer-sort-option {
   width: 100%;
   padding-left: 0.75rem;

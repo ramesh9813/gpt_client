@@ -10,6 +10,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, ApiResponse } from "../../../lib/api";
 import {
+  activateByokProvider,
   fetchByokModels,
   getActiveByok,
   getByokConfig,
@@ -183,6 +184,11 @@ export const useChatModels = () => {
       freeModels: cfg?.freeModels,
       freeOnly: cfg?.freeOnly,
     });
+  }, []);
+
+  // Hierarchical picker: activate providerId/model for ongoing chats.
+  const activateProviderModel = useCallback((providerId: string, nextModel: string) => {
+    activateByokProvider(providerId, nextModel);
   }, []);
   // ── end BYOK ─────────────────────────────────────────────────────────────
 
@@ -359,6 +365,8 @@ export const useChatModels = () => {
     currentUserRole: currentRole,
     isGeneralUser: currentRole === "user",
     byokActive: false,
+    byokProviderId: byokCfg?.provider ?? null,
+    activateProviderModel,
     modelsLoading,
     modelsData,
     // Catalog freshness footer data:

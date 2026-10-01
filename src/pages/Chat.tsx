@@ -67,6 +67,8 @@ const Chat = () => {
     modelsRefreshing,
     isGeneralUser,
     byokActive,
+    byokProviderId,
+    activateProviderModel,
   } = useChatModels();
 
   const {
@@ -296,6 +298,8 @@ const Chat = () => {
               onRefreshModels={refreshModels}
               modelsRefreshing={modelsRefreshing}
               onModelChange={setModel}
+              activeProviderId={byokProviderId}
+              onProviderModelChange={activateProviderModel}
               inputRef={composerInputRef}
               sort={sortBy}
               onSortChange={setSortBy}

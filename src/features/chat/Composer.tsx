@@ -47,6 +47,8 @@ export type ComposerProps = {
   onRefreshModels?: () => void;
   modelsRefreshing?: boolean;
   onModelChange: (value: string) => void;
+  activeProviderId?: string | null;
+  onProviderModelChange?: (providerId: string, model: string) => void;
   isGeneralUser?: boolean;
   inputRef?: MutableRefObject<HTMLTextAreaElement | null>;
   sort?: SortOption;
@@ -72,6 +74,8 @@ const Composer = ({
   onRefreshModels,
   modelsRefreshing,
   onModelChange,
+  activeProviderId,
+  onProviderModelChange,
   isGeneralUser,
   inputRef,
   sort = "name",
@@ -408,6 +412,8 @@ const Composer = ({
             sort={sort}
             onSortChange={onSortChange}
             onModelChange={onModelChange}
+            activeProviderId={activeProviderId}
+            onProviderModelChange={onProviderModelChange}
             currentModelLabel={currentModelLabel}
             onResearchSelect={() => setResearchArmed(true)}
             onArtifactSelect={() => setArtifactArmed(true)}

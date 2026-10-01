@@ -23,6 +23,8 @@ export interface ComposerToolbarProps {
   onSortChange?: (sort: SortOption) => void;
   onModelChange: (value: string) => void;
   currentModelLabel: string;
+  activeProviderId?: string | null;
+  onProviderModelChange?: (providerId: string, model: string) => void;
   isGeneralUser?: boolean;
   onResearchSelect: () => void;
   onArtifactSelect: () => void;
@@ -85,6 +87,8 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
     onSortChange,
     onModelChange,
     currentModelLabel,
+    activeProviderId,
+    onProviderModelChange,
     isGeneralUser,
     onResearchSelect,
     onArtifactSelect,
@@ -152,6 +156,8 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
           onSortChange={onSortChange}
           onModelChange={onModelChange}
           currentModelLabel={currentModelLabel}
+          activeProviderId={activeProviderId}
+          onProviderModelChange={onProviderModelChange}
           isGeneralUser={isGeneralUser}
           modelMenuOpen={modelMenuOpen}
           menuOpen={menuOpen}

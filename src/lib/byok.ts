@@ -459,3 +459,46 @@ export const fetchByokModels = async (
     return { models: [], freeIds: [], message };
   }
 };
+
+// Hierarchical model picker: providers with a locally saved API key — the
+// only ones the composer Provider dropdown offers. Legacy single-key configs
+// count too. Sorted for a stable menu order.
+export const savedByokProviders = (): Array<{ id: string; apiKey: string }> => {
+  const cfg = getByokConfig();
+  if (!cfg) return [];
+  const out: Array<{ id: string; apiKey: string }> = [];
+  const seen = new Set<string>();
+  for (const [k, v] of Object.entries(cfg.apiKeys ?? {})) {
+    const id = String(k).trim().toLowerCase();
+    if (id && isValidByokProviderId(id) && typeof v === "string" && v.trim() && !seen.has(id)) {
+      seen.add(id);
+      out.push({ id, apiKey: v.trim() });
+    }
+  }
+  if (cfg.provider && cfg.apiKey && !seen.has(cfg.provider)) {
+    out.push({ id: cfg.provider, apiKey: cfg.apiKey });
+  }
+  return out.sort((a, b) => a.id.localeCompare(b.id));
+};
+
+// Switch ongoing chats to providerId/model, preserving saved keys, cached
+// catalogs and filters. Dropping apiKeys here would silently deactivate
+// other providers' saved keys.
+export const activateByokProvider = (providerId: string, model: string) => {
+  const pid = providerId.trim().toLowerCase();
+  const cfg = getByokConfig();
+  const keys = { ...(cfg?.apiKeys ?? {}) };
+  const fromMap = keys[pid];
+  const apiKey =
+    (typeof fromMap === "string" && fromMap.trim()) ||
+    (cfg?.provider === pid ? cfg?.apiKey ?? "" : "");
+  saveByokConfig({
+    provider: pid,
+    model,
+    apiKey,
+    apiKeys: keys,
+    models: cfg?.models,
+    freeModels: cfg?.freeModels,
+    freeOnly: cfg?.freeOnly,
+  });
+};
