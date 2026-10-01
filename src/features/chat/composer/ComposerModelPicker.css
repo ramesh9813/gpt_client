@@ -199,3 +199,59 @@
   color: var(--muted);
 }
 
+/* Provider manual model-id fallback: same tokens as the search box. */
+.composer-provider-manual {
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+.composer-provider-note {
+  padding: 0.375rem 0.625rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--muted);
+}
+.composer-provider-manual-row {
+  display: flex;
+  gap: 0.25rem;
+}
+.composer-provider-input {
+  flex: 1 1 0%;
+  min-width: 0;
+  height: 2rem;
+  padding-left: 0.625rem;
+  padding-right: 0.625rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--text);
+  background-color: transparent;
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--border);
+  border-radius: 0.5rem;
+}
+.composer-provider-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.composer-provider-use {
+  flex-shrink: 0;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text);
+  background-color: var(--sidebar);
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--border);
+}
+.composer-provider-use:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.composer-provider-use:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+

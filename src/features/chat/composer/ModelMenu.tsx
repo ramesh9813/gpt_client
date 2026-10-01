@@ -122,6 +122,11 @@ export const ModelMenu = ({
   const [providerOpen, setProviderOpen] = useState(false);
   const [providerModels, setProviderModels] = useState<string[]>([]);
   const [providerLoading, setProviderLoading] = useState(false);
+  // Why a picked provider shows no models (bad key, unreachable /models,
+  // unknown provider) — surfaced instead of a dead end, with a manual
+  // model-id entry so the provider's models stay selectable regardless.
+  const [providerNote, setProviderNote] = useState<string | null>(null);
+  const [manualModel, setManualModel] = useState("");
   const providerFetchSeq = useRef(0);
 
   useEffect(() => {
@@ -130,6 +135,8 @@ export const ModelMenu = ({
       setProviderOpen(false);
       setProviderModels([]);
       setProviderLoading(false);
+      setProviderNote(null);
+      setManualModel("");
     }
   }, [menuOpen, modelMenuOpen]);
 
@@ -151,10 +158,11 @@ export const ModelMenu = ({
     const seq = ++providerFetchSeq.current;
     setProviderLoading(true);
     void fetchByokModels(pid, key)
-      .then(({ models: list, freeIds }) => {
+      .then(({ models: list, freeIds, message }) => {
         if (providerFetchSeq.current !== seq) return;
         setProviderLoading(false);
         if (list.length > 0) {
+          setProviderNote(null);
           const latest = getByokConfig();
           saveByokConfig({
             ...(latest ?? { provider: null, model: "", apiKey: "" }),
@@ -162,17 +170,24 @@ export const ModelMenu = ({
             freeModels: { ...(latest?.freeModels ?? {}), [pid]: freeIds },
           });
           setProviderModels([...list].sort((a, b) => a.localeCompare(b)));
+        } else {
+          setProviderNote(
+            message ?? "No models returned — check the key, or type the model id below."
+          );
         }
       })
       .catch(() => {
         if (providerFetchSeq.current !== seq) return;
         setProviderLoading(false);
+        setProviderNote("Could not reach the provider — check connection, or type the model id below.");
       });
   };
 
   const handleProviderSelect = (pid: string) => {
     setProviderPick(pid);
     setProviderOpen(false);
+    setProviderNote(null);
+    setManualModel("");
     if (pid) loadProviderModels(pid);
     else {
       setProviderModels([]);
@@ -190,9 +205,30 @@ export const ModelMenu = ({
       onProviderModelChange(pickedKey.id, value);
       setProviderPick("");
       setProviderModels([]);
+      setProviderNote(null);
+      setManualModel("");
     } else {
       onModelChange(value);
     }
+  };
+
+  // Manual fallback: the provider's models stay selectable by id even when
+  // its /models endpoint is unreachable — activates the same way.
+  const useManualModel = () => {
+    const id = manualModel.trim();
+    if (!pickedKey || !id) return;
+    if (pickedKey.id !== (activeProviderId ?? "") && onProviderModelChange) {
+      onProviderModelChange(pickedKey.id, id);
+      setProviderPick("");
+      setProviderModels([]);
+      setProviderNote(null);
+      setManualModel("");
+    } else {
+      onModelChange(id);
+    }
+    setModelQuery("");
+    onModelMenuOpenChange(false);
+    onCloseMenu();
   };
 
   const {
@@ -461,6 +497,38 @@ export const ModelMenu = ({
               </div>
             )}
           </div>
+          {pickedKey && !providerLoading && providerModels.length === 0 && (
+            <div className="composer-provider-manual">
+              {providerNote ? (
+                <div className="composer-provider-note">{providerNote}</div>
+              ) : null}
+              <div className="composer-provider-manual-row">
+                <input
+                  className="composer-provider-input"
+                  value={manualModel}
+                  onChange={(e) => setManualModel(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      useManualModel();
+                    }
+                  }}
+                  placeholder="Type model id…"
+                  aria-label="Use a specific model id from this provider"
+                  spellCheck={false}
+                  autoComplete="off"
+                />
+                <button
+                  type="button"
+                  className="composer-provider-use"
+                  disabled={!manualModel.trim()}
+                  onClick={useManualModel}
+                >
+                  Use
+                </button>
+              </div>
+            </div>
+          )}
           {showFooter && (
             <ModelMenuFooter
               total={total}
