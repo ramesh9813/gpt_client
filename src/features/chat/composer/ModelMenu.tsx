@@ -141,9 +141,13 @@ export const ModelMenu = ({
   }, [menuOpen, modelMenuOpen]);
 
   const activePick = providerPick || activeProviderId || "";
-  const pickedKey = keyedProviders.some((p) => p.id === activePick)
-    ? keyedProviders.find((p) => p.id === activePick)!
-    : null;
+  // Explicit pick only: a fallback to the already-active provider must keep
+  // showing the live context list (modelOptions) — providerModels is empty
+  // until a pick loads it, which blanked the whole card on open.
+  const explicitPick =
+    providerPick && keyedProviders.some((p) => p.id === providerPick)
+      ? keyedProviders.find((p) => p.id === providerPick)!
+      : null;
 
   const loadProviderModels = (pid: string) => {
     const cfg = getByokConfig();
@@ -196,13 +200,13 @@ export const ModelMenu = ({
   };
 
   const providerDisplayOptions: ModelOption[] = useMemo(() => {
-    if (!pickedKey) return modelOptions;
+    if (!explicitPick) return modelOptions;
     return providerModels.map((id) => ({ label: id, value: id }));
-  }, [pickedKey, providerModels, modelOptions]);
+  }, [explicitPick, providerModels, modelOptions]);
 
   const handleSelectModel = (value: string) => {
-    if (pickedKey && pickedKey.id !== (activeProviderId ?? "") && onProviderModelChange) {
-      onProviderModelChange(pickedKey.id, value);
+    if (explicitPick && explicitPick.id !== (activeProviderId ?? "") && onProviderModelChange) {
+      onProviderModelChange(explicitPick.id, value);
       setProviderPick("");
       setProviderModels([]);
       setProviderNote(null);
@@ -216,9 +220,9 @@ export const ModelMenu = ({
   // its /models endpoint is unreachable — activates the same way.
   const useManualModel = () => {
     const id = manualModel.trim();
-    if (!pickedKey || !id) return;
-    if (pickedKey.id !== (activeProviderId ?? "") && onProviderModelChange) {
-      onProviderModelChange(pickedKey.id, id);
+    if (!explicitPick || !id) return;
+    if (explicitPick.id !== (activeProviderId ?? "") && onProviderModelChange) {
+      onProviderModelChange(explicitPick.id, id);
       setProviderPick("");
       setProviderModels([]);
       setProviderNote(null);
@@ -260,7 +264,7 @@ export const ModelMenu = ({
   const updatedAgo =
     modelsStale?.updatedAgo ?? formatUpdatedAgo(modelsUpdatedAt ?? null);
   const offline = modelsStale?.offline ?? false;
-  const total = pickedKey
+  const total = explicitPick
     ? providerDisplayOptions.length
     : typeof modelsTotal === "number"
       ? modelsTotal
@@ -491,13 +495,13 @@ export const ModelMenu = ({
                         ? "No image generation models found"
                         : modelQuery.trim()
                           ? "No models found"
-                          : pickedKey
+                          : explicitPick
                             ? "No models for this provider yet"
                             : "No models available"}
               </div>
             )}
           </div>
-          {pickedKey && !providerLoading && providerModels.length === 0 && (
+          {explicitPick && !providerLoading && providerModels.length === 0 && (
             <div className="composer-provider-manual">
               {providerNote ? (
                 <div className="composer-provider-note">{providerNote}</div>
