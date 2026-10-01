@@ -142,6 +142,66 @@
   background: rgb(0 0 0 / 0.92);
   cursor: zoom-out;
 }
+/* Gallery fullscreen: edge-to-edge image only, like a photo gallery. */
+.msg-gallery-full {
+  padding: 0;
+  background: #000;
+}
+.msg-gallery-full-img {
+  width: 100vw;
+  height: 100dvh;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* Overlay minimize button (top-right, always above the image). */
+.msg-gallery-minimize {
+  position: fixed;
+  top: max(env(safe-area-inset-top, 0px), 0.75rem);
+  right: max(env(safe-area-inset-right, 0px), 0.75rem);
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.75rem;
+  width: 2.75rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(255 255 255 / 0.35);
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+  font-size: 1.125rem;
+  cursor: pointer;
+}
+.msg-gallery-minimize:active {
+  transform: scale(0.94);
+}
+/* Gallery prev/next overlays (multi-image only). */
+.msg-gallery-nav {
+  position: fixed;
+  top: 50%;
+  translate: 0 -50%;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.75rem;
+  width: 2.75rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(255 255 255 / 0.35);
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+.msg-gallery-prev {
+  left: max(env(safe-area-inset-left, 0px), 0.75rem);
+}
+.msg-gallery-next {
+  right: max(env(safe-area-inset-right, 0px), 0.75rem);
+}
+.msg-gallery-nav:active {
+  transform: scale(0.94);
+}
 .msg-image-lightbox-img {
   max-width: min(96vw, 1100px);
   max-height: 92dvh;

@@ -122,72 +122,52 @@ export const MessageImages = ({ images }: { images?: string[] }) => {
       </div>
 
       {expandedSrc && (
-        <div className="msg-image-lightbox" role="dialog" aria-modal="true" aria-label="Expanded image" onClick={close}>
-          {/* Popcard: centered card showing complete full image + download tabs. Click inside does not close. */}
-          <div
-            className="msg-lightbox-card"
-            role="document"
-            onClick={(e) => e.stopPropagation()}
+        <div className="msg-image-lightbox msg-gallery-full" role="dialog" aria-modal="true" aria-label="Expanded image" onClick={close}>
+          {/* Gallery fullscreen: only the image, plus an overlay minimize
+              button. Tap anywhere (image included) to minimize. */}
+          <img
+            src={expandedSrc}
+            alt="Expanded attachment"
+            className="msg-gallery-full-img"
+          />
+          <button
+            type="button"
+            className="msg-gallery-minimize"
+            onClick={(e) => {
+              e.stopPropagation();
+              close();
+            }}
+            aria-label="Minimize image"
+            title="Minimize"
           >
-            <div className="msg-lightbox-card-head">
-              <div className="msg-lightbox-card-title">
-                <i className="bi bi-image" aria-hidden="true" />
-                <span>
-                  Image {expandedIdx! + 1} of {count}
-                </span>
-              </div>
-              <button type="button" className="msg-lightbox-card-close" onClick={close} aria-label="Close" title="Close">
-                <i className="bi bi-x-lg" aria-hidden="true" />
-              </button>
-            </div>
-
-            <div className="msg-lightbox-card-body">
-              <img src={expandedSrc} alt="Expanded attachment" className="msg-lightbox-card-img" />
-            </div>
-
-            <div className="msg-lightbox-card-foot">
+            <i className="bi bi-x-lg" aria-hidden="true"></i>
+          </button>
+          {hasMultiple && (
+            <>
               <button
                 type="button"
-                className="msg-lightbox-dl"
-                onClick={() => handleDownload("jpg", expandedIdx!)}
-                aria-label="Download JPG"
+                className="msg-gallery-nav msg-gallery-prev"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpandedIdx((prev) => (prev === null ? null : (prev - 1 + count) % count));
+                }}
+                aria-label="Previous image"
               >
-                <i className="bi bi-filetype-jpg" aria-hidden="true" /> Download JPG
+                <i className="bi bi-chevron-left" aria-hidden="true"></i>
               </button>
               <button
                 type="button"
-                className="msg-lightbox-dl msg-lightbox-dl--alt"
-                onClick={() => handleDownload("png", expandedIdx!)}
-                aria-label="Download PNG"
+                className="msg-gallery-nav msg-gallery-next"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpandedIdx((prev) => (prev === null ? null : (prev + 1) % count));
+                }}
+                aria-label="Next image"
               >
-                <i className="bi bi-filetype-png" aria-hidden="true" /> Download PNG
+                <i className="bi bi-chevron-right" aria-hidden="true"></i>
               </button>
-            </div>
-
-            {hasMultiple && (
-              <div className="msg-lightbox-card-nav" aria-hidden="false">
-                <button
-                  type="button"
-                  className="msg-lightbox-nav msg-lightbox-prev"
-                  onClick={() => setExpandedIdx((prev) => (prev === null ? null : (prev - 1 + count) % count))}
-                  aria-label="Previous image"
-                >
-                  <i className="bi bi-chevron-left" aria-hidden="true" />
-                </button>
-                <span className="msg-lightbox-counter">
-                  {expandedIdx! + 1} / {count}
-                </span>
-                <button
-                  type="button"
-                  className="msg-lightbox-nav msg-lightbox-next"
-                  onClick={() => setExpandedIdx((prev) => (prev === null ? null : (prev + 1) % count))}
-                  aria-label="Next image"
-                >
-                  <i className="bi bi-chevron-right" aria-hidden="true" />
-                </button>
-              </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
       )}
     </>
