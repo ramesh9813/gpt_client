@@ -56,10 +56,25 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1.5rem;
+  gap: 1rem;
   padding: 0.625rem;
   background-color: rgb(0 0 0 / 0.75);
   flex-shrink: 0;
+}
+/* Side groups keep the shutter exactly centered: two buttons left,
+   two right (torch side collapses gracefully when unsupported). */
+.composer-camera-group {
+  display: flex;
+  flex: 1 1 0%;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+.composer-camera-group--left {
+  justify-content: flex-end;
+}
+.composer-camera-group--right {
+  justify-content: flex-start;
 }
 .composer-camera-btn {
   display: inline-flex;

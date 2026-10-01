@@ -503,6 +503,11 @@ const Composer = ({
         onFlip={() =>
           setFacingMode((prev) => (prev === "environment" ? "user" : "environment"))
         }
+        onSystemPhoto={(file) => {
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          void handleFiles(dt.files, "photo");
+        }}
         zoomRange={zoomRange}
         zoom={zoom}
         onZoomChange={setZoomLevel}

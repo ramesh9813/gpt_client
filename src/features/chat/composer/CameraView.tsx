@@ -10,6 +10,7 @@ export interface CameraViewProps {
   onCapture: () => void;
   captureDisabled: boolean;
   onFlip: () => void;
+  onSystemPhoto?: (file: File) => void;
   zoomRange: { min: number; max: number; step: number } | null;
   zoom: number;
   onZoomChange: (value: number) => void;
@@ -34,6 +35,7 @@ export const CameraView = ({
   onCapture,
   captureDisabled,
   onFlip,
+  onSystemPhoto,
   zoomRange,
   zoom,
   onZoomChange,
@@ -51,6 +53,8 @@ export const CameraView = ({
   } | null>(null);
   const [gestureBadge, setGestureBadge] = useState<string | null>(null);
   const badgeTimer = useRef<number | null>(null);
+  // Native camera picker: opens the SYSTEM fullscreen camera (capture).
+  const sysInputRef = useRef<HTMLInputElement | null>(null);
 
   if (!open) return null;
 
@@ -135,27 +139,29 @@ export const CameraView = ({
         )}
       </div>
       <div className="composer-camera-bar">
-        {torchSupported && (
+        <div className="composer-camera-group composer-camera-group--left">
           <button
             type="button"
             className="composer-camera-btn"
-            onClick={onToggleTorch}
-            aria-label={torchOn ? "Turn flashlight off" : "Turn flashlight on"}
-            aria-pressed={torchOn}
-            title={torchOn ? "Flashlight off" : "Flashlight on"}
+            onClick={onClose}
+            aria-label="Close camera"
+            title="Close camera"
           >
-            <i className={`bi ${torchOn ? "bi-lightbulb-fill" : "bi-lightbulb"}`} aria-hidden="true"></i>
+            <i className="bi bi-x-lg" aria-hidden="true"></i>
           </button>
-        )}
-        <button
-          type="button"
-          className="composer-camera-btn"
-          onClick={onClose}
-          aria-label="Close camera"
-          title="Close camera"
-        >
-          <i className="bi bi-x-lg" aria-hidden="true"></i>
-        </button>
+          {torchSupported && (
+            <button
+              type="button"
+              className="composer-camera-btn"
+              onClick={onToggleTorch}
+              aria-label={torchOn ? "Turn flashlight off" : "Turn flashlight on"}
+              aria-pressed={torchOn}
+              title={torchOn ? "Flashlight off" : "Flashlight on"}
+            >
+              <i className={`bi ${torchOn ? "bi-lightbulb-fill" : "bi-lightbulb"}`} aria-hidden="true"></i>
+            </button>
+          )}
+        </div>
         <button
           type="button"
           className="composer-camera-shutter"
@@ -166,15 +172,40 @@ export const CameraView = ({
         >
           <i className="bi bi-circle" aria-hidden="true"></i>
         </button>
-        <button
-          type="button"
-          className="composer-camera-btn"
-          onClick={onFlip}
-          aria-label="Switch camera"
-          title="Switch camera"
-        >
-          <i className="bi bi-arrow-repeat" aria-hidden="true"></i>
-        </button>
+        <div className="composer-camera-group composer-camera-group--right">
+          <button
+            type="button"
+            className="composer-camera-btn"
+            onClick={onFlip}
+            aria-label="Switch camera"
+            title="Switch camera"
+          >
+            <i className="bi bi-arrow-repeat" aria-hidden="true"></i>
+          </button>
+          <button
+            type="button"
+            className="composer-camera-btn"
+            onClick={() => sysInputRef.current?.click()}
+            aria-label="Open system camera"
+            title="System camera"
+          >
+            <i className="bi bi-camera" aria-hidden="true"></i>
+          </button>
+        </div>
+        <input
+          ref={sysInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          hidden
+          aria-hidden="true"
+          tabIndex={-1}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) onSystemPhoto?.(file);
+            e.target.value = "";
+          }}
+        />
       </div>
     </div>
   );
