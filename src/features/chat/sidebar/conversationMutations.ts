@@ -31,6 +31,17 @@ export function useConversationMutations({
           body: JSON.stringify({ folderId })
         }
       ),
+    onMutate: () => {
+      // Instant feedback on click (anywhere inside the button): terminate any
+      // in-flight response + clear the thread at once — the Chat view listens
+      // for this and stops/aborts immediately instead of waiting for POST.
+      try {
+        window.dispatchEvent(new Event("chatapp:new-chat"));
+      } catch {
+        /* noop */
+      }
+      if (isMobile) onCloseDrawer();
+    },
     onSuccess: (res) => {
       const conv = res.data.conversation;
       // Pre-fill empty messages cache + optimistically prepend to the sidebar

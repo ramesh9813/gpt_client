@@ -6,6 +6,7 @@ import type { ChatMessage } from "../features/chat/message/types";
 
 type UseNewChatOptions = {
   cancelRef: MutableRefObject<boolean>;
+  abortControllerRef: MutableRefObject<AbortController | null>;
   setStreaming: (value: boolean) => void;
   setActiveStreamId: (value: string | null) => void;
   setMessages: Dispatch<SetStateAction<ChatMessage[]>>;
@@ -13,6 +14,7 @@ type UseNewChatOptions = {
 
 export const useNewChat = ({
   cancelRef,
+  abortControllerRef,
   setStreaming,
   setActiveStreamId,
   setMessages,
@@ -31,8 +33,14 @@ export const useNewChat = ({
         }
       ),
     onMutate: () => {
-      // Instant feedback: clear thread + stop any stream while POST is in
+      // Instant feedback: kill any in-flight response (aborts the SSE
+      // connection, not just a flag) + clear thread while POST is in
       // flight, so the UI feels immediate instead of waiting on network.
+      try {
+        abortControllerRef.current?.abort();
+      } catch {
+        /* noop */
+      }
       try {
         cancelRef.current = true;
       } catch {

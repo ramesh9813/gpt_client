@@ -30,20 +30,14 @@ const Account = () => {
       return "profile";
     }
   });
-  const [loading, setLoading] = useState(false);
 
-  const logout = async () => {
-    setLoading(true);
-    try {
-      await apiFetch("/api/auth/logout", { method: "POST" });
-    } catch {
-      // ignore network errors
-    } finally {
-      clearAuthStorage();
-      queryClient.clear();
-      setLoading(false);
-      navigate("/login", { replace: true });
-    }
+  const logout = () => {
+    // Immediate: drop local session + leave first, revoke server-side in the
+    // background (never make the user wait on network for logout).
+    clearAuthStorage();
+    queryClient.clear();
+    navigate("/login", { replace: true });
+    void apiFetch("/api/auth/logout", { method: "POST" }).catch(() => {});
   };
 
   const isOwner = meData?.data?.user?.role === "owner";
@@ -93,8 +87,8 @@ const Account = () => {
               </div>
 
               <div>
-                <Button onClick={logout} disabled={loading} variant="destructive">
-                  {loading ? "Signing out..." : "Sign out"}
+                <Button onClick={logout} variant="destructive">
+                  Sign out
                 </Button>
               </div>
             </div>

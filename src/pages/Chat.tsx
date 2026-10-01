@@ -47,6 +47,7 @@ const Chat = () => {
     activeStreamId,
     setActiveStreamId,
     cancelRef,
+    abortControllerRef,
     streamAssistant,
     stopStreaming,
   } = useChatStreaming();
@@ -162,7 +163,18 @@ const Chat = () => {
 
   useChatViewport(composerInputRef);
 
-  const newChatMutation = useNewChat({ cancelRef, setStreaming, setActiveStreamId, setMessages });
+  const newChatMutation = useNewChat({ cancelRef, abortControllerRef, setStreaming, setActiveStreamId, setMessages });
+
+  // Sidebar "New chat" clicks (anywhere inside the button): terminate the
+  // in-flight response and clear the thread instantly, mid-response or not.
+  useEffect(() => {
+    const onSidebarNewChat = () => {
+      handleStopStreaming();
+      setMessages([]);
+    };
+    window.addEventListener("chatapp:new-chat", onSidebarNewChat);
+    return () => window.removeEventListener("chatapp:new-chat", onSidebarNewChat);
+  });
 
   const { handleHeaderToggle, headerHidden, pinHeader, showTopCard, handleScrollDirection } = useChatHeader({
     isMobile, sidebarState, toggleDrawer, hideSidebar, showSidebar, streaming,

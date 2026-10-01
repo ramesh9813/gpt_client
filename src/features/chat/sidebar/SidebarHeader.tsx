@@ -28,6 +28,7 @@ export function SidebarHeader({
     <div className="sb-header">
       <Button
         className="sb-newchat"
+        type="button"
         onClick={onNewChat}
       >
         <span className="sb-newchat-icon-wrap" aria-hidden="true">
