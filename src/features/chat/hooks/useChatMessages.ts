@@ -426,9 +426,9 @@ export const useChatMessages = ({
     }
   };
 
-  // Resend a USER message to the SAME model that answered it (its following
-  // assistant row's model, else the composer's current model). Same-model
-  // retry, not a model switch — the RegenerateMenu stays the place for that.
+  // Resend a USER message on the CURRENTLY selected (composer) model — never
+  // the model that previously answered it. Unchanged selection resends on
+  // the same model trivially; a changed selection must win over history.
   const handleResend = async (userMessageId: string) => {
     if (!conversationId) return;
     const thread = messagesRef.current;
@@ -438,9 +438,7 @@ export const useChatMessages = ({
     if (userMessage.role !== "USER") return;
 
     const next = thread[index + 1];
-    const answeredModel =
-      next && next.role === "ASSISTANT" && next.model ? next.model : null;
-    let sameModel = answeredModel || model;
+    let sameModel = model;
     // BYOK turns persist "provider:model"; the chat path needs the plain
     // provider model id (never touch ":free" suffixed OpenRouter ids).
     const activeByok = getActiveByok();
