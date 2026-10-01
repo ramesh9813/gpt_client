@@ -50,6 +50,35 @@ const normalizeMath = (s: string): string => {
   return out;
 };
 
+/**
+ * Inline formatting tags models emit (<b>, <i>, <u>, <s>, <code>, <br>)
+ * render as literal text (no raw HTML in the pipeline), so convert them to
+ * their markdown equivalents. Fenced code blocks and inline code spans are
+ * left byte-identical — sample markup there must stay literal.
+ */
+const convertInlineTags = (text: string): string =>
+  text
+    .replace(/<br\s*\/?>/gi, "  \n")
+    .replace(/<\/?(?:b|strong)(\s[^<>]*)?>/gi, "**")
+    .replace(/<\/?(?:i|em)(\s[^<>]*)?>/gi, "*")
+    .replace(/<\/?(?:s|del|strike)(\s[^<>]*)?>/gi, "~~")
+    .replace(/<\/?u(\s[^<>]*)?>/gi, "**")
+    .replace(/<code(\s[^<>]*)?>/gi, "`")
+    .replace(/<\/code\s*>/gi, "`");
+
+const normalizeInlineTags = (s: string): string =>
+  s
+    .split(/(```[\s\S]*?(?:```|$))/)
+    .map((chunk, i) =>
+      i % 2 === 1
+        ? chunk
+        : chunk
+            .split(/(`[^`\n]*`)/g)
+            .map((part, j) => (j % 2 === 1 ? part : convertInlineTags(part)))
+            .join("")
+    )
+    .join("");
+
 const MarkdownImage = ({ src, alt }: { src: string; alt: string }) => {
   const [expanded, setExpanded] = useState(false);
   const close = useCallback(() => setExpanded(false), []);
@@ -173,7 +202,10 @@ const markdownComponents = {
 };
 
 const MarkdownBody = ({ content }: { content: string }) => {
-  const normalized = useMemo(() => normalizeMath(content), [content]);
+  const normalized = useMemo(
+    () => normalizeInlineTags(normalizeMath(content)),
+    [content]
+  );
   return (
     <ReactMarkdown
       remarkPlugins={[remarkMath, remarkGfm]}
