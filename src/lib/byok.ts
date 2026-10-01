@@ -502,3 +502,19 @@ export const activateByokProvider = (providerId: string, model: string) => {
     freeOnly: cfg?.freeOnly,
   });
 };
+
+// Switch ongoing chats back to the built-in (server) models, preserving
+// saved keys and cached catalogs for later. The composer's "Default" entry
+// (admin/owner only) uses this.
+export const deactivateByok = () => {
+  const cfg = getByokConfig();
+  saveByokConfig({
+    provider: null,
+    model: "default",
+    apiKey: "",
+    apiKeys: cfg?.apiKeys,
+    models: cfg?.models,
+    freeModels: cfg?.freeModels,
+    freeOnly: cfg?.freeOnly,
+  });
+};

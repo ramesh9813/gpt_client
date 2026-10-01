@@ -6,6 +6,7 @@ import { ModelProviderMenu } from "./ModelProviderMenu";
 import { useModelMenuList } from "./useModelMenuList";
 import { formatUpdatedAgo } from "../utils/formatUpdatedAgo";
 import {
+  deactivateByok,
   fetchByokModels,
   getActiveByok,
   getByokConfig,
@@ -140,7 +141,6 @@ export const ModelMenu = ({
     }
   }, [menuOpen, modelMenuOpen]);
 
-  const activePick = providerPick || activeProviderId || "";
   // Explicit pick only: a fallback to the already-active provider must keep
   // showing the live context list (modelOptions) — providerModels is empty
   // until a pick loads it, which blanked the whole card on open.
@@ -148,6 +148,14 @@ export const ModelMenu = ({
     providerPick && keyedProviders.some((p) => p.id === providerPick)
       ? keyedProviders.find((p) => p.id === providerPick)!
       : null;
+  // Admin/owner get a "Default (Built-in)" entry that switches ongoing
+  // chats back to the server models. General users only ever see keyed
+  // providers (their own keys) — no built-in path exists for them.
+  const dropdownProviders = !isGeneralUser
+    ? [{ id: "__default", name: "Default (Built-in)" }, ...keyedProviders]
+    : keyedProviders;
+  const dropdownValue =
+    providerPick || activeProviderId || (!isGeneralUser ? "__default" : "");
 
   const loadProviderModels = (pid: string) => {
     const cfg = getByokConfig();
@@ -188,8 +196,20 @@ export const ModelMenu = ({
   };
 
   const handleProviderSelect = (pid: string) => {
-    setProviderPick(pid);
     setProviderOpen(false);
+    if (pid === "__default") {
+      deactivateByok();
+      setProviderPick("");
+      setProviderModels([]);
+      setProviderNote(null);
+      setManualModel("");
+      onModelChange("default");
+      setModelQuery("");
+      onModelMenuOpenChange(false);
+      onCloseMenu();
+      return;
+    }
+    setProviderPick(pid);
     setProviderNote(null);
     setManualModel("");
     if (pid) loadProviderModels(pid);
@@ -259,7 +279,7 @@ export const ModelMenu = ({
     onResearchSelect,
     onArtifactSelect,
   });
-  const showProviderDropdown = keyedProviders.length > 0;
+  const showProviderDropdown = keyedProviders.length > 0 || !isGeneralUser;
 
   const updatedAgo =
     modelsStale?.updatedAgo ?? formatUpdatedAgo(modelsUpdatedAt ?? null);
@@ -427,8 +447,8 @@ export const ModelMenu = ({
             </button>
             {showProviderDropdown && (
               <ModelProviderMenu
-                providers={keyedProviders}
-                value={activePick}
+                providers={dropdownProviders}
+                value={dropdownValue}
                 allLabel="All"
                 open={providerOpen}
                 onToggle={() => setProviderOpen((prev) => !prev)}
