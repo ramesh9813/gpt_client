@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch, type ApiResponse } from "../../lib/api";
+import { useSettings } from "../../lib/hooks";
 import {
   BYOK_PROVIDERS,
   fetchByokModels,
@@ -7,9 +8,11 @@ import {
   getByokProvider,
   saveByokConfig,
   savedByokProviders,
+  subscribeByok,
   type ServerProviderInfo,
 } from "../../lib/byok";
 import {
+  describeChatModel,
   getMediaModelsConfig,
   saveMediaModelsConfig,
   type MediaKind,
@@ -91,6 +94,7 @@ const MediaBlock = ({
   onProviderChange,
   onModelChange,
   onCustomModelChange,
+  chatLabel,
 }: {
   kind: MediaKind;
   title: string;
@@ -102,6 +106,7 @@ const MediaBlock = ({
   onProviderChange: (kind: MediaKind, id: string) => void;
   onModelChange: (kind: MediaKind, model: string) => void;
   onCustomModelChange: (kind: MediaKind, model: string) => void;
+  chatLabel: string;
 }) => {
   const { models, loading } = useBlockModels(providerId || null);
   const showCustomInput = !!providerId && models.length === 0 && !loading;
@@ -120,7 +125,7 @@ const MediaBlock = ({
             value={providerId}
             onChange={(e) => onProviderChange(kind, e.target.value)}
           >
-            <option value="">Default (chat model)</option>
+            <option value="">Default ({chatLabel})</option>
             {providers.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name} (your key)
@@ -176,6 +181,14 @@ const MediaBlock = ({
 // model, sending a video on the video model — the chat model never changes.
 export const MediaAnalysisCard = () => {
   const [serverProviders, setServerProviders] = useState<MergedProvider[] | null>(null);
+  // "Default" tracks the live chat model (re-read on settings/BYOK changes).
+  const { data: settingsData } = useSettings();
+  const [byokTick, setByokTick] = useState(0);
+  useEffect(() => subscribeByok(() => setByokTick((t) => t + 1)), []);
+  void byokTick;
+  const chatLabel = describeChatModel(
+    (settingsData?.data?.settings as { model?: string } | undefined)?.model
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -260,6 +273,7 @@ export const MediaAnalysisCard = () => {
           setImageCustom(m);
           setImageModel(m.trim());
         }}
+        chatLabel={chatLabel}
       />
       <MediaBlock
         kind="video"
@@ -275,6 +289,7 @@ export const MediaAnalysisCard = () => {
           setVideoCustom(m);
           setVideoModel(m.trim());
         }}
+        chatLabel={chatLabel}
       />
     </div>
   );

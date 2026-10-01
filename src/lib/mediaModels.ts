@@ -2,6 +2,21 @@
 // When you send an image (or video), that turn alone goes to the card's
 // model — the chat model never changes. "Default (chat model)" keeps the
 // old behavior. Stored locally; nothing leaves the browser except the turn.
+import { getActiveByok } from "./byok";
+
+// Human label for what "Default" currently means: the live chat model.
+// Unset image/video/transcribe slots follow it automatically; manually
+// chosen provider+model combos stay stuck and never sync.
+export const describeChatModel = (settingsModel?: string | null): string => {
+  try {
+    const active = getActiveByok();
+    if (active) return `${active.provider} · ${active.model}`;
+  } catch {
+    // storage unavailable — fall through to built-in label
+  }
+  const m = (settingsModel || "default").trim() || "default";
+  return `built-in · ${m}`;
+};
 export type MediaKind = "image" | "video";
 
 export type MediaModelChoice = {

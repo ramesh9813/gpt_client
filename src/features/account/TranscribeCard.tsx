@@ -3,7 +3,9 @@ import { Button } from "../../components/Button";
 import { apiFetch, type ApiResponse } from "../../lib/api";
 import {
   BYOK_PROVIDERS,
+  getActiveByok,
   getByokProvider,
+  subscribeByok,
   type ServerProviderInfo,
 } from "../../lib/byok";
 import {
@@ -59,6 +61,14 @@ export const TranscribeCard = () => {
   const [customModel, setCustomModel] = useState<string>("");
   const [verifyState, setVerifyState] = useState<VerifyState>(null);
   const [serverProviders, setServerProviders] = useState<MergedProvider[] | null>(null);
+  // Default label tracks the live chat model (re-read on BYOK changes).
+  const [byokTick, setByokTick] = useState(0);
+  useEffect(() => subscribeByok(() => setByokTick((t) => t + 1)), []);
+  void byokTick;
+  const chatByok = getActiveByok();
+  const defaultLabel = chatByok
+    ? `Default (${chatByok.provider} · ${chatByok.model})`
+    : "Default (on-device)";
 
   useEffect(() => {
     let cancelled = false;
@@ -166,7 +176,7 @@ export const TranscribeCard = () => {
             value={providerId}
             onChange={(e) => onProviderChange(e.target.value)}
           >
-            <option value="">Default (on-device)</option>
+            <option value="">{defaultLabel}</option>
             {mergedProviders.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name} {p.source === "custom" ? "(custom)" : "(your key)"}

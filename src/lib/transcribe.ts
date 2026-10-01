@@ -3,7 +3,7 @@
 // provider) or the on-device Whisper default. Nothing here is stored
 // server-side; the transcriber choice lives in this browser's localStorage.
 import { apiFetch, type ApiResponse } from "./api";
-import { getByokConfig } from "./byok";
+import { getActiveByok, getByokConfig } from "./byok";
 
 // Transcription-capable model shortlists per built-in provider id.
 // Custom (owner-added) providers are assumed OpenAI-compatible — the server
@@ -205,19 +205,30 @@ const pcmToWavBlob = (pcm: Float32Array): Blob => {
   return new Blob([buf], { type: "audio/wav" });
 };
 
-// Shared entry for mic + audio files: cloud transcriber when one is chosen
-// AND its key is saved, otherwise the on-device default. A failing chunk
-// falls back per-chunk so one bad slice never kills the transcript.
+// Shared entry for mic + audio files: explicit transcriber choice first,
+// else Default follows the live chat model (its provider transcribes;
+// built-in chats use the on-device default). A failing chunk falls back
+// per-chunk so one bad slice never kills the transcript.
 export const transcribeAudioBlob = async (
   blob: Blob,
   callbacks?: TranscribeCallbacks
 ): Promise<TranscribeResult | null> => {
+  // Explicit choice first (provider + saved key). Otherwise Default follows
+  // the live chat model: a keyed chat transcribes through its own provider,
+  // a built-in chat falls through to the on-device default below.
   const active = getActiveTranscriber();
-  const cloud =
-    !!active &&
-    !!savedKeyForProvider(active.provider) &&
-    blob.size > 0 &&
-    blob.size <= 25 * 1024 * 1024;
+  let cloud: { provider: string; model: string } | null =
+    active && savedKeyForProvider(active.provider) ? active : null;
+  if (!cloud) {
+    try {
+      const chat = getActiveByok();
+      if (chat && savedKeyForProvider(chat.provider)) {
+        cloud = { provider: chat.provider, model: chat.model };
+      }
+    } catch {
+      cloud = null;
+    }
+  }
   try {
     const { blobToSpeechAudio } = await import(
       "../features/chat/voice/whisper"
@@ -233,11 +244,11 @@ export const transcribeAudioBlob = async (
     const parts: string[] = [];
     for (let i = 0; i < segments.length; i++) {
       let t: string | null = null;
-      if (cloud && active) {
+      if (cloud) {
         try {
           t = await transcribeViaCloud(
-            active.provider,
-            active.model,
+            cloud.provider,
+            cloud.model,
             pcmToWavBlob(segments[i])
           );
         } catch {
