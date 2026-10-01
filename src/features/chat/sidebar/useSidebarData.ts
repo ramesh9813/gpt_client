@@ -9,7 +9,7 @@ import {
   writeCachedFolders,
 } from "../chatCache";
 
-export function useSidebarData(search: string) {
+export function useSidebarData(search: string, activeConversationId?: string) {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   // Step 1: instant paint from localStorage so the sidebar shell never waits.
   const [cachedConversations] = useState<Conversation[] | null>(() => readCachedConversations());
@@ -52,9 +52,15 @@ export function useSidebarData(search: string) {
     // While searching, only live results count (no cache mixing).
     const fs = foldersData?.data?.items ?? cachedFolders ?? [];
     const cs = data?.data?.items ?? (isSearching ? [] : (cachedConversations ?? []));
+    // Empty chats carry no conversation: hide them from history (the active
+    // empty draft being typed in always stays). Rows without a count (old
+    // cache) are kept — only positively-empty ones are dropped.
+    const visible = cs.filter(
+      (c) => c.id === activeConversationId || (c._count?.messages ?? -1) !== 0
+    );
     const groups: Record<string, Conversation[]> = {};
     const uncat: Conversation[] = [];
-    cs.forEach(c => {
+    visible.forEach(c => {
       if (c.folderId) {
         if (!groups[c.folderId]) groups[c.folderId] = [];
         groups[c.folderId].push(c);
@@ -67,7 +73,7 @@ export function useSidebarData(search: string) {
       groupedConversations: groups,
       uncategorized: uncat.sort((a, b) => Number(b.pinned ?? false) - Number(a.pinned ?? false) || new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     };
-  }, [foldersData, data, cachedConversations, cachedFolders, isSearching]);
+  }, [foldersData, data, cachedConversations, cachedFolders, isSearching, activeConversationId]);
 
   const toggleFolder = (id: string) => {
     setExpandedFolders(prev => {

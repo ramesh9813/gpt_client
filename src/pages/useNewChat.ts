@@ -10,6 +10,7 @@ type UseNewChatOptions = {
   setStreaming: (value: boolean) => void;
   setActiveStreamId: (value: string | null) => void;
   setMessages: Dispatch<SetStateAction<ChatMessage[]>>;
+  conversationId?: string;
 };
 
 export const useNewChat = ({
@@ -18,20 +19,40 @@ export const useNewChat = ({
   setStreaming,
   setActiveStreamId,
   setMessages,
+  conversationId,
 }: UseNewChatOptions) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const newChatMutation = useMutation({
-    mutationFn: () =>
-      apiFetch<ApiResponse<{ conversation: { id: string } }>>(
+    mutationFn: async () => {
+      // No empty-chat spam: reuse the open conversation when it has no
+      // messages yet instead of stacking another empty one.
+      if (conversationId) {
+        try {
+          const cached = queryClient.getQueryData<{ success: boolean; data: { messages: unknown[] } }>([
+            "messages",
+            conversationId,
+          ]);
+          const msgs = cached?.data?.messages;
+          if (Array.isArray(msgs) && msgs.length === 0) {
+            const existing = queryClient.getQueryData<{ data?: { items?: Array<{ id: string }> } }>(["conversations"]);
+            const row = existing?.data?.items?.find((c) => c.id === conversationId);
+            if (row) return { success: true, data: { conversation: row } } as ApiResponse<{ conversation: { id: string } }>;
+          }
+        } catch {
+          // fall through to create
+        }
+      }
+      return apiFetch<ApiResponse<{ conversation: { id: string } }>>(
         "/api/conversations",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: "{}",
         }
-      ),
+      );
+    },
     onMutate: () => {
       // Instant feedback: kill any in-flight response (aborts the SSE
       // connection, not just a flag) + clear thread while POST is in

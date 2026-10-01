@@ -7,6 +7,7 @@ export type Conversation = {
   pinned?: boolean;
   customPrompt?: string | null;
   customPromptEnabled?: boolean;
+  _count?: { messages: number };
 };
 
 export type Folder = {

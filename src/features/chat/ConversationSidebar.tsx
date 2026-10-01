@@ -96,7 +96,7 @@ const ConversationSidebar = ({
     uncategorized,
     expandedFolders,
     toggleFolder,
-  } = useSidebarData(search);
+  } = useSidebarData(search, params.conversationId);
 
   const {
     createMutation,

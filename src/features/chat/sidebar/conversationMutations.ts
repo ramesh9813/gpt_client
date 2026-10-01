@@ -22,15 +22,35 @@ export function useConversationMutations({
   const navigate = useNavigate();
 
   const createMutation = useMutation({
-    mutationFn: (folderId?: string) =>
-      apiFetch<ApiResponse<{ conversation: Conversation }>>(
+    mutationFn: async (folderId?: string) => {
+      // No empty-chat spam: if the open conversation is known-empty, reuse
+      // it instead of creating another empty one (navigating there is a
+      // no-op when already open). Unknown cache state still creates.
+      if (activeConversationId) {
+        try {
+          const cached = queryClient.getQueryData<{ success: boolean; data: { messages: unknown[] } }>([
+            "messages",
+            activeConversationId,
+          ]);
+          const msgs = cached?.data?.messages;
+          if (Array.isArray(msgs) && msgs.length === 0) {
+            const existing = queryClient.getQueryData<{ data?: { items?: Conversation[] } }>(["conversations"]);
+            const row = existing?.data?.items?.find((c) => c.id === activeConversationId);
+            if (row) return { success: true, data: { conversation: row } };
+          }
+        } catch {
+          // fall through to create
+        }
+      }
+      return apiFetch<ApiResponse<{ conversation: Conversation }>>(
         "/api/conversations",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ folderId })
         }
-      ),
+      );
+    },
     onMutate: () => {
       // Instant feedback on click (anywhere inside the button): terminate any
       // in-flight response + clear the thread at once — the Chat view listens

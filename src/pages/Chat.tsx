@@ -163,7 +163,7 @@ const Chat = () => {
 
   useChatViewport(composerInputRef);
 
-  const newChatMutation = useNewChat({ cancelRef, abortControllerRef, setStreaming, setActiveStreamId, setMessages });
+  const newChatMutation = useNewChat({ cancelRef, abortControllerRef, setStreaming, setActiveStreamId, setMessages, conversationId });
 
   // Sidebar "New chat" clicks (anywhere inside the button): terminate the
   // in-flight response and clear the thread instantly, mid-response or not.
