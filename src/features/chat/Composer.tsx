@@ -23,6 +23,7 @@ import {
   providerInputLimit,
 } from "../../lib/tokens";
 import { getActiveByok, subscribeByok } from "../../lib/byok";
+import { useSettings } from "../../lib/hooks";
 
 
 export type { ModelOption, SortOption };
@@ -111,7 +112,11 @@ const Composer = ({
     promptOnlyArmed,
     setPromptOnlyArmed,
   } = useComposerArmed();
-  // Active provider for the live token estimate (re-read on BYOK changes).
+  // Appearance setting: the up/down jump button above the input shows
+  // only when enabled (default on).
+  const { data: composerSettings } = useSettings();
+  const showScrollJump =
+    composerSettings?.data?.settings?.showScrollJump ?? true;
   const [byokTick, setByokTick] = useState(0);
   useEffect(() => subscribeByok(() => setByokTick((t) => t + 1)), []);
   void byokTick;
@@ -326,7 +331,7 @@ const Composer = ({
       <div className="composer-input-container">
         {/* Single smart jump button, pinned above the input card: hidden when
             already parked at the bottom; direction follows scroll intent. */}
-        {scrollState.canScroll && !scrollState.atBottom && (
+        {scrollState.canScroll && !scrollState.atBottom && showScrollJump && (
           <div className="composer-scroll-pin" role="toolbar" aria-label="Scroll chat">
             <button
               type="button"

@@ -13,6 +13,7 @@ export const settingsSchema = z.object({
   brand: z.enum(["default", "chatgpt", "claude", "gemini", "grok", "deepseek"]),
   pinHeader: z.boolean(),
   showTopCard: z.boolean(),
+  showScrollJump: z.boolean(),
   appFontSize: z.number().int().min(APP_FONT_MIN).max(APP_FONT_MAX),
   iconScale: z.number().min(ICON_SCALE_MIN).max(ICON_SCALE_MAX),
   model: z.string().min(1).max(200),

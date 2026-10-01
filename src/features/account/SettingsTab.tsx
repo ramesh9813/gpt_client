@@ -66,6 +66,7 @@ export const SettingsTab = () => {
       brand: "default" as BrandId,
       pinHeader: false,
       showTopCard: true,
+      showScrollJump: true,
       appFontSize: APP_FONT_DEFAULT,
       iconScale: ICON_SCALE_DEFAULT,
       model: "default",
@@ -84,6 +85,7 @@ export const SettingsTab = () => {
         pinHeader: false,
         ...settings,
         showTopCard: settings.showTopCard ?? true,
+        showScrollJump: settings.showScrollJump ?? true,
         fontScale: toFontStep(settings.fontScale),
         brand: isBrandId(settings.brand) ? settings.brand : "default",
         appFontSize: clampAppFontSize(settings.appFontSize),
@@ -336,6 +338,24 @@ export const SettingsTab = () => {
                 Show the top card with the sidebar openers and New chat.
                 When off, that icon card is hidden; everything else stays
                 as it is.
+              </span>
+            </span>
+          </label>
+        </div>
+        <div>
+          <label className="account-check-row">
+            <input
+              type="checkbox"
+              {...register("showScrollJump")}
+              className="account-check-input"
+            />
+            <span className="account-check-body">
+              <span className="account-field-label account-check-label">
+                Show scroll jump button
+              </span>
+              <span className="account-check-hint">
+                Show the up/down jump button above the input card.
+                When off, it stays hidden; everything else stays as it is.
               </span>
             </span>
           </label>
