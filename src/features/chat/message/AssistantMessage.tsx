@@ -8,7 +8,6 @@ import { VideoBlock } from "./VideoBlock";
 import { MarkdownContent } from "./MarkdownContent";
 import { CopyButton, ShareButton } from "./MessageButtons";
 import { useDoubleCopy } from "./useDoubleCopy";
-import { RegenerateMenu } from "./RegenerateMenu";
 import { QuizCard } from "./QuizCard";
 import { ArtifactCard } from "./ArtifactCard";
 
@@ -332,13 +331,8 @@ export const AssistantMessage = memo(
                 chatContainerRef={listRef}
                 chatName={chatName}
               />
-              {onRegenerate && (
-                <RegenerateMenu
-                  messageId={message.id}
-                  modelOptions={modelOptions}
-                  onRegenerate={onRegenerate}
-                />
-              )}
+              {/* No regenerate control on AI answers — resend/regenerate
+                  lives on the user message only. */}
             </div>
           )}
         </div>
