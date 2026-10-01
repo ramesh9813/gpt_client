@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { apiFetch, ApiResponse } from "../../../lib/api";
 import { getActiveByok, stripProviderPrefix } from "../../../lib/byok";
-import { readTrimArmed, readWebSearchArmed } from "../sidebarState";
+import { readPromptOnlyArmed, readTrimArmed, readWebSearchArmed } from "../sidebarState";
 import { shouldCompactHistory, threadChars } from "../../../lib/tokens";
 
 // Thinking mode mirrors webSearch: sticky localStorage flag honored by
@@ -104,7 +104,7 @@ export const useChatMessages = ({
     writeCachedMessages(conversationId, messages);
   }, [conversationId, messages]);
 
-  const sendMessage = async (text: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean; files?: Array<{ name: string; mime: string; size: number; content: string }> }) => {
+  const sendMessage = async (text: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean; promptOnly?: boolean; files?: Array<{ name: string; mime: string; size: number; content: string }> }) => {
     if (!conversationId) return;
     const trimmed = text.trim();
     const hasImages = !!images && images.length > 0;
@@ -171,6 +171,7 @@ export const useChatMessages = ({
         ...(opts?.think ? { think: true as const } : {}),
         webSearch: searchOn,
         ...(compact ? { compactHistory: true as const } : {}),
+        ...((opts?.promptOnly ?? readPromptOnlyArmed()) ? { promptOnly: true as const } : {}),
       });
     } catch (err: any) {
       if (cancelRef.current) {
@@ -258,6 +259,7 @@ export const useChatMessages = ({
         webSearch: readWebSearchArmed(),
         think: readThinkingArmed(),
         ...(compactFor(messages, text.length) ? { compactHistory: true as const } : {}),
+        ...(readPromptOnlyArmed() ? { promptOnly: true as const } : {}),
       });
     } catch (err: any) {
       if (cancelRef.current) {
@@ -375,6 +377,7 @@ export const useChatMessages = ({
         ...(compactFor(messagesRef.current, userMessage.content.length)
           ? { compactHistory: true as const }
           : {}),
+        ...(readPromptOnlyArmed() ? { promptOnly: true as const } : {}),
       });
     } catch (err: any) {
       if (cancelRef.current) {
@@ -479,6 +482,7 @@ export const useChatMessages = ({
         ...(compactFor(messagesRef.current, userMessage.content.length)
           ? { compactHistory: true as const }
           : {}),
+        ...(readPromptOnlyArmed() ? { promptOnly: true as const } : {}),
       });
     } catch (err: any) {
       if (cancelRef.current) {

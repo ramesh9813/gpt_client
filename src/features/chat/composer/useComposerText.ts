@@ -28,6 +28,15 @@ export const useComposerArmed = () => {
       return true;
     }
   });
+  // Prompt-only mode: sticky like quiz; skips history server-side so the
+  // turn is just input + custom prompt (token-saver). OFF by default.
+  const [promptOnlyArmed, setPromptOnlyArmed] = useState(() => {
+    try {
+      return window.localStorage.getItem("chatapp.promptonly.armed") === "true";
+    } catch {
+      return false;
+    }
+  });
   // Thinking (extended reasoning) mode: sticky like quiz; streams a thinking
   // trace from reasoning-capable models into the collapsible block.
   const [thinkingArmed, setThinkingArmed] = useState(() => {
@@ -57,6 +66,11 @@ export const useComposerArmed = () => {
       window.localStorage.setItem("chatapp.trim.armed", String(trimArmed));
     } catch {}
   }, [trimArmed]);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("chatapp.promptonly.armed", String(promptOnlyArmed));
+    } catch {}
+  }, [promptOnlyArmed]);
 
   return {
     researchArmed,
@@ -71,6 +85,8 @@ export const useComposerArmed = () => {
     setThinkingArmed,
     trimArmed,
     setTrimArmed,
+    promptOnlyArmed,
+    setPromptOnlyArmed,
   };
 };
 
@@ -90,7 +106,7 @@ export const adjustTextareaHeight = (el: HTMLTextAreaElement) => {
   el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
 };
 
-type SendOpts = { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean; files?: Array<{ name: string; mime: string; size: number; content: string }> };
+type SendOpts = { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean; promptOnly?: boolean; files?: Array<{ name: string; mime: string; size: number; content: string }> };
 
 type UseComposerTextOptions = {
   value: string;
@@ -102,6 +118,7 @@ type UseComposerTextOptions = {
   artifactArmed: boolean;
   webSearchArmed: boolean;
   thinkingArmed: boolean;
+  promptOnlyArmed: boolean;
   disabled?: boolean;
   streaming?: boolean;
   lastUserMessage?: string;
@@ -126,6 +143,7 @@ export const useComposerText = ({
   artifactArmed,
   webSearchArmed,
   thinkingArmed,
+  promptOnlyArmed,
   disabled,
   streaming,
   lastUserMessage,
@@ -153,12 +171,14 @@ export const useComposerText = ({
     const routed =
       mcqArmed && trimmed && !MCQ_PREFIX.test(trimmed) ? `mcq ${trimmed}` : trimmed;
     // webSearch is always explicit (true/false) so the armed toggle is
-    // honored exactly; research/artifact stay one-shot opt-ins.
+    // honored exactly; research/artifact stay one-shot opt-ins. Prompt-only
+    // is sticky like quiz — it rides every turn until explicitly cleared.
     const opts = {
       ...(researchArmed ? { research: true as const } : {}),
       ...(artifactArmed ? { artifact: true as const } : {}),
       webSearch: webSearchArmed,
       ...(thinkingArmed ? { think: true as const } : {}),
+      ...(promptOnlyArmed ? { promptOnly: true as const } : {}),
     };
     onSend(routed, images.length > 0 ? [...images] : undefined, opts);
     setValue("");

@@ -31,7 +31,7 @@ import type { FileAttachment } from "../../lib/fileChat";
 
 export type ComposerProps = {
   // images/files optional → backward compat
-  onSend: (value: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean; files?: FileAttachment[] }) => void;
+  onSend: (value: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean; promptOnly?: boolean; files?: FileAttachment[] }) => void;
   onStop?: () => void;
   disabled?: boolean;
   streaming?: boolean;
@@ -108,6 +108,8 @@ const Composer = ({
     setThinkingArmed,
     trimArmed,
     setTrimArmed,
+    promptOnlyArmed,
+    setPromptOnlyArmed,
   } = useComposerArmed();
   // Active provider for the live token estimate (re-read on BYOK changes).
   const [byokTick, setByokTick] = useState(0);
@@ -243,6 +245,7 @@ const Composer = ({
     artifactArmed,
     webSearchArmed,
     thinkingArmed,
+    promptOnlyArmed,
     disabled,
     streaming,
     lastUserMessage,
@@ -268,17 +271,19 @@ const Composer = ({
 
   // Live token estimate: capped history + current input + file payload +
   // system headroom, at ~4 chars/token. Warns near the provider cap and
-  // flags when auto-trim will clamp history on send.
+  // flags when auto-trim will clamp history on send. Prompt-only mode sends
+  // no history, so the estimate drops to just this turn.
   const filesChars = files.reduce((n, f) => n + (f.content?.length ?? 0), 0);
   const estimateInputChars = value.length;
+  const estimateHistoryChars = promptOnlyArmed ? 0 : historyChars;
   const estimateNear = isNearLimit({
-    historyChars,
+    historyChars: estimateHistoryChars,
     inputChars: estimateInputChars,
     filesChars,
     providerId: estimateProviderId,
   });
   const estimateChars = estimateTurnChars({
-    historyChars,
+    historyChars: estimateHistoryChars,
     inputChars: estimateInputChars,
     filesChars,
     providerId: estimateProviderId,
@@ -301,8 +306,9 @@ const Composer = ({
       {estimateLeft !== null && (
         <span> • {formatTokenCount(estimateLeft)} left</span>
       )}
-      {estimateNear && trimArmed && <span> • auto-trim on</span>}
-      {estimateNear && !trimArmed && <span> • over limit!</span>}
+      {promptOnlyArmed && <span> • prompt only</span>}
+      {estimateNear && trimArmed && !promptOnlyArmed && <span> • auto-trim on</span>}
+      {estimateNear && !trimArmed && !promptOnlyArmed && <span> • over limit!</span>}
     </>
   );
 
@@ -427,6 +433,8 @@ const Composer = ({
             onThinkingToggle={() => setThinkingArmed((prev) => !prev)}
             trimArmed={trimArmed}
             onTrimToggle={() => setTrimArmed((prev) => !prev)}
+            promptOnlyArmed={promptOnlyArmed}
+            onPromptOnlyToggle={() => setPromptOnlyArmed((prev) => !prev)}
             tokenInline={estimateCount > 0 ? tokenLineInner : undefined}
             tokenInlineState={tokenLineState}
             tokenInlineTitle={tokenLineTitle}

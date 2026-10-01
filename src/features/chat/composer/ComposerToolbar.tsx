@@ -38,6 +38,8 @@ export interface ComposerToolbarProps {
   onThinkingToggle?: () => void;
   trimArmed?: boolean;
   onTrimToggle?: () => void;
+  promptOnlyArmed?: boolean;
+  onPromptOnlyToggle?: () => void;
   tokenInline?: ReactNode;
   tokenInlineState?: string;
   tokenInlineTitle?: string;
@@ -102,6 +104,8 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
     onThinkingToggle,
     trimArmed,
     onTrimToggle,
+    promptOnlyArmed,
+    onPromptOnlyToggle,
     tokenInline,
     tokenInlineState,
     tokenInlineTitle,
@@ -177,6 +181,8 @@ export const ComposerToolbar = (props: ComposerToolbarProps) => {
           onThinkingToggle={onThinkingToggle}
           trimArmed={trimArmed}
           onTrimToggle={onTrimToggle}
+          promptOnlyArmed={promptOnlyArmed}
+          onPromptOnlyToggle={onPromptOnlyToggle}
           onFilePick={onFilePick}
         />
       )}
