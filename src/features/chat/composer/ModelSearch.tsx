@@ -9,8 +9,10 @@ export interface ModelSearchProps {
 }
 
 /**
- * Reusable model search field for dropdowns: search icon, autofocus input
- * (Enter never bubbles to the composer), and a clear button.
+ * Reusable model search field for dropdowns: search icon, opt-in autofocus
+ * input (Enter never bubbles to the composer), and a clear button.
+ * Autofocus stays OFF by default — the model list must not steal focus
+ * (mobile keyboard) until the user taps the field.
  * Styles live with the model picker (ComposerModelPicker.css).
  */
 export const ModelSearch = ({
@@ -18,7 +20,7 @@ export const ModelSearch = ({
   onChange,
   placeholder = "Search models...",
   ariaLabel = "Search models",
-  autoFocus = true,
+  autoFocus = false,
 }: ModelSearchProps) => {
   return (
     <div className="composer-query-wrap">
