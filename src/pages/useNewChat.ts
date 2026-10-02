@@ -38,7 +38,19 @@ export const useNewChat = ({
           if (Array.isArray(msgs) && msgs.length === 0) {
             const existing = queryClient.getQueryData<{ data?: { items?: Array<{ id: string }> } }>(["conversations"]);
             const row = existing?.data?.items?.find((c) => c.id === conversationId);
-            if (row) return { success: true, data: { conversation: row } } as ApiResponse<{ conversation: { id: string } }>;
+            if (row) {
+              // Ghost-id guard: the row may live in client cache only (the
+              // server GCs day-old empty chats; deletes happen on other
+              // devices). Reusing a dead id makes every send fail with
+              // "Conversation not found" regardless of model — confirm it
+              // still exists, otherwise fall through and create fresh.
+              try {
+                await apiFetch(`/api/conversations/${conversationId}/messages`);
+                return { success: true, data: { conversation: row } } as ApiResponse<{ conversation: { id: string } }>;
+              } catch {
+                // fall through to create
+              }
+            }
           }
         } catch {
           // fall through to create

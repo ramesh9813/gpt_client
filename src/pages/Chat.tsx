@@ -104,17 +104,14 @@ const Chat = () => {
     if (conversationId) saveLastConversationId(conversationId);
   }, [conversationId]);
 
-  // Stale restore guard: stored id was deleted elsewhere → drop it and fall
-  // back to HomeRedirect instead of sitting on a dead thread.
+  // Stale-thread guard: the conversation was deleted elsewhere (or GC'd) —
+  // drop the stored id when it matches and fall back to HomeRedirect
+  // instead of sitting on a dead thread where every send 404s.
   useEffect(() => {
     const code = (messageData?.error as { error?: { code?: string } } | null)
       ?.error?.code;
-    if (
-      code === "NOT_FOUND" &&
-      conversationId &&
-      loadLastConversationId() === conversationId
-    ) {
-      clearLastConversationId();
+    if (code === "NOT_FOUND" && conversationId) {
+      if (loadLastConversationId() === conversationId) clearLastConversationId();
       navigate("/", { replace: true });
     }
   }, [messageData?.error, conversationId, navigate]);
