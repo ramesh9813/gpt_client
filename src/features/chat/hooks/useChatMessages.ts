@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { apiFetch, ApiResponse } from "../../../lib/api";
@@ -16,7 +17,7 @@ export const readThinkingArmed = (): boolean => {
     return false;
   }
 };
-import { readCachedMessages, writeCachedMessages } from "../chatCache";
+import { readCachedMessages, removeCachedConversation, writeCachedMessages } from "../chatCache";
 import type { ChatMessage, TurnKind } from "../message/types";
 import { detectRegenKind, detectTurnKind } from "./turnKind";
 import type { UseChatMessagesOptions } from "./turnKind";
@@ -31,6 +32,7 @@ export const useChatMessages = ({
   resolveModelForPrompt,
 }: UseChatMessagesOptions) => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   // Step 1: instant paint from localStorage (synchronous, zero network).
   // Step 2 (below): background DB fetch overwrites + re-caches.
   const [messages, setMessages] = useState<ChatMessage[]>(() =>
@@ -105,8 +107,16 @@ export const useChatMessages = ({
     writeCachedMessages(conversationId, messages);
   }, [conversationId, messages]);
 
-  const sendMessage = async (text: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean; promptOnly?: boolean; files?: Array<{ name: string; mime: string; size: number; content: string }> }) => {
-    if (!conversationId) return;
+  // Ghost-thread self-heal: sending into a conversation the server no longer
+  // has (deleted elsewhere, GC'd day-old empty) 404s regardless of model.
+  // runSend rethrows exactly that case so sendMessage can mint a fresh
+  // thread, move there, and retry the turn once — the user just sees their
+  // message go through.
+  const isConversationGone = (err: unknown): boolean =>
+    typeof (err as { message?: unknown })?.message === "string" &&
+    ((err as { message: string }).message.includes("Conversation not found"));
+
+  const runSend = async (cid: string, text: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean; promptOnly?: boolean; files?: Array<{ name: string; mime: string; size: number; content: string }> }) => {
     const trimmed = text.trim();
     const hasImages = !!images && images.length > 0;
     const hasFiles = !!opts?.files && opts.files.length > 0;
@@ -169,7 +179,7 @@ export const useChatMessages = ({
     try {
       await streamAssistant(setMessages, {
         tempAssistantId,
-        conversationId,
+        conversationId: cid,
         userMessage: trimmed,
         images: hasImages ? images : undefined,
         files: hasFiles ? (opts as any).files : undefined,
@@ -186,6 +196,7 @@ export const useChatMessages = ({
       if (cancelRef.current) {
         return;
       }
+      if (isConversationGone(err)) throw err;
       setMessages((prev) =>
         prev.map((m) =>
           m.id === tempAssistantId
@@ -202,8 +213,50 @@ export const useChatMessages = ({
       setStreaming(false);
       setActiveStreamId(null);
       setActiveTurnKind(null);
-      queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
+      queryClient.invalidateQueries({ queryKey: ["messages", cid] });
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    }
+  };
+
+  const sendMessage = async (text: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean; promptOnly?: boolean; files?: Array<{ name: string; mime: string; size: number; content: string }> }) => {
+    if (!conversationId) return;
+    try {
+      await runSend(conversationId, text, images, opts);
+    } catch (err: any) {
+      if (cancelRef.current) return;
+      // Ghost thread → fresh conversation + a single retry with the same
+      // text. The failed optimistic rows stay on the dead thread; the live
+      // thread gets the real turn.
+      try {
+        const fresh = await apiFetch<ApiResponse<{ conversation: { id: string } }>>(
+          "/api/conversations",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: "{}",
+          }
+        );
+        const nid = fresh?.data?.conversation?.id;
+        if (!nid) throw err;
+        queryClient.setQueryData(["messages", nid], {
+          success: true,
+          data: { messages: [] },
+        });
+        removeCachedConversation(conversationId);
+        navigate(`/c/${nid}`);
+        // Let the thread switch settle so the optimistic rows below land on
+        // the live thread instead of being wiped by the switch reset.
+        await new Promise((r) => setTimeout(r, 50));
+        if (cancelRef.current) return;
+        await runSend(nid, text, images, opts);
+      } catch (retryErr: any) {
+        if (cancelRef.current) return;
+        if (isConversationGone(retryErr)) {
+          setComposerError("This chat no longer exists — start a new chat.");
+          return;
+        }
+        setComposerError(retryErr?.message || (err as any)?.message || "Streaming failed");
+      }
     }
   };
 

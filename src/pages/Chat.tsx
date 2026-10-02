@@ -6,6 +6,7 @@ import {
   loadLastConversationId,
   saveLastConversationId,
 } from "../features/chat/sidebarState";
+import { removeCachedConversation } from "../features/chat/chatCache";
 import ConversationSidebar from "../features/chat/ConversationSidebar";
 import SidebarToggle from "../components/SidebarToggle";
 import { useSidebar } from "../features/chat/useSidebar";
@@ -105,13 +106,16 @@ const Chat = () => {
   }, [conversationId]);
 
   // Stale-thread guard: the conversation was deleted elsewhere (or GC'd) —
-  // drop the stored id when it matches and fall back to HomeRedirect
-  // instead of sitting on a dead thread where every send 404s.
+  // prune it from every local cache and fall back to HomeRedirect instead of
+  // sitting on a dead thread where every send 404s. Pruning is what breaks
+  // the HomeRedirect ping-pong (it would otherwise re-navigate to the same
+  // cached dead id).
   useEffect(() => {
     const code = (messageData?.error as { error?: { code?: string } } | null)
       ?.error?.code;
     if (code === "NOT_FOUND" && conversationId) {
       if (loadLastConversationId() === conversationId) clearLastConversationId();
+      removeCachedConversation(conversationId);
       navigate("/", { replace: true });
     }
   }, [messageData?.error, conversationId, navigate]);

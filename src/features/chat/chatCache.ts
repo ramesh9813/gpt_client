@@ -168,6 +168,25 @@ export function writeCachedConversations(items: Conversation[]): void {
   safeWrite(CONVERSATIONS_KEY, items.slice(0, MAX_CACHED_CONVERSATIONS));
 }
 
+// Drop one conversation from every local cache (list + its messages). Used
+// when the server 404s an id we still hold — without this, HomeRedirect
+// re-navigates to the same dead id and ping-pongs with the stale guard.
+export function removeCachedConversation(conversationId: string | null | undefined): void {
+  if (!conversationId) return;
+  try {
+    const cached = safeRead<Conversation[]>(CONVERSATIONS_KEY);
+    if (Array.isArray(cached)) {
+      safeWrite(
+        CONVERSATIONS_KEY,
+        cached.filter((c) => c && (c as Conversation).id !== conversationId)
+      );
+    }
+  } catch {
+    // ignore — cache is optional
+  }
+  clearCachedMessages(conversationId);
+}
+
 export function readCachedFolders(): Folder[] | null {
   const cached = safeRead<Folder[]>(FOLDERS_KEY);
   if (!Array.isArray(cached)) return null;
