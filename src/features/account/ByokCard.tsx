@@ -255,22 +255,45 @@ export const ByokCard = () => {
     setVerifying(true);
     setVerifyState(null);
     try {
+      // 1. List check: confirms the key format + refreshes the dropdown.
       const res = await apiFetch<ApiResponse<ValidateResult>>("/api/byok/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ provider: provider.id, apiKey: apiKey.trim() }),
       });
       const d = res?.data;
+      let liveModels: string[] = [];
       if (d?.verified && Array.isArray(d.models) && d.models.length > 0) {
+        liveModels = d.models;
         setModelsByProvider((prev) => ({ ...prev, [provider.id]: d.models }));
         setFreeModelsByProvider((prev) => ({ ...prev, [provider.id]: Array.isArray(d.freeIds) ? d.freeIds : [] }));
         if (!d.models.includes(model)) setModel(d.models[0]);
       }
-      const ok = Boolean(d?.verified);
-      setVerifyState({ ok, message: d?.message || "" });
-      if (ok) {
+      // 2. Real inference probe: one tiny completion with this exact key on
+      // the selected (or first live) model. Listing /models can succeed while
+      // chats still fail (no balance, upstream outage, dead model id), so the
+      // verdict below reflects whether a chat will actually work — and a
+      // failure shows the provider's exact message.
+      const probeModel = (liveModels.includes(model) ? model : (liveModels[0] ?? model)).trim();
+      const t = await apiFetch<ApiResponse<{ ok: boolean; status: number; model: string; message: string }>>("/api/byok/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider: provider.id,
+          apiKey: apiKey.trim(),
+          ...(probeModel ? { model: probeModel } : {}),
+        }),
+      });
+      const r = t?.data;
+      if (r?.ok) {
+        setVerifyState({ ok: true, message: `Verified — ${r.model || probeModel} answered the test message.` });
         setSavedKeys((prev) => ({ ...prev, [provider.id]: apiKey.trim() }));
         setKeySavedAt(Date.now());
+      } else {
+        setVerifyState({
+          ok: false,
+          message: r?.message || d?.message || "The provider did not answer the test message.",
+        });
       }
     } catch {
       setVerifyState({ ok: false, message: "Could not reach the server to verify this key." });
