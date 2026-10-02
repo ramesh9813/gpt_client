@@ -202,7 +202,17 @@ export const BYOK_PROVIDERS: ByokProviderInfo[] = [
     keyHint: "cc_...",
     keyPattern: /^cc_[A-Za-z0-9_-]{16,}$/,
     modelsPublic: false,
-    models: [],
+    // Fallback shortlist (live /v1/models wins when reachable): public ids
+    // from the CleanAPIs catalog.
+    models: [
+      "claude-opus-4.8",
+      "gpt-5.6-luna",
+      "deepseek-v4-flash-0731",
+      "deepseek-v4-pro-0813",
+      "qwen3.8-27b",
+      "seed-2.1-turbo",
+      "gemma-2-2b",
+    ],
   },
   {
     id: "infron",
@@ -210,7 +220,14 @@ export const BYOK_PROVIDERS: ByokProviderInfo[] = [
     keyHint: "your API key",
     keyPattern: /^[A-Za-z0-9][A-Za-z0-9_.-]{15,}$/,
     modelsPublic: true,
-    models: [],
+    // Fallback shortlist (keyless live /v1/models wins when reachable).
+    models: [
+      "openai/gpt-6-luna",
+      "openai/gpt-6-sol",
+      "google/gemini-3.1-flash-lite",
+      "inclusionai/ling-2.6-1t",
+      "interfaze/interfaze-beta",
+    ],
   },
   {
     id: "apinex",
