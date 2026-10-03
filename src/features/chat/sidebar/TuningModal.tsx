@@ -68,8 +68,6 @@ export const TuningModal = ({ conversationId, conversationTitle, folderId, folde
   const [muted, setMuted] = useState<string[]>([]);
   const [folderItems, setFolderItems] = useState<TuningPromptItem[]>([]);
   const [draft, setDraft] = useState("");
-  const [initial, setInitial] = useState<{ list: TuningPromptItem[]; m: string[] }>({ list: [], m: [] });
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,14 +82,12 @@ export const TuningModal = ({ conversationId, conversationTitle, folderId, folde
       setItems(list);
       setFolderItems([]);
       setMuted([]);
-      setInitial({ list, m: [] });
     } else {
       const cached = readCachedTuning(scopeId);
       const list = cached?.customPrompts ?? [];
       const m = cached?.mutedFolderPromptIds ?? [];
       setItems(list);
       setMuted(m);
-      setInitial({ list, m: [...m].sort() });
       // Inherited folder defaults for chats inside a folder.
       if (chatFolderId) {
         const fc = readCachedFolderTuning(chatFolderId);
@@ -101,22 +97,18 @@ export const TuningModal = ({ conversationId, conversationTitle, folderId, folde
         setFolderItems([]);
       }
     }
-    setLoading(true);
     const remote = isFolder ? fetchFolderTuning(scopeId) : fetchTuning(scopeId);
     remote
       .then((cfg) => {
         setItems(cfg.customPrompts);
-        const m = !isFolder ? ((cfg as TuningConfig).mutedFolderPromptIds ?? []) : [];
-        if (!isFolder) setMuted(m);
-        setInitial({ list: cfg.customPrompts, m: [...m].sort() });
+        if (!isFolder) setMuted((cfg as TuningConfig).mutedFolderPromptIds ?? []);
       })
       .catch((e: unknown) => {
         const msg = (e as { error?: { message?: string }; message?: string })?.error?.message
           || (e as { message?: string })?.message
           || "Failed to load tuning";
         setError(msg);
-      })
-      .finally(() => setLoading(false));
+      });
     if (!isFolder && chatFolderId) {
       fetchFolderTuning(chatFolderId)
         .then((fc) => setFolderItems(fc.customPrompts))
@@ -131,40 +123,54 @@ export const TuningModal = ({ conversationId, conversationTitle, folderId, folde
 
   const activeCount = items.filter((i) => i.enabled).length;
   const inheritedActive = folderItems.filter((f) => f.enabled && !muted.includes(f.id)).length;
-  const dirty = JSON.stringify({ list: items, m: [...muted].sort() }) !==
-    JSON.stringify({ list: initial.list, m: [...initial.m].sort() });
   const atCap = items.length >= MAX_TUNING_PROMPTS;
 
   const addDraft = () => {
     const text = draft.trim();
-    if (!text || atCap) return;
-    setItems((prev) => [...prev, { id: makeTuningId(), text: text.slice(0, TUNING_MAX_LENGTH), enabled: true }]);
+    if (!text || atCap || !scopeId) return;
+    const next = [...items, { id: makeTuningId(), text: text.slice(0, TUNING_MAX_LENGTH), enabled: true }];
+    setItems(next);
     setDraft("");
+    void persist(next, muted);
   };
 
-  const toggleItem = (id: string) =>
-    setItems((prev) => prev.map((p) => (p.id === id ? { ...p, enabled: !p.enabled } : p)));
-  const deleteItem = (id: string) =>
-    setItems((prev) => prev.filter((p) => p.id !== id));
-  const toggleMuted = (id: string) =>
-    setMuted((prev) => (prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]));
+  const toggleItem = (id: string) => {
+    if (!scopeId) return;
+    const next = items.map((p) => (p.id === id ? { ...p, enabled: !p.enabled } : p));
+    setItems(next);
+    void persist(next, muted);
+  };
+  const deleteItem = (id: string) => {
+    if (!scopeId) return;
+    const next = items.filter((p) => p.id !== id);
+    setItems(next);
+    void persist(next, muted);
+  };
+  const toggleMuted = (id: string) => {
+    if (!scopeId) return;
+    const next = muted.includes(id) ? muted.filter((m) => m !== id) : [...muted, id];
+    setMuted(next);
+    void persist(items, next);
+  };
 
-  const handleSave = async () => {
+  // Auto-save: every add / tap-toggle / delete persists immediately —
+  // no Save button needed. Failures surface in the error box; the row
+  // state stays so retrying the same tap saves again.
+  const persist = async (nextItems: TuningPromptItem[], nextMuted: string[]) => {
     if (!scopeId) return;
     setSaving(true);
     setError(null);
     try {
       const saved = isFolder
-        ? await saveFolderTuning(scopeId, { customPrompts: items })
-        : await saveTuning(scopeId, { customPrompts: items, mutedFolderPromptIds: muted });
+        ? await saveFolderTuning(scopeId, { customPrompts: nextItems })
+        : await saveTuning(scopeId, { customPrompts: nextItems, mutedFolderPromptIds: nextMuted });
       if (isFolder) writeCachedFolderTuning(scopeId, saved);
       else writeCachedTuning(scopeId, saved as TuningConfig);
       onSaved?.(saved as TuningConfig);
-      onClose();
     } catch (e: unknown) {
       const msg = (e as { error?: { message?: string }; message?: string })?.error?.message
         || (e as { message?: string })?.message
-        || "Failed to save tuning";
+        || "Failed to save — tap again to retry";
       setError(msg);
     } finally {
       setSaving(false);
@@ -253,10 +259,8 @@ export const TuningModal = ({ conversationId, conversationTitle, folderId, folde
           ) : null}
         </div>
         <div className="tuning-footer">
-          <Button variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
-          <Button onClick={handleSave} disabled={saving || !dirty || loading}>
-            {saving ? "Saving…" : "Save"}
-          </Button>
+          {saving ? <span className="tuning-hint">Saving…</span> : null}
+          <Button variant="ghost" onClick={onClose} disabled={saving}>Close</Button>
         </div>
       </div>
     </div>
