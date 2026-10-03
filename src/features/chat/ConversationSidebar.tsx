@@ -297,6 +297,9 @@ const ConversationSidebar = ({
           conversationTitle={
             tuningId ? ([...uncategorized, ...Object.values(groupedConversations).flat()].find((c) => c.id === tuningId)?.title ?? undefined) : undefined
           }
+          chatFolderId={
+            tuningId ? ([...uncategorized, ...Object.values(groupedConversations).flat()].find((c) => c.id === tuningId)?.folderId ?? null) : null
+          }
           open={!!tuningId}
           onClose={() => setTuningId(null)}
           onSaved={(cfg) => {
@@ -305,7 +308,7 @@ const ConversationSidebar = ({
             const patch = (old: unknown) => {
               const o = old as { data?: { items?: Conversation[] } } | undefined;
               if (!o?.data?.items) return old;
-              return { ...(o as object), data: { ...(o.data as object), items: (o.data.items as Conversation[]).map((c) => c.id === tuningId ? { ...c, customPrompt: cfg.customPrompt, customPromptEnabled: cfg.customPromptEnabled } : c) } };
+              return { ...(o as object), data: { ...(o.data as object), items: (o.data.items as Conversation[]).map((c) => c.id === tuningId ? { ...c, customPrompt: cfg.customPrompt, customPromptEnabled: cfg.customPromptEnabled, customPrompts: cfg.customPrompts, mutedFolderPromptIds: cfg.mutedFolderPromptIds ?? [] } : c) } };
             };
             const k1 = queryClient.getQueryData(["conversations"]) as { data?: { items?: Conversation[] } } | undefined;
             const k2 = queryClient.getQueryData(["conversations", ""]) as { data?: { items?: Conversation[] } } | undefined;
@@ -319,11 +322,11 @@ const ConversationSidebar = ({
               [...a, ...b].forEach((c) => map.set(c.id, c));
               return [...map.values()];
             })();
-            const patched = combined.map((c) => c.id === tuningId ? { ...c, customPrompt: cfg.customPrompt, customPromptEnabled: cfg.customPromptEnabled } : c);
+            const patched = combined.map((c) => c.id === tuningId ? { ...c, customPrompt: cfg.customPrompt, customPromptEnabled: cfg.customPromptEnabled, customPrompts: cfg.customPrompts, mutedFolderPromptIds: cfg.mutedFolderPromptIds ?? [] } : c);
             if (patched.length > 0) writeCachedConversations(patched);
             // Fallback: also write raw cached list directly
             const raw = readCachedConversations();
-            if (raw) writeCachedConversations(raw.map((c) => c.id === tuningId ? { ...c, customPrompt: cfg.customPrompt, customPromptEnabled: cfg.customPromptEnabled } as Conversation : c));
+            if (raw) writeCachedConversations(raw.map((c) => c.id === tuningId ? { ...c, customPrompt: cfg.customPrompt, customPromptEnabled: cfg.customPromptEnabled, customPrompts: cfg.customPrompts, mutedFolderPromptIds: cfg.mutedFolderPromptIds ?? [] } as Conversation : c));
           }}
         />
         <TuningModal
@@ -340,12 +343,12 @@ const ConversationSidebar = ({
             const patchFolders = (old: unknown) => {
               const o = old as { data?: { items?: Folder[] } } | undefined;
               if (!o?.data?.items) return old;
-              return { ...(o as object), data: { ...(o.data as object), items: (o.data.items as Folder[]).map((f) => f.id === folderTuningId ? { ...f, customPrompt: cfg.customPrompt, customPromptEnabled: cfg.customPromptEnabled } : f) } };
+              return { ...(o as object), data: { ...(o.data as object), items: (o.data.items as Folder[]).map((f) => f.id === folderTuningId ? { ...f, customPrompt: cfg.customPrompt, customPromptEnabled: cfg.customPromptEnabled, customPrompts: cfg.customPrompts } : f) } };
             };
             const fk = queryClient.getQueryData(["folders"]);
             queryClient.setQueryData(["folders"], patchFolders(fk));
             const rawFolders = readCachedFolders();
-            if (rawFolders) writeCachedFolders(rawFolders.map((f) => f.id === folderTuningId ? { ...f, customPrompt: cfg.customPrompt, customPromptEnabled: cfg.customPromptEnabled } : f));
+            if (rawFolders) writeCachedFolders(rawFolders.map((f) => f.id === folderTuningId ? { ...f, customPrompt: cfg.customPrompt, customPromptEnabled: cfg.customPromptEnabled, customPrompts: cfg.customPrompts } : f));
             else queryClient.invalidateQueries({ queryKey: ["folders"] });
           }}
         />

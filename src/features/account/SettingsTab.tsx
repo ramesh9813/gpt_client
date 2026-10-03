@@ -68,6 +68,7 @@ export const SettingsTab = () => {
       pinHeader: false,
       showTopCard: true,
       showScrollJump: true,
+      showFollowups: true,
       appFontSize: APP_FONT_DEFAULT,
       iconScale: ICON_SCALE_DEFAULT,
       model: "default",
@@ -87,6 +88,7 @@ export const SettingsTab = () => {
         ...settings,
         showTopCard: settings.showTopCard ?? true,
         showScrollJump: settings.showScrollJump ?? true,
+        showFollowups: settings.showFollowups ?? true,
         fontScale: toFontStep(settings.fontScale),
         brand: isBrandId(settings.brand) ? settings.brand : "default",
         appFontSize: clampAppFontSize(settings.appFontSize),
@@ -358,6 +360,24 @@ export const SettingsTab = () => {
               <span className="account-check-hint">
                 Show the up/down jump button above the input card.
                 When off, it stays hidden; everything else stays as it is.
+              </span>
+            </span>
+          </label>
+        </div>
+        <div>
+          <label className="account-check-row">
+            <input
+              type="checkbox"
+              {...register("showFollowups")}
+              className="account-check-input"
+            />
+            <span className="account-check-body">
+              <span className="account-field-label account-check-label">
+                Show follow-up questions
+              </span>
+              <span className="account-check-hint">
+                Show the three follow-up question chips at the end of a
+                response. When off, no follow-ups are generated or shown.
               </span>
             </span>
           </label>

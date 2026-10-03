@@ -44,6 +44,11 @@
 }
 .conv-side--drawer-open { transform: translateX(0); }
 .conv-side--drawer-closed { transform: translateX(-100%); }
+/* Drawer takes 95% of the screen width when open (below the desktop
+   breakpoint) so sidebar content — incl. tuning rows — gets enough room. */
+@media (max-width: 1023.98px) {
+  .conv-side--drawer-open { width: 95vw; }
+}
 @media (min-width: 1024px) {
   .conv-side--drawer-open,
   .conv-side--drawer-closed { transform: translateX(0); }

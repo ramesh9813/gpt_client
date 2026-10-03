@@ -10,6 +10,7 @@ import { CopyButton, ShareButton } from "./MessageButtons";
 import { useDoubleCopy } from "./useDoubleCopy";
 import { QuizCard } from "./QuizCard";
 import { ArtifactCard } from "./ArtifactCard";
+import { useSettings } from "../../../lib/hooks";
 
 type AssistantMessageProps = {
   message: ChatMessage;
@@ -68,6 +69,11 @@ export const AssistantMessage = memo(
       setShowReasoning(false);
     }
   }, [displayContent, showReasoning]);
+  // Follow-ups toggle (Settings, default ON): hides stored follow-up chips
+  // too, so turning it off clears them from old responses instantly.
+  const { data: settingsData } = useSettings();
+  const showFollowups =
+    (settingsData?.data?.settings as { showFollowups?: boolean } | undefined)?.showFollowups !== false;
   // Web-search sources: always-visible plain list at the bottom.
   // (No collapsible — links stay in the open.)
   // Transient system notice banner (e.g. "search unavailable"): dismissible.
@@ -266,7 +272,7 @@ export const AssistantMessage = memo(
             </ul>
           </div>
         ) : null}
-        {message.followups && message.followups.length > 0 && message.status === "COMPLETE" ? (
+        {showFollowups && message.followups && message.followups.length > 0 && message.status === "COMPLETE" ? (
           <div className="msg-followups">
             {message.followups.map((q, i) => (
               <button

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Dropdown } from "../../../components/Dropdown";
 import { IconButton } from "../../../components/IconButton";
+import { normalizeTuningList } from "../chatTuning";
 import type { Conversation, Folder } from "./types";
 
 // Hover tolerance for laptop/desktop fine pointers: the three-dot button and
@@ -56,6 +57,13 @@ export function ConversationRow({
   // Two-level menu: first card holds actions, second card lists all folders.
   const [moveOpen, setMoveOpen] = useState(false);
   const isOpen = menuOpen === conversation.id;
+  // Todo-list tuning badge: any enabled prompt → accent, saved-but-all-off
+  // → grey, none → placeholder. Legacy single-prompt rows read as one item.
+  const promptList = normalizeTuningList(conversation.customPrompts, conversation.customPrompt, conversation.customPromptEnabled);
+  const promptActiveCount = promptList.filter((p) => p.enabled).length;
+  const promptTitle = promptActiveCount > 0
+    ? `${promptActiveCount} custom prompt${promptActiveCount === 1 ? "" : "s"} active`
+    : "Custom prompts saved (all off)";
   useEffect(() => {
     if (!isOpen) setMoveOpen(false);
   }, [isOpen]);
@@ -137,11 +145,11 @@ export function ConversationRow({
       ) : (
         <span className="conv-side-pin-placeholder" aria-hidden="true" />
       )}
-      {typeof conversation.customPrompt === "string" && conversation.customPrompt.trim().length > 0 ? (
+      {promptList.length > 0 ? (
         <span
-          className={`conv-tuning-dot ${conversation.customPromptEnabled === true ? "conv-tuning-dot--active" : "conv-tuning-dot--inactive"}`}
-          title={conversation.customPromptEnabled === true ? "Custom prompt active" : "Custom prompt saved (off)"}
-          aria-label={conversation.customPromptEnabled === true ? "Custom prompt active" : "Custom prompt off"}
+          className={`conv-tuning-dot ${promptActiveCount > 0 ? "conv-tuning-dot--active" : "conv-tuning-dot--inactive"}`}
+          title={promptTitle}
+          aria-label={promptActiveCount > 0 ? "Custom prompts active" : "Custom prompts off"}
         />
       ) : (
         <span className="conv-tuning-dot conv-tuning-dot--placeholder" aria-hidden="true" />
@@ -182,11 +190,11 @@ export function ConversationRow({
                 onClick={() => onTuning?.(conversation)}
               >
                 <span className="conv-side-dropdown-item-label">Custom Prompt</span>
-                {typeof conversation.customPrompt === "string" && conversation.customPrompt.trim().length > 0 ? (
+                {promptList.length > 0 ? (
                   <span
-                    className={`conv-tuning-dot ${conversation.customPromptEnabled === true ? "conv-tuning-dot--active" : "conv-tuning-dot--inactive"}`}
-                    title={conversation.customPromptEnabled === true ? "Custom prompt active" : "Custom prompt saved (off)"}
-                    aria-label={conversation.customPromptEnabled === true ? "Custom prompt active" : "Custom prompt off"}
+                    className={`conv-tuning-dot ${promptActiveCount > 0 ? "conv-tuning-dot--active" : "conv-tuning-dot--inactive"}`}
+                    title={promptTitle}
+                    aria-label={promptActiveCount > 0 ? "Custom prompts active" : "Custom prompts off"}
                   />
                 ) : null}
               </button>

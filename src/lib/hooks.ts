@@ -26,6 +26,7 @@ export type UserSettings = {
   pinHeader: boolean;
   showTopCard?: boolean;
   showScrollJump?: boolean;
+  showFollowups?: boolean;
   model: string;
   imageModel?: string;
   videoModel?: string;

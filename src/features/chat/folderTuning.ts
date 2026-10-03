@@ -4,13 +4,14 @@
 // Default ON: only an explicit false stays off (empty prompt forces off).
 
 import { apiFetch, ApiResponse } from "../../lib/api";
-import { TUNING_MAX_LENGTH } from "./chatTuning";
+import { TUNING_MAX_LENGTH, normalizeTuningList, type TuningPromptItem } from "./chatTuning";
 
 export { TUNING_MAX_LENGTH };
 
 export type FolderTuningConfig = {
   customPrompt: string | null;
   customPromptEnabled: boolean;
+  customPrompts: TuningPromptItem[];
 };
 
 const keyFor = (folderId: string) => `chatapp.folder-tuning.${folderId}`;
@@ -37,9 +38,16 @@ export function readCachedFolderTuning(folderId: string): FolderTuningConfig | n
   if (!folderId) return null;
   const cached = safeRead<FolderTuningConfig>(keyFor(folderId));
   if (!cached || typeof cached !== "object") return null;
+  const legacyPrompt =
+    typeof cached.customPrompt === "string" ? cached.customPrompt : cached.customPrompt == null ? null : String(cached.customPrompt);
   return {
-    customPrompt: typeof cached.customPrompt === "string" ? cached.customPrompt : cached.customPrompt == null ? null : String(cached.customPrompt),
+    customPrompt: legacyPrompt,
     customPromptEnabled: cached.customPromptEnabled !== false,
+    customPrompts: normalizeTuningList(
+      (cached as FolderTuningConfig).customPrompts,
+      legacyPrompt,
+      cached.customPromptEnabled
+    ),
   };
 }
 
@@ -48,36 +56,42 @@ export function writeCachedFolderTuning(folderId: string, cfg: FolderTuningConfi
   safeWrite(keyFor(folderId), cfg);
 }
 
+type FolderTuningResponse = {
+  id: string;
+  customPrompt: string | null;
+  customPromptEnabled: boolean;
+  customPrompts?: TuningPromptItem[];
+};
+
+const toConfig = (t: FolderTuningResponse | undefined, fallback: TuningPromptItem[]): FolderTuningConfig => ({
+  customPrompt: t?.customPrompt ?? null,
+  customPromptEnabled: t?.customPromptEnabled ?? true,
+  customPrompts: normalizeTuningList(t?.customPrompts, t?.customPrompt, t?.customPromptEnabled),
+});
+
 export async function fetchFolderTuning(folderId: string): Promise<FolderTuningConfig> {
-  const res = await apiFetch<ApiResponse<{ tuning: { id: string; customPrompt: string | null; customPromptEnabled: boolean } }>>(
+  const res = await apiFetch<ApiResponse<{ tuning: FolderTuningResponse }>>(
     `/api/folders/${folderId}/tuning`
   );
   const t = res.data?.tuning;
-  const cfg: FolderTuningConfig = {
-    customPrompt: t?.customPrompt ?? null,
-    customPromptEnabled: t?.customPromptEnabled !== false,
-  };
+  const cfg = toConfig(t, []);
   writeCachedFolderTuning(folderId, cfg);
   return cfg;
 }
 
-export async function saveFolderTuning(folderId: string, cfg: FolderTuningConfig): Promise<FolderTuningConfig> {
-  const res = await apiFetch<ApiResponse<{ tuning: { id: string; customPrompt: string | null; customPromptEnabled: boolean } }>>(
+export async function saveFolderTuning(folderId: string, cfg: { customPrompts: TuningPromptItem[] }): Promise<FolderTuningConfig> {
+  const res = await apiFetch<ApiResponse<{ tuning: FolderTuningResponse }>>(
     `/api/folders/${folderId}/tuning`,
     {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        customPrompt: cfg.customPrompt,
-        customPromptEnabled: cfg.customPromptEnabled,
+        customPrompts: cfg.customPrompts.map((p) => ({ id: p.id, text: p.text, enabled: p.enabled })),
       }),
     }
   );
   const t = res.data?.tuning;
-  const next: FolderTuningConfig = {
-    customPrompt: t?.customPrompt ?? cfg.customPrompt ?? null,
-    customPromptEnabled: t?.customPromptEnabled ?? cfg.customPromptEnabled,
-  };
+  const next = toConfig(t, cfg.customPrompts);
   writeCachedFolderTuning(folderId, next);
   return next;
 }

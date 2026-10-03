@@ -3,6 +3,7 @@ import { Input } from "../../../components/Input";
 import { Dropdown } from "../../../components/Dropdown";
 import { IconButton } from "../../../components/IconButton";
 import type { Conversation, Folder } from "./types";
+import { normalizeTuningList } from "../chatTuning";
 
 // Hover tolerance for laptop/desktop fine pointers (mirrors ConversationRow):
 // keep the folder pop card open while the pointer is within ~80px of the
@@ -225,11 +226,11 @@ export function FolderSection({
         {folders.map((folder) => {
           const chatCount = folder._count?.conversations || 0;
           const isOpen = expandedFolders.has(folder.id);
-          // Folder tuning badge: prompt on → colored background, prompt saved
-          // but off → grey background, no prompt → plain number, no background.
-          const hasFolderPrompt =
-            typeof folder.customPrompt === "string" && folder.customPrompt.trim().length > 0;
-          const folderPromptOn = hasFolderPrompt && folder.customPromptEnabled !== false;
+          // Folder tuning badge: any prompt on → colored background, prompts
+          // saved but all off → grey background, none → plain number.
+          const folderPromptList = normalizeTuningList(folder.customPrompts, folder.customPrompt, folder.customPromptEnabled);
+          const hasFolderPrompt = folderPromptList.length > 0;
+          const folderPromptOn = folderPromptList.some((p) => p.enabled);
           const countClassName = `conv-side-folder-count${
             folderPromptOn
               ? " conv-side-folder-count--prompt-on"
