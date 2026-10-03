@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "../../../components/Button";
 import { Input } from "../../../components/Input";
 import "./TuningModal.css";
@@ -20,45 +20,113 @@ export interface TuningModalProps {
 }
 
 type PromptRowProps = {
+  id: string;
   text: string;
   on: boolean;
   onToggle: () => void;
   onDelete?: () => void;
   muted?: boolean;
+  copied: boolean;
+  onCopy: (id: string, text: string) => void;
+  onView: (text: string) => void;
 };
 
-// One todo-list line: single tap toggles on/off, × deletes (own prompts).
-const PromptRow = ({ text, on, onToggle, onDelete, muted }: PromptRowProps) => (
-  <li className={`tuning-row ${on ? "tuning-row--on" : "tuning-row--off"}`}>
-    <button
-      type="button"
-      className="tuning-row-toggle"
-      onClick={onToggle}
-      aria-pressed={on}
-      title={on ? "Tap to disable" : "Tap to enable"}
-    >
-      <span className="tuning-row-check" aria-hidden="true">
-        {on ? <i className="bi bi-check" /> : null}
-      </span>
-      <span className="tuning-row-text">{text}</span>
-    </button>
-    {muted ? <span className="tuning-row-tag">folder</span> : null}
-    {onDelete ? (
+const copyText = async (text: string): Promise<boolean> => {
+  try {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // fall through to legacy path
+  }
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+};
+
+// One todo-list line: single tap toggles on/off, × deletes (own prompts),
+// double-click copies the text, long-press (500ms) opens the full text.
+const PromptRow = ({ id, text, on, onToggle, onDelete, muted, copied, onCopy, onView }: PromptRowProps) => {
+  const timer = useRef<number | null>(null);
+  const longFired = useRef(false);
+
+  const clearTimer = () => {
+    if (timer.current !== null) {
+      window.clearTimeout(timer.current);
+      timer.current = null;
+    }
+  };
+  useEffect(() => clearTimer, []);
+
+  const startPress = () => {
+    longFired.current = false;
+    clearTimer();
+    timer.current = window.setTimeout(() => {
+      timer.current = null;
+      longFired.current = true;
+      onView(text);
+    }, 500);
+  };
+
+  const handleClick = (e: { detail: number }) => {
+    // Second click of a double-click must not toggle twice.
+    if (e.detail > 1 || longFired.current) {
+      longFired.current = false;
+      return;
+    }
+    onToggle();
+  };
+
+  return (
+    <li className={`tuning-row ${on ? "tuning-row--on" : "tuning-row--off"}`}>
       <button
         type="button"
-        className="tuning-row-delete"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete();
-        }}
-        aria-label={`Delete prompt: ${text}`}
-        title="Delete"
+        className="tuning-row-toggle"
+        onClick={handleClick}
+        onDoubleClick={() => onCopy(id, text)}
+        onPointerDown={startPress}
+        onPointerUp={clearTimer}
+        onPointerLeave={clearTimer}
+        onPointerCancel={clearTimer}
+        onContextMenu={(e) => e.preventDefault()}
+        aria-pressed={on}
+        title={on ? "Tap to disable · double-tap to copy · hold for full text" : "Tap to enable · double-tap to copy · hold for full text"}
       >
-        ×
+        <span className="tuning-row-check" aria-hidden="true">
+          {on ? <i className="bi bi-check" /> : null}
+        </span>
+        <span className="tuning-row-text">{text}</span>
       </button>
-    ) : null}
-  </li>
-);
+      {copied ? <span className="tuning-row-tag tuning-row-tag--copied">copied</span> : muted ? <span className="tuning-row-tag">folder</span> : null}
+      {onDelete ? (
+        <button
+          type="button"
+          className="tuning-row-delete"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          aria-label={`Delete prompt: ${text}`}
+          title="Delete"
+        >
+          ×
+        </button>
+      ) : null}
+    </li>
+  );
+};
 
 export const TuningModal = ({ conversationId, conversationTitle, folderId, folderTitle, chatFolderId, open, onClose, onSaved }: TuningModalProps) => {
   const isFolder = !!folderId;
@@ -70,6 +138,12 @@ export const TuningModal = ({ conversationId, conversationTitle, folderId, folde
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [viewText, setViewText] = useState<string | null>(null);
+  const copyTimer = useRef<number | null>(null);
+  useEffect(() => () => {
+    if (copyTimer.current !== null) window.clearTimeout(copyTimer.current);
+  }, []);
 
   // Lazy load once per open (cache-first paint, then background refresh).
   useEffect(() => {
@@ -153,6 +227,17 @@ export const TuningModal = ({ conversationId, conversationTitle, folderId, folde
     void persist(items, next);
   };
 
+  const handleCopy = async (id: string, text: string) => {
+    if (await copyText(text)) {
+      setCopiedId(id);
+      if (copyTimer.current !== null) window.clearTimeout(copyTimer.current);
+      copyTimer.current = window.setTimeout(() => {
+        copyTimer.current = null;
+        setCopiedId((cur) => (cur === id ? null : cur));
+      }, 1200);
+    }
+  };
+
   // Auto-save: every add / tap-toggle / delete persists immediately —
   // no Save button needed. Failures surface in the error box; the row
   // state stays so retrying the same tap saves again.
@@ -231,12 +316,16 @@ export const TuningModal = ({ conversationId, conversationTitle, folderId, folde
               <ul className="tuning-list">
                 {folderItems.map((f) => {
                   const on = f.enabled && !muted.includes(f.id);
-                  return (
+                    return (
                     <PromptRow
                       key={f.id}
+                      id={f.id}
                       text={f.text}
                       on={on}
                       muted
+                      copied={copiedId === f.id}
+                      onCopy={handleCopy}
+                      onView={setViewText}
                       onToggle={() => toggleMuted(f.id)}
                     />
                   );
@@ -249,8 +338,12 @@ export const TuningModal = ({ conversationId, conversationTitle, folderId, folde
               {items.map((p) => (
                 <PromptRow
                   key={p.id}
+                  id={p.id}
                   text={p.text}
                   on={p.enabled}
+                  copied={copiedId === p.id}
+                  onCopy={handleCopy}
+                  onView={setViewText}
                   onToggle={() => toggleItem(p.id)}
                   onDelete={() => deleteItem(p.id)}
                 />
@@ -263,6 +356,26 @@ export const TuningModal = ({ conversationId, conversationTitle, folderId, folde
           <Button variant="ghost" onClick={onClose} disabled={saving}>Close</Button>
         </div>
       </div>
+      {viewText !== null ? (
+        <div className="tuning-view" role="dialog" aria-modal="true" aria-label="Full prompt text">
+          <div className="tuning-backdrop" onClick={() => setViewText(null)} aria-hidden="true" />
+          <div className="tuning-view-card">
+            <div className="tuning-view-text">{viewText}</div>
+            <div className="tuning-view-actions">
+              <Button
+                variant="ghost"
+                onClick={async () => {
+                  await copyText(viewText);
+                  setViewText(null);
+                }}
+              >
+                Copy
+              </Button>
+              <Button onClick={() => setViewText(null)}>Close</Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

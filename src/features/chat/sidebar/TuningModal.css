@@ -183,6 +183,9 @@
   color: inherit;
   text-align: left;
   font: inherit;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 .tuning-row-check {
   flex-shrink: 0;
@@ -221,6 +224,52 @@
   border: 1px solid var(--border);
   border-radius: 9999px;
   padding: 0.0625rem 0.5rem;
+}
+.tuning-row-tag--copied {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+/* Full-text card: long-press a row opens the complete text, wrapped */
+.tuning-view {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.tuning-view-card {
+  position: relative;
+  width: 100%;
+  max-width: 28rem;
+  max-height: min(80vh, 480px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  padding: 1rem;
+}
+.tuning-view-text {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.tuning-view-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
 }
 .tuning-row-delete {
   flex-shrink: 0;
@@ -270,6 +319,7 @@
 }
 .tuning-add .tuning-add-input:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 .tuning-add-btn {
   position: absolute;
