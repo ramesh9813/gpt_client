@@ -400,6 +400,7 @@ export const SettingsTab = () => {
               <option value="auto">Auto (recommended)</option>
               <option value="brave">Brave</option>
               <option value="exa">Exa</option>
+              <option value="youtube">YouTube</option>
               <option value="duckduckgo">DuckDuckGo</option>
             </select>
             <span className="account-check-hint">
