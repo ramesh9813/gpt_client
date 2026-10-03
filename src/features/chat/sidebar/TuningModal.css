@@ -239,18 +239,19 @@
   color: var(--text);
 }
 
-/* Single-line add row: type + Enter. Sticky at the bottom so newly added
-   prompts scroll underneath while the input stays visible and never shifts:
-   the button keeps its own fixed size, only the input flexes. */
+/* Single-line add row on top; sticky so the prompt list below can scroll
+   while the input stays visible and never shifts: the button keeps its own
+   fixed size, only the input flexes. */
 .tuning-add {
   position: sticky;
-  bottom: 0;
+  top: 0;
   z-index: 1;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-top: 0.25rem;
-  padding: 0.5rem 0 0.125rem;
+  margin-top: 0;
+  margin-bottom: 0.25rem;
+  padding: 0.125rem 0 0.5rem;
   background: var(--panel);
 }
 .tuning-add .tuning-add-input {

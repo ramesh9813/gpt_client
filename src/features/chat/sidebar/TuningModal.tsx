@@ -188,6 +188,26 @@ export const TuningModal = ({ conversationId, conversationTitle, folderId, folde
         </div>
         {error ? <div className="tuning-error" role="alert">{error}</div> : null}
         <div className="tuning-body">
+          <div className="tuning-add">
+            <Input
+              className="tuning-add-input"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addDraft();
+                }
+              }}
+              placeholder={atCap ? `Limit reached (${MAX_TUNING_PROMPTS})` : "Type a prompt, Enter to add…"}
+              aria-label="New custom prompt"
+              spellCheck={false}
+              autoComplete="off"
+              maxLength={TUNING_MAX_LENGTH}
+              disabled={atCap}
+            />
+            <Button onClick={addDraft} disabled={!draft.trim() || atCap}>Add</Button>
+          </div>
           {!isFolder && folderItems.length > 0 ? (
             <>
               <ul className="tuning-list">
@@ -219,26 +239,6 @@ export const TuningModal = ({ conversationId, conversationTitle, folderId, folde
               ))}
             </ul>
           ) : null}
-          <div className="tuning-add">
-            <Input
-              className="tuning-add-input"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addDraft();
-                }
-              }}
-              placeholder={atCap ? `Limit reached (${MAX_TUNING_PROMPTS})` : "Type a prompt, Enter to add…"}
-              aria-label="New custom prompt"
-              spellCheck={false}
-              autoComplete="off"
-              maxLength={TUNING_MAX_LENGTH}
-              disabled={atCap}
-            />
-            <Button onClick={addDraft} disabled={!draft.trim() || atCap}>Add</Button>
-          </div>
         </div>
         <div className="tuning-footer">
           <Button variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
