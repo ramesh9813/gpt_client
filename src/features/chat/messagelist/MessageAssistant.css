@@ -348,13 +348,14 @@
   overflow-wrap: anywhere;
 }
 
-/* Always-visible plain "Sources (n)" list under web-search answers */
+/* Always-visible plain "Sources (n)" list under web-search answers.
+   No background, no border box — plain text on the chat background. */
 .msg-sources {
   margin-top: 0.5rem;
-  border: 1px solid var(--border);
-  border-radius: 0.625rem;
-  overflow: hidden;
-  background: var(--panel);
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
 }
 .msg-sources--plain .msg-sources-list {
   border-top: 0;
@@ -381,9 +382,10 @@
   align-items: center;
   gap: 0.375rem;
   font-weight: 600;
-  padding: 0.5rem 0.625rem 0;
+  padding: 0.5rem 0 0;
   color: var(--muted);
   font-size: 0.8125rem;
+  background: transparent;
 }
 .msg-sources-icon {
   font-size: 0.875rem;
@@ -391,8 +393,9 @@
 .msg-sources-list {
   list-style: none;
   margin: 0;
-  padding: 0.25rem 0.625rem 0.5rem;
-  border-top: 1px solid var(--border);
+  padding: 0.25rem 0 0.5rem;
+  border-top: 0;
+  background: transparent;
 }
 .msg-sources-item {
   padding: 0.25rem 0;
