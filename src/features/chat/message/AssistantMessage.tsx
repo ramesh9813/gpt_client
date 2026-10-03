@@ -74,7 +74,12 @@ export const AssistantMessage = memo(
   const { data: settingsData } = useSettings();
   const showFollowups =
     (settingsData?.data?.settings as { showFollowups?: boolean } | undefined)?.showFollowups !== false;
-  // Web-search sources: always-visible plain list at the bottom.
+  // Sources panel: hidden when the answer body already ends with its own
+  // Sources/References list — one list only, never body + panel twice.
+  const bodyText = displayContent || message.content || "";
+  const bodyHasSources = /(?:^|\n)\s*(?:#{1,4}\s*)?(?:\*\*|__)?(sources?|references?)(?:\*\*|__)?\s*:?\s*(?:\n|$)/i.test(bodyText);
+  const showSourcesPanel =
+    !!message.sources && message.sources.length > 0 && message.status === "COMPLETE" && !bodyHasSources;
   // (No collapsible — links stay in the open.)
   // Transient system notice banner (e.g. "search unavailable"): dismissible.
   const [noticeDismissed, setNoticeDismissed] = useState(false);
@@ -241,7 +246,7 @@ export const AssistantMessage = memo(
             onNextRound={handleNextRound}
           />
         ) : null}
-        {message.sources && message.sources.length > 0 && message.status === "COMPLETE" ? (
+        {showSourcesPanel && message.sources ? (
           <div className="msg-sources msg-sources--plain">
             <div className="msg-sources-title">
               <i className="bi bi-globe msg-sources-icon" aria-hidden="true" />
