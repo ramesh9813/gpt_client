@@ -100,11 +100,24 @@
   border-radius: 8px;
 }
 
-/* Folder list — compact: tightened gaps between category rows */
+/* Folder list — compact: tightened gaps between category rows.
+   Capped at ~5 folder rows (+ a peek of the next): extra folders live in
+   this area's own scroll. No visible scrollbar — wheel/touch/drag still
+   scroll. Default overscroll chaining: the folder area scrolls first and
+   hands off to the history scroll underneath once exhausted. */
 .conv-side-folder-list {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  max-height: 12.5rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.conv-side-folder-list::-webkit-scrollbar {
+  display: none;
 }
 
 .conv-side-folder-group {
