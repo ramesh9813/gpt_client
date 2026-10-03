@@ -77,7 +77,7 @@ export const AssistantMessage = memo(
   // Sources panel: hidden when the answer body already ends with its own
   // Sources/References list — one list only, never body + panel twice.
   const bodyText = displayContent || message.content || "";
-  const bodyHasSources = /(?:^|\n)\s*(?:#{1,4}\s*)?(?:\*\*|__)?(sources?|references?)(?:\*\*|__)?\s*:?\s*(?:\n|$)/i.test(bodyText);
+  const bodyHasSources = /(?:^|\n)\s*(?:#{1,4}\s*)?(?:\*\*|__)?(sources?|references?)(?:\s*:?\s*(?:\*\*|__)?)*\s*(?:\n|$)/i.test(bodyText);
   const showSourcesPanel =
     !!message.sources && message.sources.length > 0 && message.status === "COMPLETE" && !bodyHasSources;
   // (No collapsible — links stay in the open.)
