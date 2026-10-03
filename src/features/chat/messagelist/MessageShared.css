@@ -525,6 +525,20 @@
   overflow: hidden;
   padding: 0.25rem 0 0;
 }
+/* Full-bleed inside assistant bubbles: the bubble padding would otherwise
+   shrink code cards vs the input card. Negative margins cancel exactly the
+   bubble padding at each breakpoint, so the code card is always exactly as
+   wide as the composer input (same column, same outer edges). */
+.msg-assistant .msg-codeblock {
+  margin-left: -0.75rem;
+  margin-right: -0.75rem;
+}
+@media (min-width: 640px) {
+  .msg-assistant .msg-codeblock {
+    margin-left: -1rem;
+    margin-right: -1rem;
+  }
+}
 .msg-codeblock-head {
   display: flex;
   align-items: center;
