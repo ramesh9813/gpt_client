@@ -246,28 +246,68 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
   margin-top: 0;
   margin-bottom: 0.25rem;
   padding: 0.125rem 0 0.5rem;
   background: var(--panel);
 }
+/* Input wrapper: the add button lives INSIDE the field (no separate
+   button shifting layout). Icon + text on desktop, icon only on mobile. */
+.tuning-add-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+}
 .tuning-add .tuning-add-input {
   flex: 1 1 auto;
   min-width: 0;
   width: 0;
+  padding-right: 3.25rem;
   background-color: var(--bg);
   border-color: color-mix(in srgb, var(--muted) 55%, var(--border));
 }
 .tuning-add .tuning-add-input:focus {
   border-color: var(--accent);
 }
-.tuning-add .btn {
+.tuning-add-btn {
+  position: absolute;
+  right: 0.375rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border: none;
+  border-radius: 9999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0.4375rem 0.75rem;
+  cursor: pointer;
   flex-shrink: 0;
 }
-
+.tuning-add-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.tuning-add-btn .bi {
+  font-size: 0.875rem;
+}
+@media (max-width: 639.98px) {
+  .tuning-add-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .tuning-add-btn {
+    padding: 0.4375rem 0.5625rem;
+  }
+}
 /* Toggle switch — match app chrome, no extra border */
 .tuning-toggle {
   display: inline-flex;
