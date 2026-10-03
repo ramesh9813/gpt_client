@@ -83,6 +83,11 @@ export const AssistantMessage = memo(
   // (No collapsible — links stay in the open.)
   // Transient system notice banner (e.g. "search unavailable"): dismissible.
   const [noticeDismissed, setNoticeDismissed] = useState(false);
+  // Photo slides (PPT-style): index + broken-image set for the viewer below.
+  const [photoIdx, setPhotoIdx] = useState(0);
+  const [brokenPhotos, setBrokenPhotos] = useState<Set<string>>(new Set());
+  const photos = (message.sources ?? []).filter((s) => !!s.image && !brokenPhotos.has(s.url));
+  const photoAt = photos.length > 0 ? Math.min(photoIdx, photos.length - 1) : 0;
   // Double fast click / double tap on the answer copies it immediately.
   const { copied, onDoubleClick, onTouchStart, onTouchEnd } = useDoubleCopy(
     () => displayContent || message.content
@@ -257,6 +262,51 @@ export const AssistantMessage = memo(
         ) : null}
         {showSourcesPanel && message.sources ? (
           <div className="msg-sources msg-sources--plain">
+            {photos.length > 0 ? (
+              <div className="msg-photos">
+                <a
+                  href={photos[photoAt].url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="msg-photo-slide"
+                  title={photos[photoAt].title}
+                >
+                  <img
+                    src={photos[photoAt].image}
+                    alt={photos[photoAt].title}
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                    onError={() =>
+                      setBrokenPhotos((prev) => new Set(prev).add(photos[photoAt].url))
+                    }
+                  />
+                </a>
+                {photos.length > 1 ? (
+                  <>
+                    <button
+                      type="button"
+                      className="msg-photo-nav msg-photo-prev"
+                      onClick={() => setPhotoIdx((i) => (i - 1 + photos.length) % photos.length)}
+                      aria-label="Previous photo"
+                    >
+                      <i className="bi bi-chevron-left" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      className="msg-photo-nav msg-photo-next"
+                      onClick={() => setPhotoIdx((i) => (i + 1) % photos.length)}
+                      aria-label="Next photo"
+                    >
+                      <i className="bi bi-chevron-right" aria-hidden="true" />
+                    </button>
+                    <span className="msg-photo-count">
+                      {photoAt + 1} / {photos.length}
+                    </span>
+                  </>
+                ) : null}
+                <div className="msg-photo-cap">{photos[photoAt].title}</div>
+              </div>
+            ) : null}
             <div className="msg-sources-title">
               <i className="bi bi-globe msg-sources-icon" aria-hidden="true" />
               <span>Sources ({message.sources.length})</span>

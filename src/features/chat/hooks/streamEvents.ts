@@ -60,13 +60,14 @@ export const applySourcesEvent = (
   if (Array.isArray(items)) {
     const cleaned = items
       .filter(
-        (v): v is { title: string; url: string } =>
+        (v): v is { title: string; url: string; image?: string } =>
           !!v && typeof v.url === "string" && v.url.length > 0
       )
       .map((v) => ({
         url: v.url,
         title:
           typeof v.title === "string" && v.title.trim() ? v.title : v.url,
+        ...(typeof v.image === "string" && v.image ? { image: v.image } : {}),
       }));
     if (cleaned.length > 0) {
       ctx.setMessages((prev) =>

@@ -44,7 +44,7 @@ export type ChatMessage = {
   durationMs?: number | null;
   // Web-search turns: cited sources + flag (persisted on the server message).
   usedSearch?: boolean;
-  sources?: { title: string; url: string }[];
+  sources?: { title: string; url: string; image?: string }[];
   // Transient system notice for the in-flight turn (e.g. "Search unavailable,
   // answering from general knowledge."). Not persisted — shown as a banner.
   notice?: string;
