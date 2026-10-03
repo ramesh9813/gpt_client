@@ -81,6 +81,28 @@ export const applySourcesEvent = (
   return false;
 };
 
+/** Applies a `stage` payload (live processing line, e.g. "Searching Brave
+ * for …"). Appended to the message's stage list (last 3 kept) and shown
+ * above the typing dots until the answer renders. Never aborts. */
+export const applyStageEvent = (
+  ctx: StreamEventCtx,
+  parsed: unknown
+): boolean => {
+  if (ctx.isCancelled()) return true;
+  const text = (parsed as any)?.text;
+  if (typeof text === "string" && text.trim().length > 0) {
+    const line = text.trim().slice(0, 120);
+    ctx.setMessages((prev) =>
+      prev.map((m) =>
+        m.id === ctx.tempAssistantId
+          ? { ...m, stage: [...(m.stage ?? []), line].slice(-3) }
+          : m
+      )
+    );
+  }
+  return false;
+};
+
 /** Applies a `notice` payload (system banner, e.g. search unavailable). */
 export const applyNoticeEvent = (
   ctx: StreamEventCtx,

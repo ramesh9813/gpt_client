@@ -20,6 +20,7 @@ import {
   applyQuizEvent,
   applyReasoningEvent,
   applySourcesEvent,
+  applyStageEvent,
   applyVideosEvent,
   type StreamEventCtx,
 } from "./streamEvents";
@@ -516,6 +517,9 @@ export const useChatStreaming = () => {
             }
             if (currentEvent === "notice") {
               if (applyNoticeEvent(ctx, parsed)) return;
+            }
+            if (currentEvent === "stage") {
+              if (applyStageEvent(ctx, parsed)) return;
             }
             if (currentEvent === "error") {
               if (isCancelled()) return;

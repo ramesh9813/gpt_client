@@ -203,11 +203,20 @@ export const AssistantMessage = memo(
         <MessageImages images={message.images} />
         <VideoBlock videos={message.videos} />
         {message.status === "STREAMING" && !displayContent && !message.quiz && !showGenStatus ? (
-          <div className="msg-typing">
-            <div className="msg-typing-dot msg-typing-dot--1"></div>
-            <div className="msg-typing-dot msg-typing-dot--2"></div>
-            <div className="msg-typing-dot msg-typing-dot--3"></div>
-          </div>
+          <>
+            {message.stage && message.stage.length > 0 ? (
+              <div className="msg-stage" aria-live="polite">
+                {message.stage.map((s, i) => (
+                  <div key={i} className="msg-stage-line">{s}</div>
+                ))}
+              </div>
+            ) : null}
+            <div className="msg-typing">
+              <div className="msg-typing-dot msg-typing-dot--1"></div>
+              <div className="msg-typing-dot msg-typing-dot--2"></div>
+              <div className="msg-typing-dot msg-typing-dot--3"></div>
+            </div>
+          </>
         ) : isCanvasOnly ? (
           <div className="msg-canvas-notice">
             Code sent to Canvas

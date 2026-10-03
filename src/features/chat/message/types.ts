@@ -48,6 +48,10 @@ export type ChatMessage = {
   // Transient system notice for the in-flight turn (e.g. "Search unavailable,
   // answering from general knowledge."). Not persisted — shown as a banner.
   notice?: string;
+  // Live processing stages ("Searching Brave for …", "Reading 5 sources…").
+  // Appended by `stage` SSE events, max 3, shown above the typing dots at
+  // 30% transparency until the answer renders. Never persisted.
+  stage?: string[];
 };
 
 export type ModelOption = { label: string; value: string };
