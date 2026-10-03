@@ -135,6 +135,7 @@ export interface FolderSectionProps {
   onToggleFolderMenu: (id: string) => void;
   onCloseFolderMenu: () => void;
   onDeleteFolder: (id: string) => void;
+  onPinFolder: (folder: Folder) => void;
   onTuneFolder: (id: string) => void;
   renderConversation: (conversation: Conversation) => ReactNode;
 }
@@ -155,6 +156,7 @@ export function FolderSection({
   onToggleFolderMenu,
   onCloseFolderMenu,
   onDeleteFolder,
+  onPinFolder,
   onTuneFolder,
   renderConversation,
 }: FolderSectionProps) {
@@ -244,6 +246,11 @@ export function FolderSection({
               <div className="conv-side-folder-main" onClick={() => onToggleFolder(folder.id)} title={folder.name}>
                 <i className={`bi bi-folder${isOpen ? "-fill" : ""} conv-side-folder-icon`}></i>
                 <span className="conv-side-folder-name">{folder.name}</span>
+                {folder.pinned ? (
+                  <i className="bi bi-pin-fill conv-side-pin-icon" aria-label="Pinned" title="Pinned"></i>
+                ) : (
+                  <span className="conv-side-pin-placeholder" aria-hidden="true" />
+                )}
                 {chatCount > 0 && (
                   <span
                     className={countClassName}
@@ -290,6 +297,15 @@ export function FolderSection({
                         aria-label={folderPromptOn ? "Custom prompt active" : "Custom prompt off"}
                       />
                     ) : null}
+                  </button>
+                  <button
+                    className="conv-side-dropdown-item"
+                    onClick={() => {
+                      onPinFolder(folder);
+                      onCloseFolderMenu();
+                    }}
+                  >
+                    {folder.pinned ? "Unpin" : "Pin to top"}
                   </button>
                   <button
                     className="conv-side-dropdown-item conv-side-dropdown-item--danger"

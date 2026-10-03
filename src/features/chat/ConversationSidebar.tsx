@@ -103,6 +103,7 @@ const ConversationSidebar = ({
     createFolderMutation,
     renameMutation,
     pinMutation,
+    pinFolderMutation,
     deleteMutation,
     moveMutation,
     deleteFolderMutation,
@@ -253,6 +254,10 @@ const ConversationSidebar = ({
                   onCloseFolderMenu={() => setFolderMenuOpen(null)}
                   onDeleteFolder={(id) => {
                     deleteFolderMutation.mutate(id);
+                    setFolderMenuOpen(null);
+                  }}
+                  onPinFolder={(folder) => {
+                    pinFolderMutation.mutate({ id: folder.id, pinned: !folder.pinned });
                     setFolderMenuOpen(null);
                   }}
                   onTuneFolder={(id) => setFolderTuningId(id)}

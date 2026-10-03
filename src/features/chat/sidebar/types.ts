@@ -23,6 +23,7 @@ export type Folder = {
   name: string;
   createdAt: string;
   updatedAt: string;
+  pinned?: boolean;
   customPrompt?: string | null;
   customPromptEnabled?: boolean;
   customPrompts?: TuningPromptItem[];

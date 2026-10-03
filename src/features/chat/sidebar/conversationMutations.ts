@@ -168,6 +168,21 @@ export function useConversationMutations({
     }
   });
 
+  const pinFolderMutation = useMutation({
+    mutationFn: (payload: { id: string; pinned: boolean }) =>
+      apiFetch<ApiResponse<{ folder: Folder }>>(
+        `/api/folders/${payload.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pinned: payload.pinned })
+        }
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["folders"] });
+    }
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) =>
       apiFetch<ApiResponse<{}>>(`/api/conversations/${id}`, { method: "DELETE" }),
@@ -185,6 +200,7 @@ export function useConversationMutations({
     createFolderMutation,
     renameMutation,
     pinMutation,
+    pinFolderMutation,
     deleteMutation,
     moveMutation,
     deleteFolderMutation,
