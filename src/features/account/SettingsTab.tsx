@@ -69,6 +69,7 @@ export const SettingsTab = () => {
       showTopCard: true,
       showScrollJump: true,
       showFollowups: true,
+      searchProvider: "auto" as const,
       appFontSize: APP_FONT_DEFAULT,
       iconScale: ICON_SCALE_DEFAULT,
       model: "default",
@@ -89,6 +90,7 @@ export const SettingsTab = () => {
         showTopCard: settings.showTopCard ?? true,
         showScrollJump: settings.showScrollJump ?? true,
         showFollowups: settings.showFollowups ?? true,
+        searchProvider: settings.searchProvider ?? "auto",
         fontScale: toFontStep(settings.fontScale),
         brand: isBrandId(settings.brand) ? settings.brand : "default",
         appFontSize: clampAppFontSize(settings.appFontSize),
@@ -382,6 +384,32 @@ export const SettingsTab = () => {
             </span>
           </label>
         </div>
+        <fieldset>
+          <legend className="account-field-label">
+            Search settings
+          </legend>
+          <div>
+            <label className="account-field-label" htmlFor="search-provider">
+              Search provider
+            </label>
+            <select
+              id="search-provider"
+              className="account-select"
+              {...register("searchProvider")}
+            >
+              <option value="auto">Auto (recommended)</option>
+              <option value="brave">Brave</option>
+              <option value="exa">Exa</option>
+              <option value="duckduckgo">DuckDuckGo</option>
+            </select>
+            <span className="account-check-hint">
+              Which engine answers news and look-up prompts. Auto uses the
+              first available key on the server (Brave, then Exa), otherwise
+              keyless DuckDuckGo. A pick without its server key falls back
+              automatically.
+            </span>
+          </div>
+        </fieldset>
         <fieldset>
           <legend className="account-field-label">
             Assistant theme

@@ -27,6 +27,7 @@ export type UserSettings = {
   showTopCard?: boolean;
   showScrollJump?: boolean;
   showFollowups?: boolean;
+  searchProvider?: "auto" | "brave" | "exa" | "duckduckgo";
   model: string;
   imageModel?: string;
   videoModel?: string;
