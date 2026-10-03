@@ -239,15 +239,32 @@
   color: var(--text);
 }
 
-/* Single-line add row: type + Enter */
+/* Single-line add row: type + Enter. Sticky at the bottom so newly added
+   prompts scroll underneath while the input stays visible and never shifts:
+   the button keeps its own fixed size, only the input flexes. */
 .tuning-add {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
   display: flex;
+  align-items: center;
   gap: 0.5rem;
   margin-top: 0.25rem;
+  padding: 0.5rem 0 0.125rem;
+  background: var(--panel);
 }
-.tuning-add-input {
+.tuning-add .tuning-add-input {
   flex: 1 1 auto;
   min-width: 0;
+  width: 0;
+  background-color: var(--bg);
+  border-color: color-mix(in srgb, var(--muted) 55%, var(--border));
+}
+.tuning-add .tuning-add-input:focus {
+  border-color: var(--accent);
+}
+.tuning-add .btn {
+  flex-shrink: 0;
 }
 
 /* Toggle switch — match app chrome, no extra border */
