@@ -186,13 +186,10 @@ export const TuningModal = ({ conversationId, conversationTitle, folderId, folde
             <button type="button" className="tuning-close" onClick={onClose} aria-label="Close">×</button>
           </div>
         </div>
-        {conversationTitle && !isFolder ? <div className="tuning-subtitle">{conversationTitle}</div> : null}
-        {loading ? <div className="tuning-hint">Loading…</div> : null}
         {error ? <div className="tuning-error" role="alert">{error}</div> : null}
         <div className="tuning-body">
           {!isFolder && folderItems.length > 0 ? (
             <>
-              <span className="tuning-label">From folder — on by default, tap to disable</span>
               <ul className="tuning-list">
                 {folderItems.map((f) => {
                   const on = f.enabled && !muted.includes(f.id);
@@ -209,10 +206,6 @@ export const TuningModal = ({ conversationId, conversationTitle, folderId, folde
               </ul>
             </>
           ) : null}
-          <span className="tuning-label">{isFolder ? "Folder prompts — tap to disable, × to delete" : "This chat — tap to disable, × to delete"}</span>
-          {isFolder ? (
-            <div className="tuning-hint">Applies to every chat inside this folder.</div>
-          ) : null}
           {items.length > 0 ? (
             <ul className="tuning-list">
               {items.map((p) => (
@@ -225,9 +218,7 @@ export const TuningModal = ({ conversationId, conversationTitle, folderId, folde
                 />
               ))}
             </ul>
-          ) : (
-            <div className="tuning-hint">No prompts yet — add one below.</div>
-          )}
+          ) : null}
           <div className="tuning-add">
             <Input
               className="tuning-add-input"
