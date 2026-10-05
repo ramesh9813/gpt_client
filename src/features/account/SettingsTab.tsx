@@ -46,9 +46,9 @@ export type { SettingsFormValues } from "./settingsForm";
 type SettingsSection = "general" | "appearance" | "ai" | "voice";
 
 const SECTIONS: { id: SettingsSection; label: string; icon: string }[] = [
+  { id: "ai", label: "AI Models", icon: "bi-cpu" },
   { id: "general", label: "General", icon: "bi-gear" },
   { id: "appearance", label: "Appearance", icon: "bi-palette" },
-  { id: "ai", label: "AI Models", icon: "bi-cpu" },
   { id: "voice", label: "Voice", icon: "bi-mic" },
 ];
 
@@ -60,7 +60,7 @@ export const SettingsTab = () => {
   const isGeneralUser = meData?.data?.user?.role === "user";
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<string | null>(null);
-  const [section, setSection] = useState<SettingsSection>("general");
+  const [section, setSection] = useState<SettingsSection>("ai");
   const [streamWps, setStreamWps] = useState<number>(() => readStreamWps());
   const {
     register,
