@@ -43,6 +43,15 @@ import { MediaAnalysisCard } from "./MediaAnalysisCard";
 
 export type { SettingsFormValues } from "./settingsForm";
 
+type SettingsSection = "general" | "appearance" | "ai" | "voice";
+
+const SECTIONS: { id: SettingsSection; label: string; icon: string }[] = [
+  { id: "general", label: "General", icon: "bi-gear" },
+  { id: "appearance", label: "Appearance", icon: "bi-palette" },
+  { id: "ai", label: "AI Models", icon: "bi-cpu" },
+  { id: "voice", label: "Voice", icon: "bi-mic" },
+];
+
 export const SettingsTab = () => {
   const { data } = useSettings();
   const { data: meData } = useMe();
@@ -51,6 +60,7 @@ export const SettingsTab = () => {
   const isGeneralUser = meData?.data?.user?.role === "user";
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<string | null>(null);
+  const [section, setSection] = useState<SettingsSection>("general");
   const [streamWps, setStreamWps] = useState<number>(() => readStreamWps());
   const {
     register,
@@ -61,6 +71,9 @@ export const SettingsTab = () => {
     formState: { isSubmitting },
   } = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
+    // Sub-tabs only hide sections (hidden attr) — but keep this belt-and-
+    // braces so tab switches never drop a value.
+    shouldUnregister: false,
     defaultValues: {
       theme: "SYSTEM",
       fontScale: "DEFAULT",
@@ -138,8 +151,8 @@ export const SettingsTab = () => {
 
   return (
     <div className="account-narrow">
-      {/* Save control stays at the very top of Settings — above the AI
-          provider card — so it's always the first thing on screen. */}
+      {/* Save control stays at the very top of Settings — above the tabs —
+          so it's always the first thing on screen. */}
       <div className="account-settings-head">
         <h2 className="account-section-title account-settings-title">Settings</h2>
         <div className="account-settings-save">
@@ -153,14 +166,37 @@ export const SettingsTab = () => {
           </Button>
         </div>
       </div>
-      {/* AI provider (add-on): provider/key/model picker stored in
-          localStorage only — intentionally outside the settings form (which
-          saves to the DB). Shown right under the header since it also drives
-          which model list the chat composer displays. */}
-      <ByokCard />
-      <TranscribeCard />
-      <MediaAnalysisCard />
+      {/* Sub-tabs only hide/show sections (hidden attr) — every card stays
+          mounted with the same form instance, so nothing saves differently. */}
+      <div className="account-subtabs" role="tablist" aria-label="Settings sections">
+        {SECTIONS.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            role="tab"
+            aria-selected={section === s.id}
+            onClick={() => setSection(s.id)}
+            className={`account-subtab ${section === s.id ? "account-subtab--active" : ""}`}
+          >
+            <i className={`bi ${s.icon}`} aria-hidden="true" />
+            {s.label}
+          </button>
+        ))}
+      </div>
+      <div hidden={section !== "ai"}>
+        {/* AI provider (add-on): provider/key/model picker stored in
+            localStorage only — intentionally outside the settings form (which
+            saves to the DB). */}
+        <ByokCard />
+      </div>
+      <div hidden={section !== "voice"}>
+        <TranscribeCard />
+      </div>
+      <div hidden={section !== "ai"}>
+        <MediaAnalysisCard />
+      </div>
       <form onSubmit={handleSubmit(onSubmit)} className="account-stack-lg">
+        <div hidden={section !== "appearance"} className="account-stack-lg">
         <div className="account-card">
           <h3 className="account-card-title">Appearance</h3>
           <div className="account-fields">
@@ -266,6 +302,8 @@ export const SettingsTab = () => {
             </div>
           </div>
         </div>
+        </div>
+        <div hidden={section !== "ai"} className="account-stack-lg">
         {!isGeneralUser ? (
           <div className="account-card">
             <SettingsModelsFields
@@ -276,6 +314,8 @@ export const SettingsTab = () => {
             />
           </div>
         ) : null}
+        </div>
+        <div hidden={section !== "general"} className="account-stack-lg">
         <div className="account-card">
           <h3 className="account-card-title">Response streaming</h3>
           <div className="account-fields">
@@ -411,6 +451,8 @@ export const SettingsTab = () => {
             </span>
           </div>
         </fieldset>
+        </div>
+        <div hidden={section !== "appearance"} className="account-stack-lg">
         <fieldset>
           <legend className="account-field-label">
             Assistant theme
@@ -452,6 +494,7 @@ export const SettingsTab = () => {
             ))}
           </div>
         </fieldset>
+        </div>
       </form>
     </div>
   );
