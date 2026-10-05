@@ -161,7 +161,7 @@
   border: 1px solid var(--border);
   border-radius: 0.625rem;
   background: var(--panel);
-  padding: 0.375rem 0.375rem 0.375rem 0.625rem;
+  padding: 0.375rem 0.625rem 0.375rem 0.625rem;
   transition: opacity 150ms ease, background-color 150ms ease;
 }
 .tuning-row--on {
@@ -178,7 +178,7 @@
   gap: 0.625rem;
   background: transparent;
   border: none;
-  padding: 0.125rem 0;
+  padding: 0.125rem 0.625rem;
   cursor: pointer;
   color: inherit;
   text-align: left;
@@ -341,6 +341,7 @@
   flex: 1 1 auto;
   min-width: 0;
   width: 0;
+  padding-left: 0.625rem;
   padding-right: 4.5rem;
   background-color: var(--bg);
   border-color: color-mix(in srgb, var(--muted) 55%, var(--border));
