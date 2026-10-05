@@ -176,10 +176,10 @@ export const UsageChart = ({ logs }: Props) => {
   }, [logs, range]);
 
   const isSingleStack = range === "day";
-  // Week view: one thick stacked bar per day (every model's share piled
-  // into its day column) — same stacked look as Today, not thin grouped bars.
-  const isStacked = range !== "year";
-  const stackId = range === "day" ? "todayStack" : range === "week" ? "weekStack" : undefined;
+  // Every range stacks: one thick stacked bar per bucket (day / weekday /
+  // month) with each model's share piled in — same look as Today.
+  const isStacked = true;
+  const stackId = range === "day" ? "todayStack" : range === "week" ? "weekStack" : "yearStack";
 
   return (
     <div className="usage-chart">
@@ -217,8 +217,8 @@ export const UsageChart = ({ logs }: Props) => {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
-              barCategoryGap={isSingleStack ? "30%" : range === "week" ? "20%" : "28%"}
-              barGap={isStacked ? 0 : 3}
+              barCategoryGap={isSingleStack ? "30%" : "20%"}
+              barGap={0}
             >
               <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} />
               <XAxis
@@ -263,8 +263,8 @@ export const UsageChart = ({ logs }: Props) => {
                         : [0, 0, 0, 0]
                       : [4, 4, 0, 0]
                   }
-                  maxBarSize={isSingleStack ? 72 : range === "week" ? 56 : 22}
-                  barSize={isSingleStack ? 56 : range === "week" ? 44 : undefined}
+                  maxBarSize={isSingleStack ? 72 : 56}
+                  barSize={isSingleStack ? 56 : 44}
                 />
               ))}
             </BarChart>
