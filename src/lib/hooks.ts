@@ -52,8 +52,13 @@ export const useMe = (enabled = true) => {
     const user = query.data?.data?.user;
     if (user) writeCachedMeUser(user);
   }, [query.data]);
+  // Stay logged in until explicit logout / real 401: only a confirmed
+  // UNAUTHORIZED clears the cached user. Network blips, cold-boot 500s or
+  // refresh retries must keep the cache so reloads still paint instantly
+  // and don't bounce to /login.
   useEffect(() => {
-    if (query.error) clearCachedMeUser();
+    const code = (query.error as { error?: { code?: string } } | null | undefined)?.error?.code;
+    if (code === "UNAUTHORIZED") clearCachedMeUser();
   }, [query.error]);
   return query;
 };

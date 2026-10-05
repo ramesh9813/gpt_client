@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "../components/Button";
 import { Input } from "../components/Input";
 import { apiFetch, clearAuthStorage } from "../lib/api";
+import { clearCachedMeUser } from "../features/chat/chatCache";
 import { useMe } from "../lib/hooks";
 import { SettingsTab } from "../features/account/SettingsTab";
 import { UsageTab } from "../features/account/UsageTab";
@@ -34,7 +35,10 @@ const Account = () => {
   const logout = () => {
     // Immediate: drop local session + leave first, revoke server-side in the
     // background (never make the user wait on network for logout).
+    // Clearing the cached user is what actually ends the "instant" session —
+    // every other path keeps it until a real 401.
     clearAuthStorage();
+    clearCachedMeUser();
     queryClient.clear();
     navigate("/login", { replace: true });
     void apiFetch("/api/auth/logout", { method: "POST" }).catch(() => {});
