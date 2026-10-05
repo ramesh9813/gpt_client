@@ -1,5 +1,6 @@
 /* In-app camera: half-height viewfinder just below the input card. */
 .composer-camera-view {
+  position: relative;
   margin-top: 0.5rem;
   border-radius: 1rem;
   border: 1px solid var(--border);
@@ -9,11 +10,11 @@
   display: flex;
   flex-direction: column;
 }
-/* Gesture stage: fills the viewfinder, owns touch (no scroll steal). */
+/* Gesture stage: fills the whole viewfinder behind the buttons, so the
+   photo covers the full area (no black strip above the button bar). */
 .composer-camera-stage {
-  position: relative;
-  flex: 1 1 0%;
-  min-height: 0;
+  position: absolute;
+  inset: 0;
   display: flex;
   touch-action: none;
   overflow: hidden;
@@ -53,12 +54,16 @@
   text-align: center;
 }
 .composer-camera-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 1rem;
   padding: 0.625rem;
-  background-color: rgb(0 0 0 / 0.75);
+  background-color: transparent;
   flex-shrink: 0;
 }
 /* Side groups keep the shutter exactly centered: two buttons left,
