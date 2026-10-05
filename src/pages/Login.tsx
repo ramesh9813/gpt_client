@@ -38,7 +38,13 @@ const Login = () => {
         body: JSON.stringify(values)
       });
       await queryClient.invalidateQueries({ queryKey: ["me"] });
-      const redirect = (location.state as any)?.from?.pathname || "/";
+      // OAuth handshake lands here via /login?next=%2Faccount%3Fconnector%3Dcanva
+      // (server redirect can't carry react-router state, so honor the query).
+      const params = new URLSearchParams(location.search);
+      const next = params.get("next");
+      const redirect = next && next.startsWith("/") && !next.startsWith("//")
+        ? next
+        : (location.state as any)?.from?.pathname || "/";
       navigate(redirect, { replace: true });
     } catch (err: any) {
       setError(err?.error?.message || err?.message || "Login failed");
@@ -56,7 +62,11 @@ const Login = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       await queryClient.invalidateQueries({ queryKey: ["me"] });
-      const redirect = (location.state as any)?.from?.pathname || "/";
+      const params = new URLSearchParams(location.search);
+      const next = params.get("next");
+      const redirect = next && next.startsWith("/") && !next.startsWith("//")
+        ? next
+        : (location.state as any)?.from?.pathname || "/";
       navigate(redirect, { replace: true });
     } catch (err: any) {
       setError(err?.error?.message || err?.message || "Google sign-in failed");
