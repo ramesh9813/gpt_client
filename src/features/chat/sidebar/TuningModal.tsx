@@ -28,7 +28,7 @@ type PromptRowProps = {
   muted?: boolean;
   copied: boolean;
   onCopy: (id: string, text: string) => void;
-  onView: (text: string) => void;
+  onView: (item: { id: string; text: string }) => void;
 };
 
 const copyText = async (text: string): Promise<boolean> => {
@@ -57,7 +57,8 @@ const copyText = async (text: string): Promise<boolean> => {
 };
 
 // One todo-list line: single tap toggles on/off, × deletes (own prompts),
-// double-click copies the text, long-press (500ms) opens the full text.
+// double-click copies the text, long-press (500ms) opens the full text
+// (editable for own prompts, read-only for inherited folder prompts).
 const PromptRow = ({ id, text, on, onToggle, onDelete, muted, copied, onCopy, onView }: PromptRowProps) => {
   const timer = useRef<number | null>(null);
   const longFired = useRef(false);
@@ -76,7 +77,7 @@ const PromptRow = ({ id, text, on, onToggle, onDelete, muted, copied, onCopy, on
     timer.current = window.setTimeout(() => {
       timer.current = null;
       longFired.current = true;
-      onView(text);
+      onView({ id, text });
     }, 500);
   };
 
@@ -102,7 +103,7 @@ const PromptRow = ({ id, text, on, onToggle, onDelete, muted, copied, onCopy, on
         onPointerCancel={clearTimer}
         onContextMenu={(e) => e.preventDefault()}
         aria-pressed={on}
-        title={on ? "Tap to disable · double-tap to copy · hold for full text" : "Tap to enable · double-tap to copy · hold for full text"}
+        title={on ? "Tap to disable · double-tap to copy · hold to view/edit" : "Tap to enable · double-tap to copy · hold to view/edit"}
       >
         <span className="tuning-row-check" aria-hidden="true">
           {on ? <i className="bi bi-check" /> : null}
@@ -139,7 +140,8 @@ export const TuningModal = ({ conversationId, conversationTitle, folderId, folde
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [viewText, setViewText] = useState<string | null>(null);
+  const [view, setView] = useState<{ id: string; text: string; editable: boolean } | null>(null);
+  const [viewDraft, setViewDraft] = useState("");
   const copyTimer = useRef<number | null>(null);
   useEffect(() => () => {
     if (copyTimer.current !== null) window.clearTimeout(copyTimer.current);
@@ -262,6 +264,22 @@ export const TuningModal = ({ conversationId, conversationTitle, folderId, folde
     }
   };
 
+  const openView = (item: { id: string; text: string }, editable: boolean) => {
+    setView({ id: item.id, text: item.text, editable });
+    setViewDraft(item.text);
+  };
+
+  const saveViewEdit = () => {
+    if (!view?.editable || !scopeId) return;
+    const text = viewDraft.trim();
+    if (!text) return;
+    const sliced = text.slice(0, TUNING_MAX_LENGTH);
+    const next = items.map((p) => (p.id === view.id ? { ...p, text: sliced } : p));
+    setItems(next);
+    setView(null);
+    void persist(next, muted);
+  };
+
   const totalActive = activeCount + (!isFolder ? inheritedActive : 0);
 
   return (
@@ -325,7 +343,7 @@ export const TuningModal = ({ conversationId, conversationTitle, folderId, folde
                       muted
                       copied={copiedId === f.id}
                       onCopy={handleCopy}
-                      onView={setViewText}
+                      onView={(item) => openView(item, false)}
                       onToggle={() => toggleMuted(f.id)}
                     />
                   );
@@ -343,7 +361,7 @@ export const TuningModal = ({ conversationId, conversationTitle, folderId, folde
                   on={p.enabled}
                   copied={copiedId === p.id}
                   onCopy={handleCopy}
-                  onView={setViewText}
+                  onView={(item) => openView(item, true)}
                   onToggle={() => toggleItem(p.id)}
                   onDelete={() => deleteItem(p.id)}
                 />
@@ -356,22 +374,53 @@ export const TuningModal = ({ conversationId, conversationTitle, folderId, folde
           <Button variant="ghost" onClick={onClose} disabled={saving}>Close</Button>
         </div>
       </div>
-      {viewText !== null ? (
-        <div className="tuning-view" role="dialog" aria-modal="true" aria-label="Full prompt text">
-          <div className="tuning-backdrop" onClick={() => setViewText(null)} aria-hidden="true" />
+      {view !== null ? (
+        <div className="tuning-view" role="dialog" aria-modal="true" aria-label={view.editable ? "View and edit prompt" : "Full prompt text"}>
+          <div className="tuning-backdrop" onClick={() => setView(null)} aria-hidden="true" />
           <div className="tuning-view-card">
-            <div className="tuning-view-text">{viewText}</div>
+            {view.editable ? (
+              <>
+                <textarea
+                  className="tuning-view-textarea"
+                  value={viewDraft}
+                  onChange={(e) => setViewDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                      e.preventDefault();
+                      saveViewEdit();
+                    }
+                  }}
+                  aria-label="Edit prompt text"
+                  spellCheck
+                  maxLength={TUNING_MAX_LENGTH}
+                  autoFocus
+                />
+                <div className="tuning-view-meta">
+                  <span className="tuning-counter">{viewDraft.length}/{TUNING_MAX_LENGTH}</span>
+                </div>
+              </>
+            ) : (
+              <div className="tuning-view-text">{view.text}</div>
+            )}
             <div className="tuning-view-actions">
               <Button
                 variant="ghost"
                 onClick={async () => {
-                  await copyText(viewText);
-                  setViewText(null);
+                  await copyText(view.editable ? viewDraft : view.text);
+                  setView(null);
                 }}
               >
                 Copy
               </Button>
-              <Button onClick={() => setViewText(null)}>Close</Button>
+              {view.editable ? (
+                <Button
+                  onClick={saveViewEdit}
+                  disabled={!viewDraft.trim() || viewDraft.trim() === view.text}
+                >
+                  Save
+                </Button>
+              ) : null}
+              <Button variant={view.editable ? "ghost" : undefined} onClick={() => setView(null)}>Close</Button>
             </div>
           </div>
         </div>
