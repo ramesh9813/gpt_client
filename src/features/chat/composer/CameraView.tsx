@@ -143,11 +143,11 @@ export const CameraView = ({
           <button
             type="button"
             className="composer-camera-btn"
-            onClick={onClose}
-            aria-label="Close camera"
-            title="Close camera"
+            onClick={() => sysInputRef.current?.click()}
+            aria-label="Open system camera"
+            title="System camera"
           >
-            <i className="bi bi-x-lg" aria-hidden="true"></i>
+            <i className="bi bi-camera" aria-hidden="true"></i>
           </button>
           {torchSupported && (
             <button
@@ -185,11 +185,11 @@ export const CameraView = ({
           <button
             type="button"
             className="composer-camera-btn"
-            onClick={() => sysInputRef.current?.click()}
-            aria-label="Open system camera"
-            title="System camera"
+            onClick={onClose}
+            aria-label="Close camera"
+            title="Close camera"
           >
-            <i className="bi bi-camera" aria-hidden="true"></i>
+            <i className="bi bi-x-lg" aria-hidden="true"></i>
           </button>
         </div>
         <input
