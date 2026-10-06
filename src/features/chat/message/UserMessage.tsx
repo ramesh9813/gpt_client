@@ -157,8 +157,8 @@ export const UserMessage = memo(
                 className="msg-icon-btn"
                 onClick={() => onResend(message.id)}
                 disabled={editDisabled}
-                title="Resend to same model"
-                aria-label="Resend to same model"
+                title="Resend on current model"
+                aria-label="Resend on current model"
                 type="button"
               >
                 <i className="bi bi-arrow-repeat msg-action-icon"></i>

@@ -44,6 +44,15 @@ export const useChatMessages = ({
   // re-render (UserMessage ignores volatile callbacks in its comparator).
   const messagesRef = useRef<ChatMessage[]>(messages);
   messagesRef.current = messages;
+  // Same staleness trap for the composer model: settled rows keep their first
+  // onResend closure, so reading `model` directly would resend on whatever
+  // was selected back then. The ref always holds the CURRENT selection.
+  const modelRef = useRef(model);
+  modelRef.current = model;
+  // The prompt router closes over the same selection — mirror it too, or the
+  // no-answer fallback would resolve media/chat routing on stale models.
+  const resolveRef = useRef(resolveModelForPrompt);
+  resolveRef.current = resolveModelForPrompt;
   // Live phase of the in-flight turn for the "what is happening" status.
   const [activeTurnKind, setActiveTurnKind] = useState<TurnKind | null>(null);
   const messageSchema = useMemo(
@@ -482,6 +491,8 @@ export const useChatMessages = ({
   // Resend a USER message on the CURRENTLY selected (composer) model — never
   // the model that previously answered it. Unchanged selection resends on
   // the same model trivially; a changed selection must win over history.
+  // Reads modelRef (not the render-scoped `model`) because memo-skipped rows
+  // invoke a stale closure after the user switches models.
   const handleResend = async (userMessageId: string) => {
     if (!conversationId) return;
     const thread = messagesRef.current;
@@ -491,7 +502,7 @@ export const useChatMessages = ({
     if (userMessage.role !== "USER") return;
 
     const next = thread[index + 1];
-    let sameModel = model;
+    let sameModel = modelRef.current;
     // BYOK turns persist "provider:model"; the chat path needs the plain
     // provider model id (never touch ":free" suffixed OpenRouter ids).
     const activeByok = getActiveByok();
@@ -508,9 +519,10 @@ export const useChatMessages = ({
 
     // No answer row yet (previous attempt died before one was saved):
     // drop anything below the user turn, then stream it again as last chat.
-    const fallbackModel = resolveModelForPrompt
-      ? resolveModelForPrompt(userMessage.content)
-      : model;
+    const resolveNow = resolveRef.current;
+    const fallbackModel = resolveNow
+      ? resolveNow(userMessage.content)
+      : modelRef.current;
     try {
       await apiFetch(
         `/api/conversations/${conversationId}/messages/${userMessage.id}`,

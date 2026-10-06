@@ -279,8 +279,8 @@ const Chat = () => {
               onRegenerate={
                 isGeneralUser && !byokActive ? undefined : handleRegenerate
               }
-              // Same gate: resending reuses the turn's own model, but still
-              // consumes a built-in completion when no provider key is set.
+              // Same gate: resending runs on the currently selected model, but
+              // still consumes a built-in completion when no provider key is set.
               onResend={
                 isGeneralUser && !byokActive ? undefined : handleResend
               }
