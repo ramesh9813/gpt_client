@@ -79,6 +79,23 @@ const normalizeInlineTags = (s: string): string =>
     )
     .join("");
 
+/**
+ * Hallucinated tool-call tags some models emit on search turns
+ * ("<tool_call> <function=web_search>…</function> </tool_call>") are already
+ * executed server-side — rendering them is pure noise. Strip closed blocks
+ * and a trailing unclosed block (mid-stream), outside fenced code only so
+ * real code samples stay literal.
+ */
+const stripToolCalls = (s: string): string =>
+  s
+    .split(/(```[\s\S]*?(?:```|$))/)
+    .map((chunk, i) =>
+      i % 2 === 1
+        ? chunk
+        : chunk.replace(/<tool_call\b[^>]*>[\s\S]*?(?:<\/tool_call\s*>|$)/gi, "")
+    )
+    .join("");
+
 const MarkdownImage = ({ src, alt }: { src: string; alt: string }) => {
   const [expanded, setExpanded] = useState(false);
   const close = useCallback(() => setExpanded(false), []);
@@ -203,7 +220,7 @@ const markdownComponents = {
 
 const MarkdownBody = ({ content }: { content: string }) => {
   const normalized = useMemo(
-    () => normalizeInlineTags(normalizeMath(content)),
+    () => normalizeInlineTags(normalizeMath(stripToolCalls(content))),
     [content]
   );
   return (
