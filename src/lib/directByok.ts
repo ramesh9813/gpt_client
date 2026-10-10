@@ -83,6 +83,7 @@ export const streamDirectCompletion = async (args: {
   apiKey: string;
   model: string;
   messages: DirectChatMessage[];
+  maxTokens?: number;
   signal: AbortSignal;
   isCancelled: () => boolean;
   onToken: (delta: string) => void;
@@ -134,6 +135,9 @@ export const streamDirectCompletion = async (args: {
       model: args.model,
       messages: args.messages,
       stream: true,
+      // Groq cuts responses short without an explicit ceiling — same budget
+      // as the server relay. Other providers default to their model max.
+      ...(typeof args.maxTokens === "number" ? { max_tokens: args.maxTokens } : {}),
     }),
     signal: args.signal,
   });
