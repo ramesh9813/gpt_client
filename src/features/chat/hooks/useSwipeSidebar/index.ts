@@ -48,6 +48,9 @@ export const useSwipeSidebar = ({ isMobile, drawerOpen, sidebarState, openDrawer
       if (target) {
         if (closestSafe(target, "textarea, input, [contenteditable='true']")) { tracking = false; return; }
         if (closestSafe(target, ".composer-dock, .composer-recents, .composer-camera-view")) { tracking = false; return; }
+        // Expanded image viewer is a modal: finger swipes there flip photos,
+        // never the history drawer/sidebar.
+        if (closestSafe(target, ".msg-image-lightbox")) { tracking = false; return; }
         const scroller = findScrollableAncestor(target) ?? findCardScroller(target);
         if (scroller) {
           innerScrollable = scroller;

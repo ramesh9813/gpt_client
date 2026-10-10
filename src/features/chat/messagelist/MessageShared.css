@@ -177,6 +177,20 @@
   user-select: none;
   -webkit-user-select: none;
 }
+/* Finger-swipe photo change: incoming photo slides in from the swipe side. */
+@keyframes msg-gallery-in-next {
+  from { transform: translateX(48px); opacity: 0.35; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes msg-gallery-in-prev {
+  from { transform: translateX(-48px); opacity: 0.35; }
+  to { transform: none; opacity: 1; }
+}
+.msg-gallery-slide-next { animation: msg-gallery-in-next 180ms ease-out; }
+.msg-gallery-slide-prev { animation: msg-gallery-in-prev 180ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .msg-gallery-slide-next, .msg-gallery-slide-prev { animation: none; }
+}
 /* Overlay minimize button (top-right, always above the image). */
 .msg-gallery-minimize {
   position: fixed;

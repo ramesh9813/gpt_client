@@ -5,8 +5,17 @@ export const MessageImages = ({ images }: { images?: string[] }) => {
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
   const count = images?.length ?? 0;
 
-  const close = useCallback(() => setExpandedIdx(null), []);
+  // Slide animation direction for photo changes (0 = none, e.g. on open).
+  const [slideDir, setSlideDir] = useState<0 | 1 | -1>(0);
+  const close = useCallback(() => {
+    setExpandedIdx(null);
+    setSlideDir(0);
+  }, []);
   const hasMultiple = count > 1;
+  const go = useCallback((dir: 1 | -1) => {
+    setSlideDir(dir);
+    setExpandedIdx((prev) => (prev === null ? null : (prev + dir + count) % count));
+  }, [count]);
   // Finger swipe: remember where the touch started; a horizontal swipe moves
   // to the next/previous image and must not trigger tap-to-close.
   const touchStart = useRef<{ x: number; y: number } | null>(null);
@@ -18,10 +27,10 @@ export const MessageImages = ({ images }: { images?: string[] }) => {
       if (e.key === "Escape") close();
       if (!hasMultiple) return;
       if (e.key === "ArrowLeft") {
-        setExpandedIdx((prev) => (prev === null ? null : (prev - 1 + count) % count));
+        go(-1);
       }
       if (e.key === "ArrowRight") {
-        setExpandedIdx((prev) => (prev === null ? null : (prev + 1) % count));
+        go(1);
       }
     };
     document.addEventListener("keydown", onKey);
@@ -31,7 +40,7 @@ export const MessageImages = ({ images }: { images?: string[] }) => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prevOverflow;
     };
-  }, [expandedIdx, close, hasMultiple, count]);
+  }, [expandedIdx, close, hasMultiple, go]);
 
   if (!images || count === 0) return null;
 
@@ -132,18 +141,17 @@ export const MessageImages = ({ images }: { images?: string[] }) => {
             // finger right → previous.
             if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.2) {
               swiped.current = true;
-              setExpandedIdx((prev) =>
-                prev === null ? null : (prev + (dx < 0 ? 1 : -1) + count) % count
-              );
+              go(dx < 0 ? 1 : -1);
             }
           }}
         >
           {/* Gallery fullscreen: only the image, plus overlay minimize and
               a single download icon. Tap anywhere (image included) to minimize. */}
           <img
+            key={expandedIdx}
             src={expandedSrc}
             alt="Expanded attachment"
-            className="msg-gallery-full-img"
+            className={`msg-gallery-full-img${slideDir === 1 ? " msg-gallery-slide-next" : slideDir === -1 ? " msg-gallery-slide-prev" : ""}`}
           />
           <button
             type="button"
