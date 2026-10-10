@@ -105,11 +105,11 @@
 }
 
 .composer-send-btn-ready {
-  color: var(--text);
+  color: var(--accent);
 }
 
 .composer-send-btn-ready:hover {
-  background-color: var(--sidebar);
+  background-color: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 .composer-send-btn-idle {

@@ -46,7 +46,7 @@
   height: 0.375rem;
   width: 0.375rem;
   border-radius: 9999px;
-  background-color: var(--muted);
+  background-color: var(--accent);
   animation: msg-bounce 0.55s infinite;
 }
 .msg-typing-dot--1 { animation-delay: -0.18s; }
