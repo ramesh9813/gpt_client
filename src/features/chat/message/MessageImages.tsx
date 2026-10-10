@@ -97,34 +97,10 @@ export const MessageImages = ({ images }: { images?: string[] }) => {
         })}
       </div>
 
-      {/* Download tab: shown whenever images exist. Theme-consistent pill bar. */}
-      <div className="msg-gallery-actions" role="group" aria-label="Download image">
-        <span className="msg-gallery-actions-label">Download:</span>
-        <button
-          type="button"
-          className="msg-gallery-dl"
-          onClick={() => handleDownload("jpg", expandedIdx ?? 0)}
-          title={count === 1 ? "Download as JPG" : `Download image ${(expandedIdx ?? 0) + 1} as JPG`}
-          aria-label="Download JPG"
-        >
-          <i className="bi bi-download" aria-hidden="true" /> JPG
-        </button>
-        <button
-          type="button"
-          className="msg-gallery-dl"
-          onClick={() => handleDownload("png", expandedIdx ?? 0)}
-          title={count === 1 ? "Download as PNG" : `Download image ${(expandedIdx ?? 0) + 1} as PNG`}
-          aria-label="Download PNG"
-        >
-          <i className="bi bi-download" aria-hidden="true" /> PNG
-        </button>
-        {count > 1 && <span className="msg-gallery-actions-hint">{count} images — expand to pick</span>}
-      </div>
-
       {expandedSrc && (
         <div className="msg-image-lightbox msg-gallery-full" role="dialog" aria-modal="true" aria-label="Expanded image" onClick={close}>
-          {/* Gallery fullscreen: only the image, plus an overlay minimize
-              button. Tap anywhere (image included) to minimize. */}
+          {/* Gallery fullscreen: only the image, plus overlay minimize and
+              a single download icon. Tap anywhere (image included) to minimize. */}
           <img
             src={expandedSrc}
             alt="Expanded attachment"
@@ -141,6 +117,18 @@ export const MessageImages = ({ images }: { images?: string[] }) => {
             title="Minimize"
           >
             <i className="bi bi-x-lg" aria-hidden="true"></i>
+          </button>
+          <button
+            type="button"
+            className="msg-gallery-download"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDownload("jpg", expandedIdx ?? 0);
+            }}
+            aria-label="Download image"
+            title="Download"
+          >
+            <i className="bi bi-download" aria-hidden="true"></i>
           </button>
           {hasMultiple && (
             <>

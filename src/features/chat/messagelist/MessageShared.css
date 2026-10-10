@@ -64,6 +64,29 @@
 }
 [data-theme="dark"] .msg-gallery { border-color: rgb(255 255 255 / 0.08); }
 
+/* Flush gallery inside the USER bubble: zero padding between the images and
+   the card — the gallery bleeds to the card edges (negative margins cancel
+   the bubble padding at each breakpoint) and the card clips the corners, so
+   the image radius matches the card radius. Tile gap is zero (one clean
+   collage). Assistant bubbles keep the framed gallery untouched. */
+.msg-user-card:has(> .msg-gallery) { overflow: hidden; }
+.msg-user-card:has(> .msg-gallery) > .msg-gallery {
+  width: auto;
+  max-width: none;
+  border: 0;
+  border-radius: 0;
+  gap: 0;
+  margin: -0.625rem -0.875rem 0.5rem;
+}
+@media (min-width: 640px) {
+  .msg-user-card:has(> .msg-gallery) > .msg-gallery { margin: -0.75rem -1rem 0.5rem; }
+}
+/* Image-only message: bleed the bottom edge too. */
+.msg-user-card > .msg-gallery:only-child { margin-bottom: -0.625rem; }
+@media (min-width: 640px) {
+  .msg-user-card > .msg-gallery:only-child { margin-bottom: -0.75rem; }
+}
+
 .msg-gallery--1 { grid-template-columns: 1fr; grid-template-rows: 1fr; }
 .msg-gallery--2 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; }
 .msg-gallery--3 { grid-template-columns: 1.45fr 1fr; grid-template-rows: 1fr 1fr; }
@@ -175,6 +198,27 @@
 .msg-gallery-minimize:active {
   transform: scale(0.94);
 }
+/* Single download icon overlay (bottom-right) on the expanded image. */
+.msg-gallery-download {
+  position: fixed;
+  bottom: max(env(safe-area-inset-bottom, 0px), 0.75rem);
+  right: max(env(safe-area-inset-right, 0px), 0.75rem);
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.75rem;
+  width: 2.75rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(255 255 255 / 0.35);
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+  font-size: 1.125rem;
+  cursor: pointer;
+}
+.msg-gallery-download:active {
+  transform: scale(0.94);
+}
 /* Gallery prev/next overlays (multi-image only). */
 .msg-gallery-nav {
   position: fixed;
@@ -268,44 +312,6 @@
   -webkit-backdrop-filter: blur(6px);
 }
 
-/* ── Gallery download tabs ────────────────────────────────────────── */
-.msg-gallery-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4rem;
-  margin: 0.35rem 0 0.5rem;
-}
-.msg-gallery-actions-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.msg-gallery-actions-hint {
-  font-size: 0.68rem;
-  color: var(--muted);
-  opacity: 0.85;
-}
-.msg-gallery-dl {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.28rem 0.62rem;
-  border-radius: 9999px;
-  border: 1px solid var(--border);
-  background: var(--panel);
-  color: var(--text);
-  font-size: 0.72rem;
-  font-weight: 600;
-  cursor: pointer;
-  line-height: 1;
-  transition: background 150ms, transform 150ms;
-}
-.msg-gallery-dl:hover { background: var(--sidebar); }
-.msg-gallery-dl:active { transform: scale(0.97); }
-
 /* ── Lightbox popcard (full image) ────────────────────────────────── */
 .msg-lightbox-card {
   position: relative;
@@ -357,6 +363,7 @@
 }
 .msg-lightbox-card-close:hover { background: var(--border); }
 .msg-lightbox-card-body {
+  position: relative;
   flex: 1;
   min-height: 0;
   display: flex;
@@ -376,36 +383,26 @@
   object-fit: contain;
   border-radius: 0.5rem;
 }
-.msg-lightbox-card-foot {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
-  justify-content: center;
-  padding: 0.7rem 0.85rem 0.85rem;
-  border-top: 1px solid var(--border);
-  background: var(--panel);
-}
-[data-theme="dark"] .msg-lightbox-card-foot { border-color: rgb(255 255 255 / 0.08); background: #1a1a1e; }
-.msg-lightbox-dl {
+/* Single download icon overlay on the expanded card image. */
+.msg-lightbox-card-dl {
+  position: absolute;
+  right: 1.1rem;
+  bottom: 1.1rem;
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.45rem 0.9rem;
+  justify-content: center;
+  height: 2.5rem;
+  width: 2.5rem;
   border-radius: 9999px;
-  border: 1px solid var(--border);
-  background: var(--text);
-  color: var(--panel);
-  font-size: 0.78rem;
-  font-weight: 600;
+  border: 1px solid rgb(255 255 255 / 0.35);
+  background: rgb(0 0 0 / 0.58);
+  color: #fff;
+  font-size: 1rem;
   cursor: pointer;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
-[data-theme="dark"] .msg-lightbox-dl { background: #fff; color: #111; }
-.msg-lightbox-dl--alt {
-  background: var(--panel);
-  color: var(--text);
-}
-[data-theme="dark"] .msg-lightbox-dl--alt { background: transparent; color: #fff; border-color: rgb(255 255 255 / 0.18); }
+.msg-lightbox-card-dl:active { transform: scale(0.94); }
 .msg-lightbox-card-nav {
   display: flex;
   align-items: center;
@@ -452,29 +449,6 @@
   cursor: zoom-in;
 }
 .msg-md-img-wrap img { display: block; max-width: 100%; height: auto; }
-.msg-md-img-actions {
-  position: absolute;
-  right: 0.35rem;
-  bottom: 0.35rem;
-  display: flex;
-  gap: 0.3rem;
-}
-.msg-md-img-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 1.55rem;
-  padding: 0 0.5rem;
-  gap: 0.2rem;
-  border-radius: 9999px;
-  border: 1px solid rgb(255 255 255 / 0.35);
-  background: rgb(0 0 0 / 0.58);
-  color: #fff;
-  font-size: 0.68rem;
-  font-weight: 600;
-  cursor: pointer;
-  backdrop-filter: blur(6px);
-}
 
 /* Editable images in message edit mode: corner cancel overlay per image.
    Tapping X drops it from the edit draft — it is not sent on Save. */

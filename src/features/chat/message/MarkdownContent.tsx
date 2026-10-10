@@ -117,29 +117,6 @@ const MarkdownImage = ({ src, alt }: { src: string; alt: string }) => {
     <>
       <span className="msg-md-img-wrap" role="group" aria-label={alt || "Image"}>
         <img src={src} alt={alt} loading="lazy" referrerPolicy="no-referrer" onClick={() => setExpanded(true)} style={{ cursor: "zoom-in" }} />
-        <span className="msg-md-img-actions" aria-hidden="false">
-          <button type="button" className="msg-md-img-btn" onClick={() => setExpanded(true)} aria-label="Expand image" title="Expand">
-            <i className="bi bi-arrows-angle-expand" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="msg-md-img-btn"
-            onClick={() => void downloadImageAs(src, "jpg", 0)}
-            aria-label="Download JPG"
-            title="Download JPG"
-          >
-            JPG
-          </button>
-          <button
-            type="button"
-            className="msg-md-img-btn"
-            onClick={() => void downloadImageAs(src, "png", 0)}
-            aria-label="Download PNG"
-            title="Download PNG"
-          >
-            PNG
-          </button>
-        </span>
       </span>
       {expanded && (
         <span className="msg-image-lightbox" role="dialog" aria-modal="true" aria-label="Expanded image" onClick={close} style={{ display: "flex" }}>
@@ -154,13 +131,8 @@ const MarkdownImage = ({ src, alt }: { src: string; alt: string }) => {
             </span>
             <span className="msg-lightbox-card-body">
               <img src={src} alt={alt || "Expanded image"} className="msg-lightbox-card-img" />
-            </span>
-            <span className="msg-lightbox-card-foot">
-              <button type="button" className="msg-lightbox-dl" onClick={() => void downloadImageAs(src, "jpg", 0)} aria-label="Download JPG">
-                <i className="bi bi-filetype-jpg" aria-hidden="true" /> Download JPG
-              </button>
-              <button type="button" className="msg-lightbox-dl msg-lightbox-dl--alt" onClick={() => void downloadImageAs(src, "png", 0)} aria-label="Download PNG">
-                <i className="bi bi-filetype-png" aria-hidden="true" /> Download PNG
+              <button type="button" className="msg-lightbox-card-dl" onClick={() => void downloadImageAs(src, "jpg", 0)} aria-label="Download image" title="Download">
+                <i className="bi bi-download" aria-hidden="true" />
               </button>
             </span>
           </span>
