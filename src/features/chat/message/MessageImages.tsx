@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { downloadImageAs } from "../../../lib/image";
 
 export const MessageImages = ({ images }: { images?: string[] }) => {
@@ -7,6 +7,10 @@ export const MessageImages = ({ images }: { images?: string[] }) => {
 
   const close = useCallback(() => setExpandedIdx(null), []);
   const hasMultiple = count > 1;
+  // Finger swipe: remember where the touch started; a horizontal swipe moves
+  // to the next/previous image and must not trigger tap-to-close.
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const swiped = useRef(false);
 
   useEffect(() => {
     if (expandedIdx === null) return;
@@ -98,7 +102,42 @@ export const MessageImages = ({ images }: { images?: string[] }) => {
       </div>
 
       {expandedSrc && (
-        <div className="msg-image-lightbox msg-gallery-full" role="dialog" aria-modal="true" aria-label="Expanded image" onClick={close}>
+        <div
+          className="msg-image-lightbox msg-gallery-full"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Expanded image"
+          onClick={() => {
+            // A swipe ends with a click — don't treat it as tap-to-close.
+            if (swiped.current) {
+              swiped.current = false;
+              return;
+            }
+            close();
+          }}
+          onTouchStart={(e) => {
+            const t = e.touches[0];
+            if (t) touchStart.current = { x: t.clientX, y: t.clientY };
+            swiped.current = false;
+          }}
+          onTouchEnd={(e) => {
+            const start = touchStart.current;
+            touchStart.current = null;
+            if (!start || !hasMultiple) return;
+            const t = e.changedTouches[0];
+            if (!t) return;
+            const dx = t.clientX - start.x;
+            const dy = t.clientY - start.y;
+            // Horizontal swipe wins over vertical drift: finger left → next,
+            // finger right → previous.
+            if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+              swiped.current = true;
+              setExpandedIdx((prev) =>
+                prev === null ? null : (prev + (dx < 0 ? 1 : -1) + count) % count
+              );
+            }
+          }}
+        >
           {/* Gallery fullscreen: only the image, plus overlay minimize and
               a single download icon. Tap anywhere (image included) to minimize. */}
           <img
@@ -130,32 +169,6 @@ export const MessageImages = ({ images }: { images?: string[] }) => {
           >
             <i className="bi bi-download" aria-hidden="true"></i>
           </button>
-          {hasMultiple && (
-            <>
-              <button
-                type="button"
-                className="msg-gallery-nav msg-gallery-prev"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setExpandedIdx((prev) => (prev === null ? null : (prev - 1 + count) % count));
-                }}
-                aria-label="Previous image"
-              >
-                <i className="bi bi-chevron-left" aria-hidden="true"></i>
-              </button>
-              <button
-                type="button"
-                className="msg-gallery-nav msg-gallery-next"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setExpandedIdx((prev) => (prev === null ? null : (prev + 1) % count));
-                }}
-                aria-label="Next image"
-              >
-                <i className="bi bi-chevron-right" aria-hidden="true"></i>
-              </button>
-            </>
-          )}
         </div>
       )}
     </>
