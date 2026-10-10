@@ -66,14 +66,14 @@
   flex-shrink: 0;
   margin-bottom: 0.125rem;
   margin-right: 0.125rem;
-  color: var(--text);
+  color: var(--accent);
   transition-property: all;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
 
 .composer-stop-btn:hover {
-  background-color: var(--sidebar);
+  background-color: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 .composer-stop-btn:active {
