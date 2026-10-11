@@ -96,6 +96,55 @@ const stripToolCalls = (s: string): string =>
     )
     .join("");
 
+/**
+ * Reasoning-model think blocks ("<think>…</think>") stream INLINE in the
+ * answer content (not as reasoning events), so without handling they render
+ * as raw "<think>" text. Split them out: the answer renders clean, the
+ * bubble shows the live thinking as a dim 3-line preview above the dots,
+ * and the final answer appears once thinking closes. Fenced code stays
+ * literal; a trailing unclosed/partial tag (mid-stream split) counts as
+ * still-thinking.
+ */
+const THINK_BLOCK_RE = /<think\b[^>]*>([\s\S]*?)<\/think\s*>/gi;
+const THINK_UNCLOSED_RE = /<think\b[^>]*>/i;
+const THINK_PARTIAL_OPEN_RE = /<t(h(i(n)?)?)?$/i;
+const THINK_PARTIAL_CLOSE_RE = /<\/t(h(i(n(k)?)?)?)?$/i;
+
+export type ThinkSplit = { answer: string; thinking: string; thinkingOpen: boolean };
+
+export const splitThink = (content: string): ThinkSplit => {
+  const thinkingParts: string[] = [];
+  let thinkingOpen = false;
+  const chunks = String(content ?? "").split(/(```[\s\S]*?(?:```|$))/);
+  const out = chunks.map((chunk, i) => {
+    if (i % 2 === 1) return chunk;
+    return chunk.replace(THINK_BLOCK_RE, (_m, inner: string) => {
+      thinkingParts.push(inner);
+      return "";
+    });
+  });
+  for (let k = out.length - 1; k >= 0; k--) {
+    if (k % 2 === 1) continue;
+    const tail = out[k];
+    // Complete pairs were stripped above, so any opener left here is
+    // unclosed: everything after it is still-live thinking.
+    const m =
+      tail.match(THINK_UNCLOSED_RE) ??
+      tail.match(THINK_PARTIAL_OPEN_RE) ??
+      tail.match(THINK_PARTIAL_CLOSE_RE);
+    if (m && m.index !== undefined) {
+      thinkingParts.push(tail.slice(m.index + m[0].length));
+      out[k] = tail.slice(0, m.index);
+      thinkingOpen = true;
+    }
+    break;
+  }
+  return { answer: out.join(""), thinking: thinkingParts.join("\n").trim(), thinkingOpen };
+};
+
+/** Belt-and-braces: no raw think tags survive into any rendered markdown. */
+const stripThinkBlocks = (s: string): string => splitThink(s).answer;
+
 const MarkdownImage = ({ src, alt }: { src: string; alt: string }) => {
   const [expanded, setExpanded] = useState(false);
   const close = useCallback(() => setExpanded(false), []);
@@ -192,7 +241,7 @@ const markdownComponents = {
 
 const MarkdownBody = ({ content }: { content: string }) => {
   const normalized = useMemo(
-    () => normalizeInlineTags(normalizeMath(stripToolCalls(content))),
+    () => normalizeInlineTags(normalizeMath(stripThinkBlocks(stripToolCalls(content)))),
     [content]
   );
   return (

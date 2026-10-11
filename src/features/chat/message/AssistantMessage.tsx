@@ -5,7 +5,7 @@ import { GenerationStatus } from "./GenerationStatus";
 import type { ArtifactBlock } from "../artifact";
 import { MessageImages } from "./MessageImages";
 import { VideoBlock } from "./VideoBlock";
-import { MarkdownContent } from "./MarkdownContent";
+import { MarkdownContent, splitThink } from "./MarkdownContent";
 import { CopyButton, ShareButton } from "./MessageButtons";
 import { useDoubleCopy } from "./useDoubleCopy";
 import { QuizCard } from "./QuizCard";
@@ -63,21 +63,38 @@ export const AssistantMessage = memo(
     if (
       !autoCollapsedReasoning.current &&
       showReasoning &&
-      displayContent.trim().length > 0
+      answerText.trim().length > 0
     ) {
       autoCollapsedReasoning.current = true;
       setShowReasoning(false);
     }
-  }, [displayContent, showReasoning]);
+  }, [answerText, showReasoning]);
   // Follow-ups toggle (Settings, default ON): hides stored follow-up chips
   // too, so turning it off clears them from old responses instantly.
   const { data: settingsData } = useSettings();
   const showFollowups =
     (settingsData?.data?.settings as { showFollowups?: boolean } | undefined)?.showFollowups !== false;
+  // Inline <think> blocks (reasoning models stream thinking in the answer
+  // content): the answer below is always think-free; live thinking shows as
+  // a dim 3-line preview above the dots, then the real answer takes over.
+  // No thinking at all → answer renders immediately, no dim text.
+  const think = useMemo(
+    () => splitThink(displayContent || message.content || ""),
+    [displayContent, message.content]
+  );
+  const answerText = think.answer;
+  // Cap the live preview for perf; the scroll container keeps the tail visible.
+  const thinkingText = think.thinking.split("\n").slice(-50).join("\n");
+  const showThinkingPreview =
+    message.status === "STREAMING" && think.thinkingOpen && thinkingText.length > 0;
+  const thinkingRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = thinkingRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [thinkingText, showThinkingPreview]);
   // Sources panel: hidden when the answer body already ends with its own
   // Sources/References list — one list only, never body + panel twice.
-  const bodyText = displayContent || message.content || "";
-  const bodyHasSources = /(?:^|\n)\s*(?:#{1,4}\s*)?(?:\*\*|__)?(sources?|references?)(?:\s*:?\s*(?:\*\*|__)?)*\s*(?:\n|$)/i.test(bodyText);
+  const bodyHasSources = /(?:^|\n)\s*(?:#{1,4}\s*)?(?:\*\*|__)?(sources?|references?)(?:\s*:?\s*(?:\*\*|__)?)*\s*(?:\n|$)/i.test(answerText);
   const showSourcesPanel =
     !!message.sources && message.sources.length > 0 && message.status === "COMPLETE" && !bodyHasSources;
   // (No collapsible — links stay in the open.)
@@ -90,7 +107,7 @@ export const AssistantMessage = memo(
   const photoAt = photos.length > 0 ? Math.min(photoIdx, photos.length - 1) : 0;
   // Double fast click / double tap on the answer copies it immediately.
   const { copied, onDoubleClick, onTouchStart, onTouchEnd } = useDoubleCopy(
-    () => displayContent || message.content
+    () => answerText || message.content
   );
 
   // Exact failure reason: the server persists it in `error` while leaving
@@ -207,7 +224,12 @@ export const AssistantMessage = memo(
         ) : null}
         <MessageImages images={message.images} />
         <VideoBlock videos={message.videos} />
-        {message.status === "STREAMING" && !displayContent && !message.quiz && !showGenStatus ? (
+        {showThinkingPreview ? (
+          <div ref={thinkingRef} className="msg-thinking" aria-live="polite">
+            {thinkingText}
+          </div>
+        ) : null}
+        {message.status === "STREAMING" && !answerText && !message.quiz && !showGenStatus ? (
           <>
             {message.stage && message.stage.length > 0 ? (
               <div className="msg-stage" aria-live="polite">
@@ -249,7 +271,7 @@ export const AssistantMessage = memo(
                 ))}
               </div>
             ) : null}
-            {displayContent && !errorReason ? <MarkdownContent content={displayContent} /> : null}
+            {answerText && !errorReason ? <MarkdownContent content={answerText} /> : null}
           </>
         )}
         {message.quiz && message.quiz.questions.length > 0 ? (

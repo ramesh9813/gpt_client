@@ -25,6 +25,21 @@
   padding-bottom: 0.5rem;
   align-items: center;
 }
+/* Live thinking preview (reasoning models stream <think> inline): last 3
+   lines at 30% visibility just above the dots, auto-scrolled to the tail.
+   Gone the moment thinking closes and the real answer takes over. */
+.msg-thinking {
+  opacity: 0.3;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  max-height: calc(3 * 1.4em);
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-bottom: 0.25rem;
+  scrollbar-width: none;
+}
+.msg-thinking::-webkit-scrollbar { display: none; }
 /* Live processing stages above the typing dots (search/page turns):
    2–3 short lines at 30% transparency, gone once the answer renders. */
 .msg-stage {
