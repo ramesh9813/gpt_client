@@ -59,6 +59,15 @@ export const AssistantMessage = memo(
   // moment the final answer starts arriving, user can re-expand anytime.
   const [showReasoning, setShowReasoning] = useState(true);
   const autoCollapsedReasoning = useRef(false);
+  // Inline <think> blocks (reasoning models stream thinking in the answer
+  // content): the answer below is always think-free; live thinking shows as
+  // a dim 3-line preview above the dots, then the real answer takes over.
+  // No thinking at all → answer renders immediately, no dim text.
+  const think = useMemo(
+    () => splitThink(displayContent || message.content || ""),
+    [displayContent, message.content]
+  );
+  const answerText = think.answer;
   useEffect(() => {
     if (
       !autoCollapsedReasoning.current &&
@@ -74,15 +83,6 @@ export const AssistantMessage = memo(
   const { data: settingsData } = useSettings();
   const showFollowups =
     (settingsData?.data?.settings as { showFollowups?: boolean } | undefined)?.showFollowups !== false;
-  // Inline <think> blocks (reasoning models stream thinking in the answer
-  // content): the answer below is always think-free; live thinking shows as
-  // a dim 3-line preview above the dots, then the real answer takes over.
-  // No thinking at all → answer renders immediately, no dim text.
-  const think = useMemo(
-    () => splitThink(displayContent || message.content || ""),
-    [displayContent, message.content]
-  );
-  const answerText = think.answer;
   // Cap the live preview for perf; the scroll container keeps the tail visible.
   const thinkingText = think.thinking.split("\n").slice(-50).join("\n");
   const showThinkingPreview =
