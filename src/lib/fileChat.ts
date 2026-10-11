@@ -11,6 +11,25 @@ export type FileAttachment = {
   mime: string;
   size: number;
   content: string;
+  // Original bytes for audio/video only (session memory — never serialized
+  // or sent). Powers inline playback of sent files via the media store.
+  source?: File;
+};
+
+const AUDIO_EXTS = new Set(["mp3","wav","m4a","ogg","oga","flac","aac","wma","opus"]);
+const VIDEO_EXTS = new Set(["mp4","webm","mov","mkv","avi","3gp","ogv","m4v"]);
+
+export const isAudioFile = (name: string, mime: string): boolean => {
+  if (mime.startsWith("audio/")) return true;
+  // webm can be audio-only or video — mime decides when present.
+  if (mime.startsWith("video/")) return false;
+  return AUDIO_EXTS.has(extOf(name));
+};
+
+export const isVideoFile = (name: string, mime: string): boolean => {
+  if (mime.startsWith("video/")) return true;
+  if (mime.startsWith("audio/")) return false;
+  return VIDEO_EXTS.has(extOf(name));
 };
 
 const TEXT_EXTS = new Set([
@@ -130,9 +149,9 @@ export const readFileAttachment = async (file: File): Promise<FileAttachment> =>
   if (mime.startsWith("audio/") || ["mp3","wav","m4a","ogg","flac","aac","wma","opus"].includes(extOf(name))) {
     const transcript = await transcribeAudioFile(file);
     if (transcript) {
-      return { name, mime, size, content: `[audio file: ${name} (${mime}, ${Math.round(size / 1024)}KB)]\n${transcript}` };
+      return { name, mime, size, content: `[audio file: ${name} (${mime}, ${Math.round(size / 1024)}KB)]\n${transcript}`, source: file };
     }
-    return { name, mime, size, content: `[audio file: ${name} (${mime}, ${Math.round(size / 1024)}KB) — audio could not be transcribed on this device; describe what you need about it]` };
+    return { name, mime, size, content: `[audio file: ${name} (${mime}, ${Math.round(size / 1024)}KB) — audio could not be transcribed on this device; describe what you need about it]`, source: file };
   }
 
   // PDF: real text extraction via pdfjs-dist first; naive byte-decode, then
@@ -170,6 +189,12 @@ export const readFileAttachment = async (file: File): Promise<FileAttachment> =>
       return { name, mime, size, content: `[file: ${name} (${mime}) — binary content]` };
     }
     return { name, mime, size, content: text.slice(0, 80_000) };
+  }
+
+  // Video: keep bytes for inline playback, send only a meta note (the model
+  // gets no video frames on this path). Skips the wasteful text decode.
+  if (isVideoFile(name, mime)) {
+    return { name, mime, size, content: `[video file: ${name} (${mime}, ${Math.round(size / 1024)}KB)]`, source: file };
   }
 
   // Unknown: try text decode, else meta

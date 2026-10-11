@@ -18,6 +18,8 @@ export const readThinkingArmed = (): boolean => {
   }
 };
 import { readCachedMessages, removeCachedConversation, writeCachedMessages } from "../chatCache";
+import { isAudioFile, isVideoFile } from "../../../lib/fileChat";
+import { saveMediaBlob } from "../../../lib/mediaStore";
 import type { ChatMessage, TurnKind } from "../message/types";
 import { detectRegenKind, detectTurnKind } from "./turnKind";
 import type { UseChatMessagesOptions } from "./turnKind";
@@ -181,6 +183,21 @@ export const useChatMessages = ({
         model: turnModel === "default" ? "default" : turnModel,
       },
     ]);
+    // Playback bytes for sent audio/video: the server keeps meta only, so
+    // stash the original blobs locally (IndexedDB) — the message player
+    // reads them back by conversation + file identity. Fire-and-forget.
+    if (hasFiles && cid) {
+      const media = ((opts as any).files as any[]).filter(
+        (f) =>
+          f?.source instanceof File &&
+          (isAudioFile(f.name || "", f.mime || "") || isVideoFile(f.name || "", f.mime || ""))
+      );
+      if (media.length > 0) {
+        void Promise.all(
+          media.map((f) => saveMediaBlob(cid, f.name, f.size, f.source as File).catch(() => undefined))
+        );
+      }
+    }
     setStreaming(true);
     setActiveStreamId(tempAssistantId);
     setActiveTurnKind(detectTurnKind(trimmed, opts));

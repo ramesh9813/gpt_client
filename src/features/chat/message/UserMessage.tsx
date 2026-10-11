@@ -9,6 +9,7 @@ import { useDoubleCopy } from "./useDoubleCopy";
 
 type UserMessageProps = {
   message: ChatMessage;
+  conversationId?: string;
   isEditing: boolean;
   editingValue: string;
   setEditingValue: (value: string) => void;
@@ -28,6 +29,7 @@ type UserMessageProps = {
 export const UserMessage = memo(
   ({
     message,
+    conversationId,
     isEditing,
     editingValue,
     setEditingValue,
@@ -126,7 +128,7 @@ export const UserMessage = memo(
             </div>
           ) : (
             <>
-              <FileChips files={(message as any).files} />
+              <FileChips files={(message as any).files} conversationId={conversationId} />
               <MessageImages images={message.images} />
               {message.content.trim().length > 0 ? (
                 <MarkdownContent content={message.content} />

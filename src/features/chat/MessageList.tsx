@@ -130,6 +130,7 @@ const MessageList = ({
               <UserMessage
                 key={message.id}
                 message={message}
+                conversationId={conversationKey}
                 isEditing={edit.editingId === message.id}
                 editingValue={edit.editingValue}
                 setEditingValue={edit.setEditingValue}
