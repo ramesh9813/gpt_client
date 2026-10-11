@@ -44,9 +44,10 @@ export const createDirectFallback = (
     const startedAt = Date.now();
     const result = await streamDirectCompletion({
       baseUrl: turn.baseUrl, providerName: provider.name, apiKey: cfg.apiKey, model: turn.model, messages: turn.messages,
-      // Groq cuts responses short without an explicit ceiling (server relay
-      // sends 4096/8192/16000 the same way).
-      ...(cfg.provider === "groq" ? { maxTokens: opts.artifact ? 16000 : opts.think ? 8192 : 4096 } : {}),
+      // Explicit output budget on every provider (server relay sends its own
+      // ceilings the same way) — omitted max_tokens lets providers cut
+      // answers short with their own tiny defaults.
+      maxTokens: opts.artifact ? 16000 : 8192,
       signal: opts.controller.signal, isCancelled: opts.isCancelled,
       onToken: (delta) => {
         if (opts.isCancelled()) return;
