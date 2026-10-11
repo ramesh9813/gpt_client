@@ -20,6 +20,24 @@ export const MessageImages = ({ images }: { images?: string[] }) => {
   // to the next/previous image and must not trigger tap-to-close.
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const swiped = useRef(false);
+  // Inspect zoom: pinch (mobile) / wheel (desktop) magnifies up to 4x, drag
+  // pans while zoomed. Reset on every photo change so each opens full-frame.
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const pinchStart = useRef<{ dist: number; zoom: number } | null>(null);
+  const panStart = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
+  useEffect(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+    pinchStart.current = null;
+    panStart.current = null;
+  }, [expandedIdx]);
+  const clampZoom = (v: number) => Math.min(4, Math.max(1, v));
+  const applyZoom = (next: number) => {
+    const z = clampZoom(next);
+    setZoom(z);
+    if (z === 1) setPan({ x: 0, y: 0 });
+  };
 
   useEffect(() => {
     if (expandedIdx === null) return;
@@ -125,14 +143,53 @@ export const MessageImages = ({ images }: { images?: string[] }) => {
             close();
           }}
           onTouchStart={(e) => {
-            const t = e.touches[0];
-            if (t) touchStart.current = { x: t.clientX, y: t.clientY };
             swiped.current = false;
+            if (e.touches.length === 2) {
+              // Second finger down → pinch takes over, photo swipe stands down.
+              const a = e.touches[0], b = e.touches[1];
+              pinchStart.current = {
+                dist: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY),
+                zoom,
+              };
+              panStart.current = null;
+              touchStart.current = null;
+              return;
+            }
+            if (e.touches.length !== 1) return;
+            const t = e.touches[0];
+            if (zoom > 1) {
+              panStart.current = { x: t.clientX, y: t.clientY, px: pan.x, py: pan.y };
+            } else if (t) {
+              touchStart.current = { x: t.clientX, y: t.clientY };
+            }
+          }}
+          onTouchMove={(e) => {
+            if (pinchStart.current && e.touches.length === 2) {
+              const a = e.touches[0], b = e.touches[1];
+              const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+              if (pinchStart.current.dist > 0 && dist > 0) {
+                applyZoom(pinchStart.current.zoom * (dist / pinchStart.current.dist));
+              }
+              return;
+            }
+            const ps = panStart.current;
+            if (ps && e.touches.length === 1) {
+              const t = e.touches[0];
+              const dx = t.clientX - ps.x, dy = t.clientY - ps.y;
+              if (Math.abs(dx) + Math.abs(dy) > 12) swiped.current = true;
+              const max = 240 * zoom;
+              setPan({
+                x: Math.min(max, Math.max(-max, ps.px + dx)),
+                y: Math.min(max, Math.max(-max, ps.py + dy)),
+              });
+            }
           }}
           onTouchEnd={(e) => {
+            pinchStart.current = null;
+            panStart.current = null;
             const start = touchStart.current;
             touchStart.current = null;
-            if (!start || !hasMultiple) return;
+            if (!start || !hasMultiple || zoom > 1) return;
             const t = e.changedTouches[0];
             if (!t) return;
             const dx = t.clientX - start.x;
@@ -144,14 +201,24 @@ export const MessageImages = ({ images }: { images?: string[] }) => {
               go(dx < 0 ? 1 : -1);
             }
           }}
+          onWheel={(e) => {
+            applyZoom(zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15));
+          }}
         >
-          {/* Gallery fullscreen: only the image, plus overlay minimize and
-              a single download icon. Tap anywhere (image included) to minimize. */}
+          {/* Gallery fullscreen: the whole image always fits on open
+              (contain); pinch/wheel zooms into details, drag pans while
+              zoomed. Overlay minimize + single download icon. Tap empty
+              area to minimize. */}
           <img
             key={expandedIdx}
             src={expandedSrc}
             alt="Expanded attachment"
             className={`msg-gallery-full-img${slideDir === 1 ? " msg-gallery-slide-next" : slideDir === -1 ? " msg-gallery-slide-prev" : ""}`}
+            style={
+              zoom === 1
+                ? undefined
+                : { transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, cursor: "grab" }
+            }
           />
           <button
             type="button"

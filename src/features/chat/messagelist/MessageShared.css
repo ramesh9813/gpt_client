@@ -176,6 +176,8 @@
   object-fit: contain;
   user-select: none;
   -webkit-user-select: none;
+  /* Full image always fits on open; gestures (pinch/wheel/drag) are app-handled. */
+  touch-action: none;
 }
 /* Finger-swipe photo change: incoming photo slides in from the swipe side. */
 @keyframes msg-gallery-in-next {
