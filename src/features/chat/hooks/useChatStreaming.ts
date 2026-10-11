@@ -51,6 +51,9 @@ export const useChatStreaming = () => {
   const [activeStreamId, setActiveStreamId] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const cancelRef = useRef(false);
+  // Reaches into the live typewriter so Stop freezes the UI instantly:
+  // drops queued text + cancels the scheduled paint (no post-stop append).
+  const throttleKillRef = useRef<(() => void) | null>(null);
   const apiBase = import.meta.env.VITE_API_URL || "";
 
   const streamAssistant = async (
@@ -177,6 +180,23 @@ export const useChatStreaming = () => {
     const startFlush = () => {
       if (isCancelled()) return;
       scheduleFlush();
+    };
+
+    // Stop reaches in here: freeze the typewriter synchronously — queued
+    // text dropped, scheduled paint cancelled, drain promise released — so
+    // nothing paints after the user hits stop.
+    throttleKillRef.current = () => {
+      pendingText = "";
+      streamDone = true;
+      if (rafId != null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      if (flushTimer) {
+        clearTimeout(flushTimer);
+        flushTimer = null;
+      }
+      resolveOnce();
     };
 
     // Browser-direct fallback: when the SERVER relay is firewalled
@@ -577,12 +597,16 @@ export const useChatStreaming = () => {
       if (abortControllerRef.current === controller) {
         abortControllerRef.current = null;
       }
+      throttleKillRef.current = null;
     }
   };
 
   const stopStreaming = (setMessages: MessagesSetter) => {
     cancelRef.current = true;
     abortControllerRef.current?.abort();
+    // Freeze the typewriter first: no queued text may paint after this.
+    throttleKillRef.current?.();
+    throttleKillRef.current = null;
     setStreaming(false);
     // Fully interrupted: clear EVERY streaming row, not just the active id.
     // A background refetch can swap temp ids for real ones mid-stream, which
