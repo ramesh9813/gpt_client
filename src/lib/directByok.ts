@@ -152,10 +152,21 @@ export const streamDirectCompletion = async (args: {
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  // Same abort-race as the relay path: a pending read() can hang seconds
+  // after abort on some browsers — race it so Stop settles instantly.
+  const readAborted = new Promise<"aborted">((resolve) => {
+    if (args.signal.aborted) resolve("aborted");
+    else args.signal.addEventListener("abort", () => resolve("aborted"), { once: true });
+  });
   for (;;) {
     let read: ReadableStreamReadResult<Uint8Array>;
     try {
-      read = await reader.read();
+      const raced = await Promise.race([reader.read(), readAborted]);
+      if (raced === "aborted" || args.isCancelled()) {
+        try { await reader.cancel(); } catch { /* socket already dead */ }
+        return { content, reasoning, usage, cancelled: true };
+      }
+      read = raced;
     } catch (err) {
       if (args.isCancelled()) return { content, reasoning, usage, cancelled: true };
       throw asDirectStreamError(

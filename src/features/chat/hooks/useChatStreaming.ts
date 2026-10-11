@@ -482,11 +482,24 @@ export const useChatStreaming = () => {
       const decoder = new TextDecoder();
       let buffer = "";
       let currentEvent = "message";
+      // Abort-race: aborting the fetch does NOT settle a pending
+      // reader.read() promptly on all browsers (Android WebView can hang
+      // seconds with the dots pondering) — race the read against the abort
+      // so Stop settles instantly, then cancel the reader to free the socket.
+      const readAborted = new Promise<"aborted">((resolve) => {
+        if (controller.signal.aborted) resolve("aborted");
+        else controller.signal.addEventListener("abort", () => resolve("aborted"), { once: true });
+      });
 
       while (true) {
         let readResult: ReadableStreamReadResult<Uint8Array>;
         try {
-          readResult = await reader.read();
+          const raced = await Promise.race([reader.read(), readAborted]);
+          if (raced === "aborted" || isCancelled()) {
+            try { await reader.cancel(); } catch { /* socket already dead */ }
+            return;
+          }
+          readResult = raced;
         } catch (err) {
           if (isCancelled()) return;
           throw err;
