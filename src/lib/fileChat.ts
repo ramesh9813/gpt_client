@@ -14,6 +14,9 @@ export type FileAttachment = {
   // Original bytes for audio/video only (session memory — never serialized
   // or sent). Powers inline playback of sent files via the media store.
   source?: File;
+  // Base64 audio payload for the model (audio only): sent to the selected
+  // provider directly — no on-device transcription on the file path.
+  dataUrl?: string;
 };
 
 const AUDIO_EXTS = new Set(["mp3","wav","m4a","ogg","oga","weba","flac","aac","wma","opus","mka","aiff","aif","amr","awb","mid","midi"]);
@@ -111,21 +114,40 @@ const extractPdfText = async (buf: ArrayBuffer): Promise<string> => {
   }
 };
 
-// Audio understanding: chosen cloud transcriber when one is set + keyed,
-// else the on-device default (same pipeline as the mic). First 3 min only
-// for device-side mobile RAM safety; null when undecodable so the caller
-// keeps the old meta-only placeholder instead of failing the attach.
-const transcribeAudioFile = async (file: File): Promise<string | null> => {
-  try {
-    const { transcribeAudioBlob } = await import("./transcribe");
-    const result = await transcribeAudioBlob(file);
-    if (!result) return null;
-    const truncated = result.truncated ? " (first 3 min)" : "";
-    return `[transcribed audio${truncated}]: ${result.text}`.slice(0, 80_000);
-  } catch {
-    return null;
-  }
+// File-attached audio is NEVER transcribed here (mic input still uses the
+// on-device Whisper pipeline in lib/transcribe): picked audio goes straight
+// to the selected model as a base64 payload. Unreadable files yield null so
+// the caller keeps a meta-only placeholder with the exact reason.
+const AUDIO_MIME_BY_EXT: Record<string, string> = {
+  mp3: "audio/mpeg", wav: "audio/wav", m4a: "audio/mp4", ogg: "audio/ogg",
+  oga: "audio/ogg", weba: "audio/webm", flac: "audio/flac", aac: "audio/aac",
+  wma: "audio/x-ms-wma", opus: "audio/opus", mka: "audio/x-matroska",
+  aiff: "audio/aiff", aif: "audio/aiff", amr: "audio/amr", awb: "audio/amr",
+  mid: "audio/midi", midi: "audio/midi",
 };
+
+const readAudioDataUrl = (file: File, name: string): Promise<string | null> =>
+  new Promise((resolve) => {
+    try {
+      const r = new FileReader();
+      r.onload = () => {
+        const v = String(r.result ?? "");
+        const m = /^data:([^;,]+)/.exec(v)?.[1] ?? "";
+        if (m.startsWith("audio/")) return resolve(v);
+        // Picker gave no usable mime (common on Android): relabel from the
+        // extension so the model still gets a typed payload.
+        const relabel = AUDIO_MIME_BY_EXT[extOf(name)];
+        if (relabel && v.startsWith("data:")) {
+          return resolve(`data:${relabel}${v.slice(5 + m.length)}`);
+        }
+        resolve(null);
+      };
+      r.onerror = () => resolve(null);
+      r.readAsDataURL(file);
+    } catch {
+      resolve(null);
+    }
+  });
 
 // Heuristic: >10% replacement chars or >5% NUL => binary
 const looksBinary = (s: string): boolean => {
@@ -143,16 +165,23 @@ export const readFileAttachment = async (file: File): Promise<FileAttachment> =>
   if (size > MAX_FILE_SIZE) throw new Error(`"${name}" exceeds 20MB`);
   if (name.length > MAX_FILE_NAME_LENGTH) throw new Error("Filename too long");
 
-  // Audio: transcribe on-device (same Whisper pipeline as mic input) so the
-  // model actually understands the clip. Falls back to the meta-only note
-  // when undecodable or transcription unavailable. Bytes always kept for
-  // inline playback, whatever the format (mime or extension match).
+  // Audio: sent STRAIGHT to the selected model as base64 (no Whisper in
+  // between) — the model itself analyses and responds. Bytes always kept
+  // for inline playback, whatever the format (mime or extension match).
   if (isAudioFile(name, mime)) {
-    const transcript = await transcribeAudioFile(file);
-    if (transcript) {
-      return { name, mime, size, content: `[audio file: ${name} (${mime}, ${Math.round(size / 1024)}KB)]\n${transcript}`, source: file };
+    const dataUrl = await readAudioDataUrl(file, name);
+    const kb = Math.round(size / 1024);
+    if (!dataUrl) {
+      return { name, mime, size, content: `[audio file: ${name} (${mime}, ${kb}KB) — audio could not be read on this device]`, source: file };
     }
-    return { name, mime, size, content: `[audio file: ${name} (${mime}, ${Math.round(size / 1024)}KB) — audio could not be transcribed on this device; describe what you need about it]`, source: file };
+    return {
+      name,
+      mime,
+      size,
+      content: `[audio file: ${name} (${mime}, ${kb}KB)]`,
+      source: file,
+      dataUrl,
+    };
   }
 
   // PDF: real text extraction via pdfjs-dist first; naive byte-decode, then
