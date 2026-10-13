@@ -16,8 +16,8 @@ export type FileAttachment = {
   source?: File;
 };
 
-const AUDIO_EXTS = new Set(["mp3","wav","m4a","ogg","oga","flac","aac","wma","opus"]);
-const VIDEO_EXTS = new Set(["mp4","webm","mov","mkv","avi","3gp","ogv","m4v"]);
+const AUDIO_EXTS = new Set(["mp3","wav","m4a","ogg","oga","weba","flac","aac","wma","opus","mka","aiff","aif","amr","awb","mid","midi"]);
+const VIDEO_EXTS = new Set(["mp4","webm","mov","mkv","avi","3gp","ogv","m4v","wmv","flv","ts","mts","m2ts"]);
 
 export const isAudioFile = (name: string, mime: string): boolean => {
   if (mime.startsWith("audio/")) return true;
@@ -145,8 +145,9 @@ export const readFileAttachment = async (file: File): Promise<FileAttachment> =>
 
   // Audio: transcribe on-device (same Whisper pipeline as mic input) so the
   // model actually understands the clip. Falls back to the meta-only note
-  // when undecodable or transcription unavailable.
-  if (mime.startsWith("audio/") || ["mp3","wav","m4a","ogg","flac","aac","wma","opus"].includes(extOf(name))) {
+  // when undecodable or transcription unavailable. Bytes always kept for
+  // inline playback, whatever the format (mime or extension match).
+  if (isAudioFile(name, mime)) {
     const transcript = await transcribeAudioFile(file);
     if (transcript) {
       return { name, mime, size, content: `[audio file: ${name} (${mime}, ${Math.round(size / 1024)}KB)]\n${transcript}`, source: file };
