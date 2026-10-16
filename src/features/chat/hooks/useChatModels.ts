@@ -289,7 +289,7 @@ export const useChatModels = () => {
         return {
           label: name.trim(),
           value: m.id,
-          supportsResearch: isDeepResearchModel(m.id, m.name),
+          supportsResearch: isDeepResearchModel(m.id, m.name, m.description),
           supportsImage,
           supportsVideo,
         };

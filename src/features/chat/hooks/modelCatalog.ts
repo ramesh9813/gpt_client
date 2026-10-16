@@ -2,9 +2,20 @@ import type { OpenRouterModel } from "./modelCache";
 
 // Dedicated deep-research models (e.g. perplexity/sonar-deep-research,
 // openai/o3-deep-research) autonomously search and synthesize reports.
-export const isDeepResearchModel = (id?: string, name?: string) => {
-  const haystack = `${id || ""} ${name || ""}`.toLowerCase();
-  return /deep[-_ ]?research/.test(haystack);
+// Matches id + display name + catalog description: several capable models
+// don't carry "deep-research" in the id (agentic researchers, Perplexity
+// Sonar search-grounded family). Deliberately NOT bare "research" —
+// "research preview" tags mark experimental models, not researchers.
+const DEEP_RESEARCH_RE = /deep[-_ ]?research/;
+const AGENTIC_RESEARCH_RE = /agentic[-_ ]?research|research[-_ ]?agent/;
+const SONAR_RE = /(^|\/)sonar[-_:]/;
+export const isDeepResearchModel = (id?: string, name?: string, description?: string) => {
+  const idName = `${id || ""} ${name || ""}`.toLowerCase();
+  if (DEEP_RESEARCH_RE.test(idName)) return true;
+  if (SONAR_RE.test((id || "").toLowerCase())) return true;
+  const desc = (description || "").toLowerCase();
+  if (!desc) return false;
+  return DEEP_RESEARCH_RE.test(desc) || AGENTIC_RESEARCH_RE.test(desc);
 };
 
 // Prompt-intent detectors mirror gpt_server/src/modules/chat/intents.ts so
