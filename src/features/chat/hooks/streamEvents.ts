@@ -82,9 +82,9 @@ export const applySourcesEvent = (
   return false;
 };
 
-/** Applies a `stage` payload (live processing line, e.g. "Searching Brave
- * for …"). Appended to the message's stage list (last 3 kept) and shown
- * above the typing dots until the answer renders. Never aborts. */
+/** Applies a `stage` payload (live processing line, e.g. source URL + content
+ * detail). Appended to the message's stage list (last 5 kept, auto-scrolled)
+ * and shown above the typing dots until the answer renders. Never aborts. */
 export const applyStageEvent = (
   ctx: StreamEventCtx,
   parsed: unknown
@@ -92,11 +92,11 @@ export const applyStageEvent = (
   if (ctx.isCancelled()) return true;
   const text = (parsed as any)?.text;
   if (typeof text === "string" && text.trim().length > 0) {
-    const line = text.trim().slice(0, 120);
+    const line = text.trim().slice(0, 200);
     ctx.setMessages((prev) =>
       prev.map((m) =>
         m.id === ctx.tempAssistantId
-          ? { ...m, stage: [...(m.stage ?? []), line].slice(-3) }
+          ? { ...m, stage: [...(m.stage ?? []), line].slice(-5) }
           : m
       )
     );

@@ -92,6 +92,13 @@ export const AssistantMessage = memo(
     const el = thinkingRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [thinkingText, showThinkingPreview]);
+  // Live search stages auto-scroll so the newest source line is always visible.
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const stageKey = (message.stage ?? []).join("\n");
+  useEffect(() => {
+    const el = stageRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [stageKey]);
   // Sources panel: hidden when the answer body already ends with its own
   // Sources/References list — one list only, never body + panel twice.
   const bodyHasSources = /(?:^|\n)\s*(?:#{1,4}\s*)?(?:\*\*|__)?(sources?|references?)(?:\s*:?\s*(?:\*\*|__)?)*\s*(?:\n|$)/i.test(answerText);
@@ -232,7 +239,7 @@ export const AssistantMessage = memo(
         {message.status === "STREAMING" && !answerText && !message.quiz && !showGenStatus ? (
           <>
             {message.stage && message.stage.length > 0 ? (
-              <div className="msg-stage" aria-live="polite">
+              <div ref={stageRef} className="msg-stage" aria-live="polite">
                 {message.stage.map((s, i) => (
                   <div key={i} className="msg-stage-line">{s}</div>
                 ))}

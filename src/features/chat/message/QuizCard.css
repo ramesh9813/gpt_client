@@ -90,6 +90,16 @@
 
 .quiz-card-q {
   min-width: 0;
+  /* Streaming generation: newly arrived questions fade/slide in. Existing
+     items keep stable keys across `quiz` events, so only fresh ones animate. */
+  animation: quiz-q-in 220ms ease-out;
+}
+@keyframes quiz-q-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .quiz-card-q { animation: none; }
 }
 
 .quiz-card-q-title {

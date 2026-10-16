@@ -64,8 +64,10 @@ export const QuizCard = ({
           // reveal recompute live).
           const questionLocked = isDisabled;
 
-          // Model may already prefix e.g. "1. " — strip it so UI index is single source.
-          const cleanQuestion = q.question.replace(/^\s*\d+[\.\)\-]?\s*/, "");
+          // Model may already prefix e.g. "1. ", "Q1:", "Q1.", "Question 1:" —
+          // strip it so UI index is single source (bare years like "1945 was…"
+          // have no trailing delimiter and stay untouched).
+          const cleanQuestion = q.question.replace(/^\s*(?:Q(?:uestion)?\s*\d+\s*[:.\)\-]?|\d+\s*[:.\)\-])\s*/i, "");
           return (
             <li key={qi} className="quiz-card-q">
               <div className="quiz-card-q-title">
