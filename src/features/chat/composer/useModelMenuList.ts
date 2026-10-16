@@ -8,7 +8,6 @@ type UseModelMenuListOptions = {
   onModelChange: (value: string) => void;
   onModelMenuOpenChange: (open: boolean) => void;
   onCloseMenu: () => void;
-  onResearchSelect?: () => void;
   onArtifactSelect?: () => void;
 };
 
@@ -19,20 +18,16 @@ export const useModelMenuList = ({
   onModelChange,
   onModelMenuOpenChange,
   onCloseMenu,
-  onResearchSelect,
   onArtifactSelect,
 }: UseModelMenuListOptions) => {
   const [modelQuery, setModelQuery] = useState("");
   const [sortOpen, setSortOpen] = useState(false);
-  // Research mode: list only deep-research-capable models.
-  const [researchOnly, setResearchOnly] = useState(false);
   const [imageOnly, setImageOnly] = useState(false);
 
   useEffect(() => {
     if (!menuOpen) {
       setModelQuery("");
       setSortOpen(false);
-      setResearchOnly(false);
       setImageOnly(false);
     }
   }, [menuOpen]);
@@ -41,24 +36,16 @@ export const useModelMenuList = ({
     if (!modelMenuOpen) {
       setModelQuery("");
       setSortOpen(false);
-      setResearchOnly(false);
       setImageOnly(false);
     }
   }, [modelMenuOpen]);
-
-  const researchOptions = useMemo(
-    () => modelOptions.filter((option) => option.supportsResearch),
-    [modelOptions]
-  );
 
   const imageOptions = useMemo(
     () => modelOptions.filter((option) => option.supportsImage),
     [modelOptions]
   );
 
-  const visibleOptions = researchOnly
-    ? researchOptions
-    : imageOnly
+  const visibleOptions = imageOnly
     ? imageOptions
     : modelOptions;
 
@@ -74,37 +61,25 @@ export const useModelMenuList = ({
 
   const openModelList = () => {
     setModelQuery("");
-    setResearchOnly(false);
-    setImageOnly(false);
-    onModelMenuOpenChange(true);
-  };
-
-  const openResearchList = () => {
-    setModelQuery("");
-    setResearchOnly(true);
     setImageOnly(false);
     onModelMenuOpenChange(true);
   };
 
   const openImageList = () => {
     setModelQuery("");
-    setResearchOnly(false);
     setImageOnly(true);
     onModelMenuOpenChange(true);
   };
 
   const closeModelList = () => {
     setModelQuery("");
-    setResearchOnly(false);
     setImageOnly(false);
     onModelMenuOpenChange(false);
   };
 
   const selectModel = (value: string) => {
     onModelChange(value);
-    if (researchOnly) onResearchSelect?.();
     setModelQuery("");
-    setResearchOnly(false);
     setImageOnly(false);
     onModelMenuOpenChange(false);
     onCloseMenu();
@@ -122,14 +97,9 @@ export const useModelMenuList = ({
     setModelQuery,
     sortOpen,
     setSortOpen,
-    researchOnly,
     imageOnly,
-    researchOptions,
-    imageOptions,
-    visibleOptions,
     filtered,
     openModelList,
-    openResearchList,
     openImageList,
     closeModelList,
     selectModel,

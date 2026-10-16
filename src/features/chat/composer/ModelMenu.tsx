@@ -256,11 +256,9 @@ export const ModelMenu = ({
     setModelQuery,
     sortOpen,
     setSortOpen,
-    researchOnly,
     imageOnly,
     filtered,
     openModelList,
-    openResearchList,
     openImageList,
     closeModelList,
     selectModel,
@@ -272,7 +270,6 @@ export const ModelMenu = ({
     onModelChange: handleSelectModel,
     onModelMenuOpenChange,
     onCloseMenu,
-    onResearchSelect,
     onArtifactSelect,
   });
   const showProviderDropdown = keyedProviders.length > 0 || !isGeneralUser;
@@ -324,8 +321,17 @@ export const ModelMenu = ({
           <button
             type="button"
             className="composer-option-btn"
-            onClick={researchArmed ? onResearchDisarm : openResearchList}
+            onClick={() => {
+              if (researchArmed) {
+                onResearchDisarm?.();
+              } else {
+                // Deep research runs on the CURRENT model — no forced switch.
+                onResearchSelect?.();
+                onCloseMenu();
+              }
+            }}
             aria-pressed={researchArmed}
+            title="Research with the current model"
           >
             <i className="bi bi-compass composer-icon-blue"></i>
             <span>Deep Research</span>
@@ -451,18 +457,14 @@ export const ModelMenu = ({
             value={modelQuery}
             onChange={setModelQuery}
             placeholder={
-              researchOnly
-                ? "Search research models..."
-                : imageOnly
-                  ? "Search image generation models..."
-                  : "Search models..."
+              imageOnly
+                ? "Search image generation models..."
+                : "Search models..."
             }
             ariaLabel={
-              researchOnly
-                ? "Search research models"
-                : imageOnly
-                  ? "Search image generation models"
-                  : "Search models"
+              imageOnly
+                ? "Search image generation models"
+                : "Search models"
             }
           />
           <div className="composer-model-listbox">
@@ -490,15 +492,13 @@ export const ModelMenu = ({
                   ? "Loading models…"
                   : modelsLoading
                     ? "Loading models…"
-                    : researchOnly
-                      ? "No deep-research models available on your plan"
-                      : imageOnly
-                        ? "No image generation models found"
-                        : modelQuery.trim()
-                          ? "No models found"
-                          : explicitPick
-                            ? "No models for this provider yet"
-                            : "No models available"}
+                    : imageOnly
+                      ? "No image generation models found"
+                      : modelQuery.trim()
+                        ? "No models found"
+                        : explicitPick
+                          ? "No models for this provider yet"
+                          : "No models available"}
               </div>
             )}
           </div>
