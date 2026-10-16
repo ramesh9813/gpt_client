@@ -367,6 +367,23 @@ const Composer = ({
         <ImageAttachments images={images} compressing={compressing} onRemove={removeImage} />
         <FileAttachments files={files} reading={fileReading} fileError={fileError} onRemove={removeFile} onClearError={() => setFileError(null)} />
         <input ref={filePickRef} type="file" multiple hidden aria-hidden="true" tabIndex={-1} onChange={(e) => void addFiles(e.target.files)} />
+        {/* Armed deep-research indicator: shows Deep Research (never Search)
+            while armed, tap × to disarm. */}
+        {researchArmed ? (
+          <div className="composer-research-chip" role="status">
+            <i className="bi bi-compass composer-research-icon" aria-hidden="true" />
+            <span className="composer-research-label">Deep Research — 30-60 sites, verified report</span>
+            <button
+              type="button"
+              className="composer-research-clear"
+              onClick={() => setResearchArmed(false)}
+              aria-label="Turn deep research off"
+              title="Turn deep research off"
+            >
+              <i className="bi bi-x" aria-hidden="true" />
+            </button>
+          </div>
+        ) : null}
 
         <ComposerStatus
           listening={voiceRecording}
