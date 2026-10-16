@@ -133,7 +133,7 @@ export const AssistantMessage = memo(
       Array.isArray(quiz.selections) && quiz.selections.length === total
         ? [...quiz.selections]
         : Array(total).fill(null);
-    if (prevSel[qIndex] !== null && prevSel[qIndex] !== undefined) return;
+    if (prevSel[qIndex] !== null && prevSel[qIndex] !== undefined && prevSel[qIndex] === optIndex) return;
     prevSel[qIndex] = optIndex;
     const allAnswered = prevSel.every((s) => s !== null && s !== undefined);
     const next: QuizRound = {

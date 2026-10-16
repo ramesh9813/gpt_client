@@ -59,9 +59,10 @@ export const QuizCard = ({
       <ol className="quiz-card-list">
         {quiz.questions.map((q, qi) => {
           const sel = selections[qi];
-          const answered =
-            sel !== null && sel !== undefined;
-          const questionLocked = isDisabled || answered || isRevealed;
+          // Picks stay changeable until the stream disables the card —
+          // tapping another option simply moves the selection (score and
+          // reveal recompute live).
+          const questionLocked = isDisabled;
 
           // Model may already prefix e.g. "1. " — strip it so UI index is single source.
           const cleanQuestion = q.question.replace(/^\s*\d+[\.\)\-]?\s*/, "");
