@@ -211,10 +211,13 @@ const Chat = () => {
         onOpenDrawer={openDrawer}
       />
       <main className="chat-main">
-        {/* Floating action pill — hidden while AI generates; reappears only
-            on a deliberate scroll-up (user fought auto-follow to read above).
-            Fully hidden when the user turns off "Show top action card". */}
-        {showTopCard ? (
+        {/* Floating action pill — laptop: mutually exclusive with the
+            sidebar (sidebar open → no card; sidebar hidden → card, so the
+            openers are always reachable exactly once). Mobile keeps its
+            current behavior. Hidden while AI generates; reappears only
+            on a deliberate scroll-up. Fully hidden when the user turns off
+            "Show top action card". */}
+        {showTopCard && (isMobile || sidebarState !== "expanded") ? (
         <header
           className={
             headerHidden && !pinHeader
