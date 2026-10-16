@@ -108,9 +108,7 @@ const Composer = ({
     thinkingArmed,
     setThinkingArmed,
     trimArmed,
-    setTrimArmed,
     promptOnlyArmed,
-    setPromptOnlyArmed,
   } = useComposerArmed();
   // Appearance setting: the up/down jump button above the input shows
   // only when enabled (default on).
@@ -436,10 +434,6 @@ const Composer = ({
             onWebSearchToggle={() => setWebSearchArmed((prev) => !prev)}
             thinkingArmed={thinkingArmed}
             onThinkingToggle={() => setThinkingArmed((prev) => !prev)}
-            trimArmed={trimArmed}
-            onTrimToggle={() => setTrimArmed((prev) => !prev)}
-            promptOnlyArmed={promptOnlyArmed}
-            onPromptOnlyToggle={() => setPromptOnlyArmed((prev) => !prev)}
             tokenInline={estimateCount > 0 ? tokenLineInner : undefined}
             tokenInlineState={tokenLineState}
             tokenInlineTitle={tokenLineTitle}

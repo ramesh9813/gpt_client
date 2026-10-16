@@ -114,3 +114,20 @@ export const readTrimArmed = (): boolean => {
     return true;
   }
 };
+
+// Settings-tab writes go through here so open composers pick them up
+// instantly (same-tab localStorage writes fire no event on their own).
+export const ARMED_FLAGS_EVENT = "chatapp:armed-flags";
+
+export const writeArmedFlag = (key: string, value: boolean): void => {
+  try {
+    window.localStorage.setItem(key, String(value));
+  } catch {
+    // ignore — in-memory state still updates via the event below
+  }
+  try {
+    window.dispatchEvent(new CustomEvent(ARMED_FLAGS_EVENT, { detail: { key, value } }));
+  } catch {
+    // ignore — non-DOM environment
+  }
+};

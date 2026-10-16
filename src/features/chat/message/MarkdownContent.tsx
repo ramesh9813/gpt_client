@@ -168,23 +168,32 @@ const MarkdownImage = ({ src, alt }: { src: string; alt: string }) => {
         <img src={src} alt={alt} loading="lazy" referrerPolicy="no-referrer" onClick={() => setExpanded(true)} style={{ cursor: "zoom-in" }} />
       </span>
       {expanded && (
-        <span className="msg-image-lightbox" role="dialog" aria-modal="true" aria-label="Expanded image" onClick={close} style={{ display: "flex" }}>
-          <span className="msg-lightbox-card" role="document" onClick={(e) => e.stopPropagation()}>
-            <span className="msg-lightbox-card-head">
-              <span className="msg-lightbox-card-title">
-                <i className="bi bi-image" aria-hidden="true" /> <span>{alt || "Image"}</span>
-              </span>
-              <button type="button" className="msg-lightbox-card-close" onClick={close} aria-label="Close" title="Close">
-                <i className="bi bi-x-lg" aria-hidden="true" />
-              </button>
-            </span>
-            <span className="msg-lightbox-card-body">
-              <img src={src} alt={alt || "Expanded image"} className="msg-lightbox-card-img" />
-              <button type="button" className="msg-lightbox-card-dl" onClick={() => void downloadImageAs(src, "jpg", 0)} aria-label="Download image" title="Download">
-                <i className="bi bi-download" aria-hidden="true" />
-              </button>
-            </span>
-          </span>
+        <span className="msg-image-lightbox msg-gallery-full" role="dialog" aria-modal="true" aria-label="Expanded image" onClick={close} style={{ display: "flex" }}>
+          <img src={src} alt={alt || "Expanded image"} className="msg-gallery-full-img" />
+          <button
+            type="button"
+            className="msg-gallery-minimize"
+            onClick={(e) => {
+              e.stopPropagation();
+              close();
+            }}
+            aria-label="Close"
+            title="Close"
+          >
+            <i className="bi bi-x-lg" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="msg-gallery-download"
+            onClick={(e) => {
+              e.stopPropagation();
+              void downloadImageAs(src, "jpg", 0);
+            }}
+            aria-label="Download image"
+            title="Download"
+          >
+            <i className="bi bi-download" aria-hidden="true" />
+          </button>
         </span>
       )}
     </>

@@ -60,10 +60,6 @@ type ModelMenuProps = {
   onMcqToggle?: () => void;
   thinkingArmed?: boolean;
   onThinkingToggle?: () => void;
-  trimArmed?: boolean;
-  onTrimToggle?: () => void;
-  promptOnlyArmed?: boolean;
-  onPromptOnlyToggle?: () => void;
   onFilePick?: () => void;
   // Catalog freshness footer (from useChatModels):
   modelsTotal?: number;
@@ -99,10 +95,6 @@ export const ModelMenu = ({
   onMcqToggle,
   thinkingArmed,
   onThinkingToggle,
-  trimArmed,
-  onTrimToggle,
-  promptOnlyArmed,
-  onPromptOnlyToggle,
   onFilePick,
   activeProviderId,
   onProviderModelChange,
@@ -410,37 +402,6 @@ export const ModelMenu = ({
             <span>Image Generation</span>
           </button>
           )}
-          <button
-            type="button"
-            className="composer-option-btn"
-            aria-pressed={trimArmed === true}
-            onClick={() => {
-              onTrimToggle?.();
-              if (!trimArmed) onCloseMenu();
-            }}
-          >
-            <i className="bi bi-scissors composer-icon-green"></i>
-            <span>Auto-trim history</span>
-            {trimArmed ? (
-              <span className="composer-option-badge">On</span>
-            ) : null}
-          </button>
-          <button
-            type="button"
-            className="composer-option-btn"
-            aria-pressed={promptOnlyArmed === true}
-            onClick={() => {
-              onPromptOnlyToggle?.();
-              if (!promptOnlyArmed) onCloseMenu();
-            }}
-            title="Send only this input plus your custom prompt — no past history"
-          >
-            <i className="bi bi-send composer-icon-blue"></i>
-            <span>Prompt only</span>
-            {promptOnlyArmed ? (
-              <span className="composer-option-badge">On</span>
-            ) : null}
-          </button>
           <button
             type="button"
             className="composer-option-btn"

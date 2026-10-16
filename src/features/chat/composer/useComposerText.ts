@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ClipboardEvent, type ChangeEvent, type Dispatch, type KeyboardEvent, type MutableRefObject, type SetStateAction } from "react";
-import { WEBSEARCH_ARMED_KEY, readWebSearchArmed } from "../sidebarState";
+import { ARMED_FLAGS_EVENT, PROMPTONLY_ARMED_KEY, TRIM_ARMED_KEY, WEBSEARCH_ARMED_KEY, readPromptOnlyArmed, readTrimArmed, readWebSearchArmed } from "../sidebarState";
 
 export const useComposerArmed = () => {
   // Armed when the user picks a model from the Deep Research list.
@@ -71,6 +71,19 @@ export const useComposerArmed = () => {
       window.localStorage.setItem("chatapp.promptonly.armed", String(promptOnlyArmed));
     } catch {}
   }, [promptOnlyArmed]);
+  // Settings-tab toggles (auto-trim / prompt-only live there now, not in the
+  // '+' menu): pick up writes instantly so the estimate + next send agree.
+  useEffect(() => {
+    const onFlags = (e: Event) => {
+      try {
+        const key = (e as CustomEvent<{ key?: unknown }>).detail?.key;
+        if (typeof key !== "string" || key === TRIM_ARMED_KEY) setTrimArmed(readTrimArmed());
+        if (typeof key !== "string" || key === PROMPTONLY_ARMED_KEY) setPromptOnlyArmed(readPromptOnlyArmed());
+      } catch {}
+    };
+    window.addEventListener(ARMED_FLAGS_EVENT, onFlags);
+    return () => window.removeEventListener(ARMED_FLAGS_EVENT, onFlags);
+  }, []);
 
   return {
     researchArmed,
