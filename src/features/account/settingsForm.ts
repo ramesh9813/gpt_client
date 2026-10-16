@@ -16,6 +16,7 @@ export const settingsSchema = z.object({
   showScrollJump: z.boolean(),
   showFollowups: z.boolean(),
   searchProvider: z.enum(["auto", "brave", "exa", "youtube", "duckduckgo"]),
+  searchDepth: z.number().int().min(3).max(20),
   appFontSize: z.number().int().min(APP_FONT_MIN).max(APP_FONT_MAX),
   iconScale: z.number().min(ICON_SCALE_MIN).max(ICON_SCALE_MAX),
   model: z.string().min(1).max(200),
@@ -25,6 +26,16 @@ export const settingsSchema = z.object({
 
 export const toModelId = (value: unknown): string =>
   typeof value === "string" && value.length > 0 ? value : "default";
+
+// Search depth (number of websites per search): 3/5/10/15/20, default 5.
+// Anything else clamps into range so a stale row can never break the select.
+export const SEARCH_DEPTHS = [3, 5, 10, 15, 20] as const;
+export const SEARCH_DEPTH_DEFAULT = 5;
+export const clampSearchDepth = (value: unknown): number => {
+  const n = typeof value === "number" ? Math.floor(value) : parseInt(String(value ?? ""), 10);
+  if (!Number.isFinite(n)) return SEARCH_DEPTH_DEFAULT;
+  return Math.min(20, Math.max(3, n));
+};
 
 export const shortModelName = (m: OpenRouterModel): string => {
   const name = m.name || m.id;

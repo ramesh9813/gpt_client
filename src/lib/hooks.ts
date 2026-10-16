@@ -28,6 +28,7 @@ export type UserSettings = {
   showScrollJump?: boolean;
   showFollowups?: boolean;
   searchProvider?: "auto" | "brave" | "exa" | "youtube" | "duckduckgo";
+  searchDepth?: number;
   model: string;
   imageModel?: string;
   videoModel?: string;

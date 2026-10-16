@@ -27,6 +27,8 @@ import {
 import { BRANDS, applyBrand, isBrandId, type BrandId } from "../../lib/brandTheme";
 import {
   settingsSchema,
+  SEARCH_DEPTHS,
+  clampSearchDepth,
   FONT_STEPS,
   FONT_STEP_LABELS,
   FONT_STEP_SIZES,
@@ -94,6 +96,7 @@ export const SettingsTab = () => {
       showScrollJump: true,
       showFollowups: true,
       searchProvider: "auto" as const,
+      searchDepth: 5,
       appFontSize: APP_FONT_DEFAULT,
       iconScale: ICON_SCALE_DEFAULT,
       model: "default",
@@ -115,6 +118,7 @@ export const SettingsTab = () => {
         showScrollJump: settings.showScrollJump ?? true,
         showFollowups: settings.showFollowups ?? true,
         searchProvider: settings.searchProvider ?? "auto",
+        searchDepth: clampSearchDepth(settings.searchDepth),
         fontScale: toFontStep(settings.fontScale),
         brand: isBrandId(settings.brand) ? settings.brand : "default",
         appFontSize: clampAppFontSize(settings.appFontSize),
@@ -504,6 +508,26 @@ export const SettingsTab = () => {
               first available key on the server (Brave, then Exa), otherwise
               keyless DuckDuckGo. A pick without its server key falls back
               automatically.
+            </span>
+          </div>
+          <div>
+            <label className="account-field-label" htmlFor="search-depth">
+              Number of websites
+            </label>
+            <select
+              id="search-depth"
+              className="account-select"
+              {...register("searchDepth", { valueAsNumber: true })}
+            >
+              {SEARCH_DEPTHS.map((n) => (
+                <option key={n} value={n}>
+                  {n} websites{n === 5 ? " (default)" : ""}
+                </option>
+              ))}
+            </select>
+            <span className="account-check-hint">
+              How many websites each search reads — 3 for quick answers, up
+              to 20 for deep research. Applies to every provider.
             </span>
           </div>
         </fieldset>
