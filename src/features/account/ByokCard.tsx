@@ -112,7 +112,10 @@ export const ByokCard = () => {
     };
   }, []);
 
-  const mergedProviders = serverProviders ?? fallbackMerged;
+  const mergedProviders = useMemo(
+    () => [...(serverProviders ?? fallbackMerged)].sort((a, b) => a.name.localeCompare(b.name)),
+    [serverProviders]
+  );
 
   const provider = useMemo<MergedProvider | null>(() => {
     if (!providerId) return null;

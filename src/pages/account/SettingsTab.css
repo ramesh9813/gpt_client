@@ -306,7 +306,12 @@
   overflow-x: auto;
   padding-bottom: 0.25rem;
   margin-bottom: 1.25rem;
-  scrollbar-width: thin;
+  /* Swipe-scroll stays, but no visible slider bar under the tabs. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.account-subtabs::-webkit-scrollbar {
+  display: none;
 }
 .account-subtab {
   display: inline-flex;
