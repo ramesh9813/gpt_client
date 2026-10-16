@@ -52,16 +52,6 @@ export function SidebarHeader({
       ) : (
         <div className="sb-header-actions">
           <IconButton
-            onClick={onCollapse}
-            aria-label="Collapse conversation history"
-            title="Collapse conversation history"
-            aria-expanded={sidebarState === "expanded"}
-            aria-controls="conversation-history"
-            className="sb-icon-btn"
-          >
-            <i className="bi bi-layout-sidebar-inset sb-icon-btn-icon" aria-hidden="true"></i>
-          </IconButton>
-          <IconButton
             onClick={onHide}
             aria-label="Hide conversation history"
             title="Hide conversation history"
