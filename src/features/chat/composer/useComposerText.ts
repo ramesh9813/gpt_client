@@ -179,10 +179,10 @@ export const useComposerText = ({
     if (!trimmed && images.length === 0) return;
     if (compressing) return;
     // Sticky quiz mode: route through the quiz pipeline even as the user
-    // edits the prompt — no visible prefix needed. Images-only sends skip
-    // the prefix so attachments still go through normally.
+    // edits the prompt — no visible prefix needed. Images-only sends ride
+    // along too, so an armed quiz on bare pictures still quizzes the image.
     const routed =
-      mcqArmed && trimmed && !MCQ_PREFIX.test(trimmed) ? `mcq ${trimmed}` : trimmed;
+      mcqArmed && !MCQ_PREFIX.test(trimmed) && (trimmed || images.length > 0) ? `mcq ${trimmed}` : trimmed;
     // webSearch is always explicit (true/false) so the armed toggle is
     // honored exactly; research/artifact stay one-shot opt-ins. Prompt-only
     // is sticky like quiz — it rides every turn until explicitly cleared.
