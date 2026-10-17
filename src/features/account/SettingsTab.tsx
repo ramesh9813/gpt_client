@@ -44,8 +44,10 @@ import { TranscribeCard } from "./TranscribeCard";
 import { MediaAnalysisCard } from "./MediaAnalysisCard";
 import {
   PROMPTONLY_ARMED_KEY,
+  SHOW_SOURCES_KEY,
   TRIM_ARMED_KEY,
   readPromptOnlyArmed,
+  readShowSources,
   readTrimArmed,
   writeArmedFlag,
 } from "../chat/sidebarState";
@@ -74,6 +76,7 @@ export const SettingsTab = () => {
   // auto-trim defaults ON, prompt-only defaults OFF.
   const [trimArmedSetting, setTrimArmedSetting] = useState(() => readTrimArmed());
   const [promptOnlySetting, setPromptOnlySetting] = useState(() => readPromptOnlyArmed());
+  const [showSourcesSetting, setShowSourcesSetting] = useState(() => readShowSources());
   const [streamWps, setStreamWps] = useState<number>(() => readStreamWps());
   const {
     register,
@@ -529,6 +532,29 @@ export const SettingsTab = () => {
               How many websites each search reads — 3 for quick answers, up
               to 20 for deep research. Applies to every provider.
             </span>
+          </div>
+          <div>
+            <label className="account-check-row">
+              <input
+                type="checkbox"
+                checked={showSourcesSetting}
+                onChange={(e) => {
+                  setShowSourcesSetting(e.target.checked);
+                  writeArmedFlag(SHOW_SOURCES_KEY, e.target.checked);
+                }}
+                className="account-check-input"
+              />
+              <span className="account-check-body">
+                <span className="account-field-label account-check-label">
+                  Show search sources
+                </span>
+                <span className="account-check-hint">
+                  Show the websites behind each answer — live search lines
+                  while searching and the sources list after. Off hides them
+                  everywhere. On by default.
+                </span>
+              </span>
+            </label>
           </div>
         </fieldset>
         </div>

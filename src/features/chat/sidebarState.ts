@@ -96,6 +96,21 @@ export const TRIM_ARMED_KEY = "chatapp.trim.armed";
 // armed, turns send just the current input (+ custom prompt), no history.
 export const PROMPTONLY_ARMED_KEY = "chatapp.promptonly.armed";
 
+// Show search sources: ON by default — the live search lines under the
+// answer while searching and the sources list after. Off hides both
+// everywhere (photos of image results still show — they're content).
+export const SHOW_SOURCES_KEY = "chatapp.search.showSources";
+
+export const readShowSources = (): boolean => {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return true;
+    const raw = window.localStorage.getItem(SHOW_SOURCES_KEY);
+    return raw === null ? true : raw === "true";
+  } catch {
+    return true;
+  }
+};
+
 export const readPromptOnlyArmed = (): boolean => {
   try {
     if (typeof window === "undefined" || !window.localStorage) return false;

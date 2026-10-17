@@ -10,6 +10,11 @@ import { CopyButton, ShareButton } from "./MessageButtons";
 import { useDoubleCopy } from "./useDoubleCopy";
 import { QuizCard } from "./QuizCard";
 import { ArtifactCard } from "./ArtifactCard";
+import {
+  ARMED_FLAGS_EVENT,
+  SHOW_SOURCES_KEY,
+  readShowSources,
+} from "../sidebarState";
 import { useSettings } from "../../../lib/hooks";
 
 type AssistantMessageProps = {
@@ -101,9 +106,20 @@ export const AssistantMessage = memo(
   }, [stageKey]);
   // Sources panel: hidden when the answer body already ends with its own
   // Sources/References list — one list only, never body + panel twice.
+  // The "Show search sources" setting hides the panel and live stage lines
+  // everywhere; toggling in Settings re-renders all messages instantly.
+  const [showSources, setShowSources] = useState(() => readShowSources());
+  useEffect(() => {
+    const onFlags = (e: Event): void => {
+      const detail = (e as CustomEvent<{ key?: string }>).detail;
+      if (detail?.key === SHOW_SOURCES_KEY) setShowSources(readShowSources());
+    };
+    window.addEventListener(ARMED_FLAGS_EVENT, onFlags);
+    return () => window.removeEventListener(ARMED_FLAGS_EVENT, onFlags);
+  }, []);
   const bodyHasSources = /(?:^|\n)\s*(?:#{1,4}\s*)?(?:\*\*|__)?(sources?|references?)(?:\s*:?\s*(?:\*\*|__)?)*\s*(?:\n|$)/i.test(answerText);
   const showSourcesPanel =
-    !!message.sources && message.sources.length > 0 && message.status === "COMPLETE" && !bodyHasSources;
+    !!message.sources && message.sources.length > 0 && message.status === "COMPLETE" && !bodyHasSources && showSources;
   // (No collapsible — links stay in the open.)
   // Transient system notice banner (e.g. "search unavailable"): dismissible.
   const [noticeDismissed, setNoticeDismissed] = useState(false);
@@ -238,7 +254,7 @@ export const AssistantMessage = memo(
         ) : null}
         {message.status === "STREAMING" && !answerText && !message.quiz && !showGenStatus ? (
           <>
-            {message.stage && message.stage.length > 0 ? (
+            {showSources && message.stage && message.stage.length > 0 ? (
               <div ref={stageRef} className="msg-stage" aria-live="polite">
                 {message.stage.map((s, i) => (
                   <div key={i} className="msg-stage-line">{s}</div>
