@@ -90,9 +90,12 @@
 
 .quiz-card-q {
   min-width: 0;
-  /* Streaming generation: newly arrived questions fade/slide in. Existing
-     items keep stable keys across `quiz` events, so only fresh ones animate. */
-  animation: quiz-q-in 220ms ease-out;
+}
+/* Streaming generation: ONLY newly arrived questions glide in (the card
+   gates the class by index, so existing items never re-animate — no
+   flashing when the growing list replaces on each `quiz` event). */
+.quiz-card-q--fresh {
+  animation: quiz-q-in 240ms ease-out;
 }
 @keyframes quiz-q-in {
   from { opacity: 0; transform: translateY(8px); }

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import "./QuizCard.css";
 import type { QuizRound } from "./types";
 
@@ -17,6 +18,14 @@ export const QuizCard = ({
   onNextRound,
 }: QuizCardProps) => {
   const total = quiz.questions.length;
+  // Fresh arrivals only: progressive `quiz` events replace the whole list,
+  // so entrance animation is gated on index — items already on screen never
+  // re-animate (no flashing), only newly streamed questions glide in.
+  const seenCount = useRef(total);
+  useEffect(() => {
+    seenCount.current = total;
+  }, [total]);
+  const freshFrom = seenCount.current;
   if (total === 0) {
     return null;
   }
@@ -69,7 +78,7 @@ export const QuizCard = ({
           // have no trailing delimiter and stay untouched).
           const cleanQuestion = q.question.replace(/^\s*(?:Q(?:uestion)?\s*\d+\s*[:.\)\-]?|\d+\s*[:.\)\-])\s*/i, "");
           return (
-            <li key={qi} className="quiz-card-q">
+            <li key={qi} className={`quiz-card-q${qi >= freshFrom ? " quiz-card-q--fresh" : ""}`}>
               <div className="quiz-card-q-title">
                 {qi + 1}. {cleanQuestion}
               </div>
