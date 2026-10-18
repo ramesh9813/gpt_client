@@ -23,10 +23,18 @@ export const isDeepResearchModel = (id?: string, name?: string, description?: st
 const IMAGE_PROMPT_INTENT = /\b(generat\w*|creat\w*|draw\w*|paint\w*|design\w*|render\w*|mak\w*|produc\w*)\b.{0,50}\b(image|picture|photo|artwork|logo|illustration|avatar|banner|drawing|painting|wallpaper|icon)\b|\b(image|picture|photo|logo)\s+of\b|\bdraw\s+me\b/i;
 const VIDEO_PROMPT_INTENT = /\b(generat\w*|creat\w*|mak\w*|develop\w*|build\w*|produc\w*|direct\w*)\b.{0,50}\b(video|clip|animation|movie|reel|short film|footage)\b|\bvideo\s+of\b/i;
 
-export const wantsImagePrompt = (text: string): boolean =>
-  IMAGE_PROMPT_INTENT.test(text || "");
-export const wantsVideoPrompt = (text: string): boolean =>
-  VIDEO_PROMPT_INTENT.test(text || "");
+const SEARCH_GUARD_RE = /\bsearch\b/i;
+
+export const wantsImagePrompt = (text: string): boolean => {
+  const t = text || "";
+  if (SEARCH_GUARD_RE.test(t)) return false;
+  return IMAGE_PROMPT_INTENT.test(t);
+};
+export const wantsVideoPrompt = (text: string): boolean => {
+  const t = text || "";
+  if (SEARCH_GUARD_RE.test(t)) return false;
+  return VIDEO_PROMPT_INTENT.test(t);
+};
 
 // Capability probe shared by the composer menu and the settings selects.
 // Professional source: OpenRouter catalog entry architecture.output_modalities
