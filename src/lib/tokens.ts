@@ -1,26 +1,13 @@
-// Token budgeting helpers — client mirror of the server history budgets
-// (gpt_server HISTORY). Rough heuristic: ~4 chars per token.
+// Token estimate helpers. The server sends the FULL conversation history
+// every turn (nothing is trimmed), so the estimate counts all of it.
+// Rough heuristic: ~4 chars per token.
 
 export const CHARS_PER_TOKEN = 4;
-
-// History budgets, mirrored from the server so the live estimate matches
-// what /api/chat/stream will actually send.
-export const HISTORY_BUDGET_CHARS = 24_000;
-export const HISTORY_TIGHT_BUDGET_CHARS = 8_000;
-
-// Providers with tight per-minute input caps get the tight budget server-side.
-export const LOW_BUDGET_PROVIDERS: readonly string[] = ["groq"];
 
 // Known per-minute input-token caps (undefined = unknown/large).
 export const PROVIDER_INPUT_LIMITS: Record<string, number> = {
   groq: 7000,
 };
-
-export const historyBudgetFor = (providerId?: string | null): number =>
-  providerId &&
-  LOW_BUDGET_PROVIDERS.includes(providerId.trim().toLowerCase())
-    ? HISTORY_TIGHT_BUDGET_CHARS
-    : HISTORY_BUDGET_CHARS;
 
 export const providerInputLimit = (
   providerId?: string | null
@@ -39,7 +26,7 @@ export const formatTokenCount = (tokens: number): string => {
   return `${k >= 100 ? Math.round(k) : k.toFixed(1).replace(/\.0$/, "")}k`;
 };
 
-// Full-turn size the estimate is based on: capped history + fresh input +
+// Full-turn size the estimate is based on: full history + fresh input +
 // file payload + system/tuning/search headroom (~1.5k chars).
 export const SYSTEM_HEADROOM_CHARS = 1_500;
 
@@ -49,20 +36,17 @@ export const estimateTurnChars = (args: {
   filesChars?: number;
   providerId?: string | null;
 }): number => {
-  const history = Math.min(
-    Math.max(0, args.historyChars),
-    historyBudgetFor(args.providerId)
-  );
   return (
-    history +
+    Math.max(0, args.historyChars) +
     Math.max(0, args.inputChars ?? 0) +
     Math.max(0, args.filesChars ?? 0) +
     SYSTEM_HEADROOM_CHARS
   );
 };
 
-// Near the limit when estimated tokens pass 70% of a known cap, or the raw
-// thread passes 90% of the history budget when the cap is unknown.
+// Near the limit when estimated tokens pass 70% of a known provider input
+// cap — over that the request itself will be rejected. Providers without a
+// known cap never trip the warning.
 export const isNearLimit = (args: {
   historyChars: number;
   inputChars?: number;
@@ -75,5 +59,5 @@ export const isNearLimit = (args: {
       estimateTokens(estimateTurnChars(args)) > Math.floor(limit * 0.7)
     );
   }
-  return args.historyChars > Math.floor(historyBudgetFor(args.providerId) * 0.9);
+  return false;
 };
