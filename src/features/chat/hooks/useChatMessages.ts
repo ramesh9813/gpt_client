@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { apiFetch, ApiResponse } from "../../../lib/api";
 import { getActiveByok, stripProviderPrefix } from "../../../lib/byok";
-import { readPromptOnlyArmed, readWebSearchArmed } from "../sidebarState";
+import { readWebSearchArmed } from "../sidebarState";
 import { getMediaTurnOverride } from "../../../lib/mediaModels";
 
 // Thinking mode mirrors webSearch: sticky localStorage flag honored by
@@ -114,7 +114,7 @@ export const useChatMessages = ({
     typeof (err as { message?: unknown })?.message === "string" &&
     ((err as { message: string }).message.includes("Conversation not found"));
 
-  const runSend = async (cid: string, text: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean; promptOnly?: boolean; files?: Array<{ name: string; mime: string; size: number; content: string; dataUrl?: string; attachmentId?: string }> }) => {
+  const runSend = async (cid: string, text: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean; files?: Array<{ name: string; mime: string; size: number; content: string; dataUrl?: string; attachmentId?: string }> }) => {
     const trimmed = text.trim();
     const hasImages = !!images && images.length > 0;
     const hasFiles = !!opts?.files && opts.files.length > 0;
@@ -196,7 +196,6 @@ export const useChatMessages = ({
         ...(opts?.artifact ? { artifact: true as const } : {}),
         ...(opts?.think ? { think: true as const } : {}),
         webSearch: searchOn,
-        ...((opts?.promptOnly ?? readPromptOnlyArmed()) ? { promptOnly: true as const } : {}),
         ...(mediaOverride ? { byokOverride: mediaOverride } : {}),
       });
     } catch (err: any) {
@@ -225,7 +224,7 @@ export const useChatMessages = ({
     }
   };
 
-  const sendMessage = async (text: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean; promptOnly?: boolean; files?: Array<{ name: string; mime: string; size: number; content: string; dataUrl?: string; attachmentId?: string }> }) => {
+  const sendMessage = async (text: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean; files?: Array<{ name: string; mime: string; size: number; content: string; dataUrl?: string; attachmentId?: string }> }) => {
     if (!conversationId) return;
     try {
       await runSend(conversationId, text, images, opts);
@@ -327,7 +326,6 @@ export const useChatMessages = ({
         selectedModel: editModel,
         webSearch: readWebSearchArmed(),
         think: readThinkingArmed(),
-        ...(readPromptOnlyArmed() ? { promptOnly: true as const } : {}),
         ...(getMediaTurnOverride({ images })
           ? { byokOverride: getMediaTurnOverride({ images }) as { provider: string; model: string } }
           : {}),
@@ -445,7 +443,6 @@ export const useChatMessages = ({
         selectedModel: plainModel,
         webSearch: readWebSearchArmed(),
         think: readThinkingArmed(),
-        ...(readPromptOnlyArmed() ? { promptOnly: true as const } : {}),
         ...(getMediaTurnOverride({
           images: userMessage.images,
           files: (userMessage as any).files,
@@ -559,7 +556,6 @@ export const useChatMessages = ({
         selectedModel: fallbackModel,
         webSearch: readWebSearchArmed(),
         think: readThinkingArmed(),
-        ...(readPromptOnlyArmed() ? { promptOnly: true as const } : {}),
         ...(getMediaTurnOverride({
           images: userMessage.images,
           files: (userMessage as any).files,

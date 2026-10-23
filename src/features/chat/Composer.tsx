@@ -32,7 +32,7 @@ import type { FileAttachment } from "../../lib/fileChat";
 
 export type ComposerProps = {
   // images/files optional → backward compat
-  onSend: (value: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean; promptOnly?: boolean; files?: FileAttachment[] }) => void;
+  onSend: (value: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean; files?: FileAttachment[] }) => void;
   onStop?: () => void;
   disabled?: boolean;
   streaming?: boolean;
@@ -107,7 +107,6 @@ const Composer = ({
     setMcqArmed,
     thinkingArmed,
     setThinkingArmed,
-    promptOnlyArmed,
   } = useComposerArmed();
   // Appearance setting: the up/down jump button above the input shows
   // only when enabled (default on).
@@ -247,7 +246,6 @@ const Composer = ({
     artifactArmed,
     webSearchArmed,
     thinkingArmed,
-    promptOnlyArmed,
     disabled,
     streaming,
     lastUserMessage,
@@ -273,11 +271,9 @@ const Composer = ({
 
   // Live token estimate: capped history + current input + file payload +
   // system headroom, at ~4 chars/token. Warns near the provider cap.
-  // Prompt-only mode sends no history, so the estimate drops to just this
-  // turn.
   const filesChars = files.reduce((n, f) => n + (f.content?.length ?? 0), 0);
   const estimateInputChars = value.length;
-  const estimateHistoryChars = promptOnlyArmed ? 0 : historyChars;
+  const estimateHistoryChars = historyChars;
   const estimateNear = isNearLimit({
     historyChars: estimateHistoryChars,
     inputChars: estimateInputChars,
@@ -307,8 +303,7 @@ const Composer = ({
       {estimateLeft !== null && (
         <span> • {formatTokenCount(estimateLeft)} left</span>
       )}
-      {promptOnlyArmed && <span> • prompt only</span>}
-      {estimateNear && !promptOnlyArmed && <span> • over limit!</span>}
+      {estimateNear && <span> • over limit!</span>}
     </>
   );
 

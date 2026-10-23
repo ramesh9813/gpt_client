@@ -43,9 +43,7 @@ import { ByokCard } from "./ByokCard";
 import { TranscribeCard } from "./TranscribeCard";
 import { MediaAnalysisCard } from "./MediaAnalysisCard";
 import {
-  PROMPTONLY_ARMED_KEY,
   SHOW_SOURCES_KEY,
-  readPromptOnlyArmed,
   readShowSources,
   writeArmedFlag,
 } from "../chat/sidebarState";
@@ -71,8 +69,7 @@ export const SettingsTab = () => {
   const [status, setStatus] = useState<string | null>(null);
   const [section, setSection] = useState<SettingsSection>("ai");
   // Local-only mode (also read live by the composer on every send):
-  // prompt-only defaults OFF.
-  const [promptOnlySetting, setPromptOnlySetting] = useState(() => readPromptOnlyArmed());
+  // show-sources defaults ON.
   const [showSourcesSetting, setShowSourcesSetting] = useState(() => readShowSources());
   const [streamWps, setStreamWps] = useState<number>(() => readStreamWps());
   const {
@@ -435,28 +432,6 @@ export const SettingsTab = () => {
               <span className="account-check-hint">
                 Show the three follow-up question chips at the end of a
                 response. When off, no follow-ups are generated or shown.
-              </span>
-            </span>
-          </label>
-        </div>
-        <div>
-          <label className="account-check-row">
-            <input
-              type="checkbox"
-              checked={promptOnlySetting}
-              onChange={(e) => {
-                setPromptOnlySetting(e.target.checked);
-                writeArmedFlag(PROMPTONLY_ARMED_KEY, e.target.checked);
-              }}
-              className="account-check-input"
-            />
-            <span className="account-check-body">
-              <span className="account-field-label account-check-label">
-                Prompt only
-              </span>
-              <span className="account-check-hint">
-                Send only this input plus your custom prompt — no past
-                history. Off by default.
               </span>
             </span>
           </label>

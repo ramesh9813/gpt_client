@@ -87,10 +87,6 @@ export const readWebSearchArmed = (): boolean => {
   }
 };
 
-// Prompt-only stays OFF by default — only an explicit tap arms it. When
-// armed, turns send just the current input (+ custom prompt), no history.
-export const PROMPTONLY_ARMED_KEY = "chatapp.promptonly.armed";
-
 // Show search sources: ON by default — the live search lines under the
 // answer while searching and the sources list after. Off hides both
 // everywhere (photos of image results still show — they're content).
@@ -103,15 +99,6 @@ export const readShowSources = (): boolean => {
     return raw === null ? true : raw === "true";
   } catch {
     return true;
-  }
-};
-
-export const readPromptOnlyArmed = (): boolean => {
-  try {
-    if (typeof window === "undefined" || !window.localStorage) return false;
-    return window.localStorage.getItem(PROMPTONLY_ARMED_KEY) === "true";
-  } catch {
-    return false;
   }
 };
 
