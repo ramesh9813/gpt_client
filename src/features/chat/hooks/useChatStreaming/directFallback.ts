@@ -65,12 +65,19 @@ export const createDirectFallback = (
         ...(typeof result.usage?.prompt_tokens === "number" ? { promptTokens: result.usage.prompt_tokens } : {}),
         ...(typeof result.usage?.completion_tokens === "number" ? { completionTokens: result.usage.completion_tokens } : {}),
         ...(typeof result.usage?.total_tokens === "number" ? { tokenCount: result.usage.total_tokens } : {}),
+        ...(result.sources.length > 0 ? { sources: result.sources } : {}),
         durationMs: Date.now() - startedAt,
       }),
     });
     if (!opts.isCancelled()) {
       const finishedAt = Date.now();
-      opts.setMessages((prev) => prev.map((m) => m.id === opts.tempAssistantId ? { ...m, status: "COMPLETE", model: `${turn.provider}:${turn.model}`, durationMs: finishedAt - startedAt } : m));
+      opts.setMessages((prev) => prev.map((m) => m.id === opts.tempAssistantId ? {
+        ...m,
+        status: "COMPLETE",
+        model: `${turn.provider}:${turn.model}`,
+        durationMs: finishedAt - startedAt,
+        ...(result.sources.length > 0 ? { sources: result.sources, usedSearch: true } : {}),
+      } : m));
     }
     return true;
   } catch (err: any) {

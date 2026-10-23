@@ -104,11 +104,10 @@ export const AssistantMessage = memo(
     const el = stageRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [stageKey]);
-  // Sources panel: hidden only when the answer body already contains every
-  // structured source URL — one list only, never body + panel twice. A
-  // title-only Sources/References heading does not hide the panel.
-  // The "Show search sources" setting hides the panel and live stage lines
-  // everywhere; toggling in Settings re-renders all messages instantly.
+  // Sources panel: renders below the answer for every provider (built-in
+  // relay, BYOK, browser-direct) whenever the turn has sources and the
+  // "Show search sources" setting is on. The setting hides the panel and the
+  // live stage lines everywhere; toggling in Settings re-renders instantly.
   const [showSources, setShowSources] = useState(() => readShowSources());
   useEffect(() => {
     const onFlags = (e: Event): void => {
@@ -118,12 +117,8 @@ export const AssistantMessage = memo(
     window.addEventListener(ARMED_FLAGS_EVENT, onFlags);
     return () => window.removeEventListener(ARMED_FLAGS_EVENT, onFlags);
   }, []);
-  const bodyHasSourceLinks =
-    !!message.sources &&
-    message.sources.length > 0 &&
-    message.sources.every((s) => answerText.includes(s.url));
   const showSourcesPanel =
-    !!message.sources && message.sources.length > 0 && !bodyHasSourceLinks && showSources;
+    !!message.sources && message.sources.length > 0 && showSources;
   // (No collapsible — links stay in the open.)
   // Transient system notice banner (e.g. "search unavailable"): dismissible.
   const [noticeDismissed, setNoticeDismissed] = useState(false);
