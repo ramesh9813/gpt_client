@@ -45,10 +45,8 @@ import { MediaAnalysisCard } from "./MediaAnalysisCard";
 import {
   PROMPTONLY_ARMED_KEY,
   SHOW_SOURCES_KEY,
-  TRIM_ARMED_KEY,
   readPromptOnlyArmed,
   readShowSources,
-  readTrimArmed,
   writeArmedFlag,
 } from "../chat/sidebarState";
 
@@ -72,9 +70,8 @@ export const SettingsTab = () => {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<string | null>(null);
   const [section, setSection] = useState<SettingsSection>("ai");
-  // Local-only modes (also read live by the composer on every send):
-  // auto-trim defaults ON, prompt-only defaults OFF.
-  const [trimArmedSetting, setTrimArmedSetting] = useState(() => readTrimArmed());
+  // Local-only mode (also read live by the composer on every send):
+  // prompt-only defaults OFF.
   const [promptOnlySetting, setPromptOnlySetting] = useState(() => readPromptOnlyArmed());
   const [showSourcesSetting, setShowSourcesSetting] = useState(() => readShowSources());
   const [streamWps, setStreamWps] = useState<number>(() => readStreamWps());
@@ -438,29 +435,6 @@ export const SettingsTab = () => {
               <span className="account-check-hint">
                 Show the three follow-up question chips at the end of a
                 response. When off, no follow-ups are generated or shown.
-              </span>
-            </span>
-          </label>
-        </div>
-        <div>
-          <label className="account-check-row">
-            <input
-              type="checkbox"
-              checked={trimArmedSetting}
-              onChange={(e) => {
-                setTrimArmedSetting(e.target.checked);
-                writeArmedFlag(TRIM_ARMED_KEY, e.target.checked);
-              }}
-              className="account-check-input"
-            />
-            <span className="account-check-body">
-              <span className="account-field-label account-check-label">
-                Auto-trim history
-              </span>
-              <span className="account-check-hint">
-                When a turn nears the provider's input limit, send a clamped
-                history instead of failing. On by default — turning it off
-                keeps full memory at your own risk.
               </span>
             </span>
           </label>

@@ -4,7 +4,8 @@ const API_BASE = import.meta.env.VITE_API_URL || "";
 // need a real top-level navigation (OAuth authorize) rather than fetch.
 export const getApiBase = () => API_BASE;
 
-let refreshPromise: Promise<boolean> | null = null;
+type RefreshResult = "ok" | "invalid" | "network";
+let refreshPromise: Promise<RefreshResult> | null = null;
 
 // In-memory bearer cache (never localStorage): seeded from httpOnly cookies
 // conceptually, but we keep it only for the Authorization header fallback
@@ -98,7 +99,7 @@ const shouldSendCsrf = (method?: string) => {
   return method ? !safe.includes(method.toUpperCase()) : false;
 };
 
-const refreshSession = async () => {
+const refreshSession = async (): Promise<RefreshResult> => {
   if (!refreshPromise) {
     const csrf = getCsrfToken();
     refreshPromise = fetch(`${API_BASE}/api/auth/refresh`, {
@@ -110,19 +111,25 @@ const refreshSession = async () => {
       // no body — refresh uses httpOnly cookie
       credentials: "include",
     })
-      .then(async (res) => {
+      .then(async (res): Promise<RefreshResult> => {
         if (!res.ok) {
-          clearAuthStorage();
-          return false;
+          // Only a real 401 auth rejection ends the session. 403 (CSRF),
+          // 429 and 5xx are transient and must not clear the cached user or
+          // bounce a logged-in browser to /login.
+          if (res.status === 401) {
+            clearAuthStorage();
+            return "invalid";
+          }
+          return "network";
         }
         const text = await res.text();
         const json = safeJsonParse(text);
         if (json?.data?.tokens) {
           saveAuthTokens(json.data.tokens);
         }
-        return true;
+        return "ok";
       })
-      .catch(() => false)
+      .catch(() => "network" as const)
       .finally(() => {
         refreshPromise = null;
       });
@@ -179,7 +186,15 @@ export const apiFetch = async <T>(
 
   if (response.status === 401 && !isAuthRoute) {
     const refreshed = await refreshSession();
-    if (refreshed) {
+    if (refreshed === "network") {
+      throw {
+        error: {
+          code: "NETWORK",
+          message: "Could not verify your session. Check your connection and try again.",
+        },
+      };
+    }
+    if (refreshed === "ok") {
       const retryHeaders = new Headers(init.headers || {});
       if (inMemoryAccessToken && !retryHeaders.has("Authorization")) {
         retryHeaders.set("Authorization", `Bearer ${inMemoryAccessToken}`);

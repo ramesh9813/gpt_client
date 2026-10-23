@@ -39,7 +39,6 @@ export type StreamAssistantArgs = {
   artifact?: boolean;
   webSearch?: boolean;
   think?: boolean;
-  compactHistory?: boolean;
   promptOnly?: boolean;
   // One-turn media routing (photo/video analysis cards): this provider+key
   // serves the turn while the chat model stays untouched.
@@ -70,7 +69,6 @@ export const useChatStreaming = () => {
       artifact,
       webSearch,
       think,
-      compactHistory,
       promptOnly,
       byokOverride,
     }: StreamAssistantArgs
@@ -259,7 +257,6 @@ export const useChatStreaming = () => {
             assistantMessageId: failedAssistantId,
             existingUserMessageId: failedUserId,
             ...(artifact ? { artifact: true } : {}),
-            ...(compactHistory ? { compactHistory: true } : {}),
             ...(promptOnly ? { promptOnly: true } : {}),
           }),
         });
@@ -274,6 +271,18 @@ export const useChatStreaming = () => {
           return false;
         }
         preparedAssistantId = turn.assistantMessageId;
+        // Search links found by the server before the provider firewall
+        // blocked the relay — reuse them instead of losing the citation list.
+        const seededSources = (Array.isArray(errPayload?.sources) ? errPayload.sources : [])
+          .filter(
+            (s: any): s is { title: string; url: string; image?: string } =>
+              !!s && typeof s.url === "string" && s.url.length > 0
+          )
+          .map((s: { title?: unknown; url: string; image?: unknown }) => ({
+            url: s.url,
+            title: typeof s.title === "string" && s.title ? s.title : s.url,
+            ...(typeof s.image === "string" && s.image ? { image: s.image } : {}),
+          }));
 
         // 2. Stream straight from the browser with the user's own key.
         // Tokens flow through the SAME WPS typewriter as relayed turns, so
@@ -297,6 +306,24 @@ export const useChatStreaming = () => {
           },
         });
         if (result.cancelled || isCancelled()) return true;
+
+        // Merge prepared server sources with any citations the provider
+        // returned natively; the client panel renders this list.
+        const mergedSourceMap = new Map<
+          string,
+          { title: string; url: string; image?: string }
+        >();
+        for (const source of [...seededSources, ...result.sources]) {
+          if (!mergedSourceMap.has(source.url)) mergedSourceMap.set(source.url, source);
+        }
+        const sources = [...mergedSourceMap.values()];
+        if (sources.length > 0 && !isCancelled()) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === tempAssistantId ? { ...m, sources, usedSearch: true } : m
+            )
+          );
+        }
 
         // Drain at WPS pace before persisting, same as the relayed finish.
         streamDone = true;
@@ -335,6 +362,7 @@ export const useChatStreaming = () => {
             ...(typeof result.usage?.total_tokens === "number"
               ? { tokenCount: result.usage.total_tokens }
               : {}),
+            ...(sources.length > 0 ? { sources } : {}),
             durationMs: Date.now() - startedAt,
           }),
         });
@@ -348,6 +376,7 @@ export const useChatStreaming = () => {
                     status: "COMPLETE",
                     model: `${turn.provider}:${turn.model}`,
                     durationMs: finishedAt - startedAt,
+                    ...(sources.length > 0 ? { sources, usedSearch: true } : {}),
                   }
                 : m
             )
@@ -427,7 +456,6 @@ export const useChatStreaming = () => {
         // Always explicit: an explicit OFF must beat the default-ON.
         ...(webSearch === undefined ? {} : { webSearch }),
         ...(think ? { think: true } : {}),
-        ...(compactHistory ? { compactHistory: true } : {}),
         ...(promptOnly ? { promptOnly: true } : {}),
       });
       // Auth rides the httpOnly cookie, plus the in-memory bearer as a
@@ -455,8 +483,8 @@ export const useChatStreaming = () => {
       if (response.status === 401 && !isCancelled()) {
         // Session expired while away — refresh silently and retry once, so
         // returning users never see "Missing/Invalid access token".
-        const refreshed = await refreshSessionNow().catch(() => false);
-        if (refreshed && !isCancelled()) {
+        const refreshed = await refreshSessionNow().catch(() => "network" as const);
+        if (refreshed === "ok" && !isCancelled()) {
           response = await postStream();
         }
       }
@@ -556,6 +584,11 @@ export const useChatStreaming = () => {
             }
             if (currentEvent === "error") {
               if (isCancelled()) return;
+              // Keep any links the server found before the failure so an
+              // error answer or a browser-direct retry still shows sources.
+              if (Array.isArray((parsed as any).sources)) {
+                applySourcesEvent(ctx, parsed);
+              }
               // Firewalled relay: retry the exact turn straight from the
               // browser with the user's own key before showing any error.
               if ((parsed as any).challenged === true) {

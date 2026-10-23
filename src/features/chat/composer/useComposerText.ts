@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ClipboardEvent, type ChangeEvent, type Dispatch, type KeyboardEvent, type MutableRefObject, type SetStateAction } from "react";
-import { ARMED_FLAGS_EVENT, PROMPTONLY_ARMED_KEY, TRIM_ARMED_KEY, WEBSEARCH_ARMED_KEY, readPromptOnlyArmed, readTrimArmed, readWebSearchArmed } from "../sidebarState";
+import { ARMED_FLAGS_EVENT, PROMPTONLY_ARMED_KEY, WEBSEARCH_ARMED_KEY, readPromptOnlyArmed, readWebSearchArmed } from "../sidebarState";
 
 export const useComposerArmed = () => {
   // Armed when the user picks a model from the Deep Research list.
@@ -15,17 +15,6 @@ export const useComposerArmed = () => {
       return window.localStorage.getItem("chatapp.mcq.armed") === "true";
     } catch {
       return false;
-    }
-  });
-  // Auto-trim history: sticky like quiz; clamps the server history budget
-  // on turns near the provider's input limit. ON by default (saves low-tier
-  // keys from 413s); turning it off keeps full memory at your own risk.
-  const [trimArmed, setTrimArmed] = useState(() => {
-    try {
-      const raw = window.localStorage.getItem("chatapp.trim.armed");
-      return raw === null ? true : raw === "true";
-    } catch {
-      return true;
     }
   });
   // Prompt-only mode: sticky like quiz; skips history server-side so the
@@ -63,21 +52,15 @@ export const useComposerArmed = () => {
   }, [thinkingArmed]);
   useEffect(() => {
     try {
-      window.localStorage.setItem("chatapp.trim.armed", String(trimArmed));
-    } catch {}
-  }, [trimArmed]);
-  useEffect(() => {
-    try {
       window.localStorage.setItem("chatapp.promptonly.armed", String(promptOnlyArmed));
     } catch {}
   }, [promptOnlyArmed]);
-  // Settings-tab toggles (auto-trim / prompt-only live there now, not in the
-  // '+' menu): pick up writes instantly so the estimate + next send agree.
+  // Settings-tab toggle (prompt-only lives there now, not in the '+' menu):
+  // pick up writes instantly so the estimate + next send agree.
   useEffect(() => {
     const onFlags = (e: Event) => {
       try {
         const key = (e as CustomEvent<{ key?: unknown }>).detail?.key;
-        if (typeof key !== "string" || key === TRIM_ARMED_KEY) setTrimArmed(readTrimArmed());
         if (typeof key !== "string" || key === PROMPTONLY_ARMED_KEY) setPromptOnlyArmed(readPromptOnlyArmed());
       } catch {}
     };
@@ -96,8 +79,6 @@ export const useComposerArmed = () => {
     setMcqArmed,
     thinkingArmed,
     setThinkingArmed,
-    trimArmed,
-    setTrimArmed,
     promptOnlyArmed,
     setPromptOnlyArmed,
   };

@@ -26,18 +26,23 @@ const RouteFallback = () => (
 );
 
 const RequireAuth = ({ children }: { children: JSX.Element }) => {
-  const { data, isLoading, isError } = useMe();
+  const { data, isLoading, error } = useMe();
   const location = useLocation();
   // Step 1: instant shell from local cache while /api/me validates in bg.
   const [cachedUser] = useState(() => getCachedMeForShell());
+  const unauthorized =
+    (error as { error?: { code?: string } } | null | undefined)?.error?.code ===
+    "UNAUTHORIZED";
 
   if (data?.data?.user) {
     return children;
   }
 
   // Background validation: paint the cached shell immediately, don't block
-  // first paint on the network. A hard 401 (isError) still kicks to login.
-  if (isLoading && cachedUser && !isError) {
+  // first paint on the network. Cold boots, proxy 5xx and offline reloads
+  // must not bounce an already logged-in browser to /login. Only a confirmed
+  // auth rejection ends the cached session.
+  if (cachedUser && !unauthorized) {
     return children;
   }
 

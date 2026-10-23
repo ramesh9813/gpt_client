@@ -4,8 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { apiFetch, ApiResponse } from "../../../lib/api";
 import { getActiveByok, stripProviderPrefix } from "../../../lib/byok";
-import { readPromptOnlyArmed, readTrimArmed, readWebSearchArmed } from "../sidebarState";
-import { shouldCompactHistory, threadChars } from "../../../lib/tokens";
+import { readPromptOnlyArmed, readWebSearchArmed } from "../sidebarState";
 import { getMediaTurnOverride } from "../../../lib/mediaModels";
 
 // Thinking mode mirrors webSearch: sticky localStorage flag honored by
@@ -61,18 +60,6 @@ export const useChatMessages = ({
     () => z.string().min(1, "Message is required"),
     []
   );
-
-  // Auto-trim: when armed and the turn is near the provider's input limit,
-  // ask the server for the emergency history budget. Same helper the
-  // composer estimate uses, so the badge and the flag always agree.
-  const compactFor = (history: ChatMessage[], inputChars: number, filesChars = 0) =>
-    shouldCompactHistory({
-      trimArmed: readTrimArmed(),
-      historyChars: threadChars(history),
-      inputChars,
-      filesChars,
-      providerId: getActiveByok()?.provider ?? null,
-    });
 
   const { data: messageData, isPending: messagesPending } = useQuery({
     queryKey: ["messages", conversationId],
@@ -153,11 +140,6 @@ export const useChatMessages = ({
       : model;
     // Web search defaults OFF; only an explicit arm (model-card toggle) wins.
     const searchOn = opts?.webSearch ?? readWebSearchArmed();
-    const compact = compactFor(
-      messages,
-      trimmed.length,
-      hasFiles ? (opts!.files as any[]).reduce((n, f: any) => n + (f?.content?.length ?? 0), 0) : 0
-    );
 
     // Photo/video analysis cards: this turn alone rides the card's
     // provider+model; the chat model stays untouched.
@@ -214,7 +196,6 @@ export const useChatMessages = ({
         ...(opts?.artifact ? { artifact: true as const } : {}),
         ...(opts?.think ? { think: true as const } : {}),
         webSearch: searchOn,
-        ...(compact ? { compactHistory: true as const } : {}),
         ...((opts?.promptOnly ?? readPromptOnlyArmed()) ? { promptOnly: true as const } : {}),
         ...(mediaOverride ? { byokOverride: mediaOverride } : {}),
       });
@@ -346,7 +327,6 @@ export const useChatMessages = ({
         selectedModel: editModel,
         webSearch: readWebSearchArmed(),
         think: readThinkingArmed(),
-        ...(compactFor(messages, text.length) ? { compactHistory: true as const } : {}),
         ...(readPromptOnlyArmed() ? { promptOnly: true as const } : {}),
         ...(getMediaTurnOverride({ images })
           ? { byokOverride: getMediaTurnOverride({ images }) as { provider: string; model: string } }
@@ -465,9 +445,6 @@ export const useChatMessages = ({
         selectedModel: plainModel,
         webSearch: readWebSearchArmed(),
         think: readThinkingArmed(),
-        ...(compactFor(messagesRef.current, userMessage.content.length)
-          ? { compactHistory: true as const }
-          : {}),
         ...(readPromptOnlyArmed() ? { promptOnly: true as const } : {}),
         ...(getMediaTurnOverride({
           images: userMessage.images,
@@ -582,9 +559,6 @@ export const useChatMessages = ({
         selectedModel: fallbackModel,
         webSearch: readWebSearchArmed(),
         think: readThinkingArmed(),
-        ...(compactFor(messagesRef.current, userMessage.content.length)
-          ? { compactHistory: true as const }
-          : {}),
         ...(readPromptOnlyArmed() ? { promptOnly: true as const } : {}),
         ...(getMediaTurnOverride({
           images: userMessage.images,

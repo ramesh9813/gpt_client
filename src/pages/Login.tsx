@@ -3,11 +3,13 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "../components/Button";
 import { Input } from "../components/Input";
-import { apiFetch } from "../lib/api";
+import { apiFetch, type ApiResponse } from "../lib/api";
+import { writeCachedMeUser } from "../features/chat/chatCache";
+import { getCachedMeForShell, type User } from "../lib/hooks";
 import { isFirebaseConfigured, signInWithGoogle } from "../lib/firebase";
 
 const schema = z.object({
@@ -28,16 +30,30 @@ const Login = () => {
     handleSubmit,
     formState: { isSubmitting }
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  const cachedUser = getCachedMeForShell();
+
+  // Already signed in: never show the login form again. The session hint is
+  // cleared only by an explicit logout, so reopening the browser goes
+  // straight back into the app.
+  if (cachedUser) {
+    return <Navigate to="/" replace />;
+  }
 
   const onSubmit = async (values: FormValues) => {
     setError(null);
     try {
-      await apiFetch("/api/auth/login", {
+      const res = await apiFetch<ApiResponse<{ user: User }>>("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values)
       });
-      await queryClient.invalidateQueries({ queryKey: ["me"] });
+      const user = res.data?.user;
+      if (user) {
+        // Prime both caches now so the next browser open paints the shell
+        // immediately, without waiting for a /api/me round-trip.
+        writeCachedMeUser(user);
+        queryClient.setQueryData(["me"], res);
+      }
       // OAuth handshake lands here via /login?next=%2Faccount%3Fconnector%3Dcanva
       // (server redirect can't carry react-router state, so honor the query).
       const params = new URLSearchParams(location.search);
@@ -57,11 +73,15 @@ const Login = () => {
     try {
       const user = await signInWithGoogle();
       const token = await user.getIdToken();
-      await apiFetch("/api/auth/google", {
+      const res = await apiFetch<ApiResponse<{ user: User }>>("/api/auth/google", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` }
       });
-      await queryClient.invalidateQueries({ queryKey: ["me"] });
+      const appUser = res.data?.user;
+      if (appUser) {
+        writeCachedMeUser(appUser);
+        queryClient.setQueryData(["me"], res);
+      }
       const params = new URLSearchParams(location.search);
       const next = params.get("next");
       const redirect = next && next.startsWith("/") && !next.startsWith("//")

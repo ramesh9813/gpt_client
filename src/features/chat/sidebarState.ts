@@ -87,11 +87,6 @@ export const readWebSearchArmed = (): boolean => {
   }
 };
 
-// Auto-trim history: ON by default. When a turn is near the provider's
-// input limit, the client sends compactHistory so the server clamps to the
-// emergency budget instead of 413ing. Persists like the other armed modes.
-export const TRIM_ARMED_KEY = "chatapp.trim.armed";
-
 // Prompt-only stays OFF by default — only an explicit tap arms it. When
 // armed, turns send just the current input (+ custom prompt), no history.
 export const PROMPTONLY_ARMED_KEY = "chatapp.promptonly.armed";
@@ -117,16 +112,6 @@ export const readPromptOnlyArmed = (): boolean => {
     return window.localStorage.getItem(PROMPTONLY_ARMED_KEY) === "true";
   } catch {
     return false;
-  }
-};
-
-export const readTrimArmed = (): boolean => {
-  try {
-    if (typeof window === "undefined" || !window.localStorage) return true;
-    const raw = window.localStorage.getItem(TRIM_ARMED_KEY);
-    return raw === null ? true : raw === "true";
-  } catch {
-    return true;
   }
 };
 

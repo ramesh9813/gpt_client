@@ -107,7 +107,6 @@ const Composer = ({
     setMcqArmed,
     thinkingArmed,
     setThinkingArmed,
-    trimArmed,
     promptOnlyArmed,
   } = useComposerArmed();
   // Appearance setting: the up/down jump button above the input shows
@@ -273,9 +272,9 @@ const Composer = ({
   };
 
   // Live token estimate: capped history + current input + file payload +
-  // system headroom, at ~4 chars/token. Warns near the provider cap and
-  // flags when auto-trim will clamp history on send. Prompt-only mode sends
-  // no history, so the estimate drops to just this turn.
+  // system headroom, at ~4 chars/token. Warns near the provider cap.
+  // Prompt-only mode sends no history, so the estimate drops to just this
+  // turn.
   const filesChars = files.reduce((n, f) => n + (f.content?.length ?? 0), 0);
   const estimateInputChars = value.length;
   const estimateHistoryChars = promptOnlyArmed ? 0 : historyChars;
@@ -297,8 +296,7 @@ const Composer = ({
     estimateLimit !== undefined
       ? Math.max(0, estimateLimit - estimateCount)
       : null;
-  const tokenLineState =
-    estimateNear && !trimArmed ? "composer-token-line--over" : "";
+  const tokenLineState = estimateNear ? "composer-token-line--over" : "";
   const tokenLineTitle =
     estimateLimit !== undefined
       ? `Estimated request size vs this provider's ${formatTokenCount(estimateLimit)}-token input limit`
@@ -310,8 +308,7 @@ const Composer = ({
         <span> • {formatTokenCount(estimateLeft)} left</span>
       )}
       {promptOnlyArmed && <span> • prompt only</span>}
-      {estimateNear && trimArmed && !promptOnlyArmed && <span> • auto-trim on</span>}
-      {estimateNear && !trimArmed && !promptOnlyArmed && <span> • over limit!</span>}
+      {estimateNear && !promptOnlyArmed && <span> • over limit!</span>}
     </>
   );
 

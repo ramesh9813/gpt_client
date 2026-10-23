@@ -15,10 +15,13 @@ export type DirectUsage = {
   total_tokens?: number;
 };
 
+export type DirectSource = { title: string; url: string; image?: string };
+
 export type DirectResult = {
   content: string;
   reasoning: string;
   usage: DirectUsage | null;
+  sources: DirectSource[];
   cancelled: boolean;
 };
 
@@ -92,6 +95,7 @@ export const streamDirectCompletion = async (args: {
   let content = "";
   let reasoning = "";
   let usage: DirectUsage | null = null;
+  const sources = new Map<string, DirectSource>();
 
   const handleData = (data: string): void => {
     const parsed = JSON.parse(data);
@@ -114,6 +118,19 @@ export const streamDirectCompletion = async (args: {
     if (typeof delta === "string" && delta.length > 0) {
       content += delta;
       args.onToken(delta);
+    }
+    // Native web-search citations (OpenRouter/OpenAI-compatible shapes).
+    const anns = parsed?.choices?.[0]?.delta?.annotations;
+    if (Array.isArray(anns)) {
+      for (const a of anns) {
+        const c = (a as { url_citation?: { url?: unknown; title?: unknown } })?.url_citation;
+        if (c && typeof c.url === "string" && c.url) {
+          sources.set(c.url, {
+            url: c.url,
+            title: typeof c.title === "string" && c.title ? c.title : c.url,
+          });
+        }
+      }
     }
     const r =
       parsed?.choices?.[0]?.delta?.reasoning ??
@@ -164,11 +181,11 @@ export const streamDirectCompletion = async (args: {
       const raced = await Promise.race([reader.read(), readAborted]);
       if (raced === "aborted" || args.isCancelled()) {
         try { await reader.cancel(); } catch { /* socket already dead */ }
-        return { content, reasoning, usage, cancelled: true };
+        return { content, reasoning, usage, sources: [...sources.values()], cancelled: true };
       }
       read = raced;
     } catch (err) {
-      if (args.isCancelled()) return { content, reasoning, usage, cancelled: true };
+      if (args.isCancelled()) return { content, reasoning, usage, sources: [...sources.values()], cancelled: true };
       throw asDirectStreamError(
         (err as Error)?.message || "Direct streaming failed",
         content
@@ -176,7 +193,7 @@ export const streamDirectCompletion = async (args: {
     }
     const { value, done } = read;
     if (done) break;
-    if (args.isCancelled()) return { content, reasoning, usage, cancelled: true };
+    if (args.isCancelled()) return { content, reasoning, usage, sources: [...sources.values()], cancelled: true };
     buffer += decoder.decode(value, { stream: true });
     const parts = buffer.split("\n");
     buffer = parts.pop() || "";
@@ -205,6 +222,6 @@ export const streamDirectCompletion = async (args: {
       }
     }
   }
-  if (args.isCancelled()) return { content, reasoning, usage, cancelled: true };
-  return { content, reasoning, usage, cancelled: false };
+  if (args.isCancelled()) return { content, reasoning, usage, sources: [...sources.values()], cancelled: true };
+  return { content, reasoning, usage, sources: [...sources.values()], cancelled: false };
 };

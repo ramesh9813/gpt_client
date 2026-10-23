@@ -104,8 +104,9 @@ export const AssistantMessage = memo(
     const el = stageRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [stageKey]);
-  // Sources panel: hidden when the answer body already ends with its own
-  // Sources/References list — one list only, never body + panel twice.
+  // Sources panel: hidden only when the answer body already contains every
+  // structured source URL — one list only, never body + panel twice. A
+  // title-only Sources/References heading does not hide the panel.
   // The "Show search sources" setting hides the panel and live stage lines
   // everywhere; toggling in Settings re-renders all messages instantly.
   const [showSources, setShowSources] = useState(() => readShowSources());
@@ -117,9 +118,12 @@ export const AssistantMessage = memo(
     window.addEventListener(ARMED_FLAGS_EVENT, onFlags);
     return () => window.removeEventListener(ARMED_FLAGS_EVENT, onFlags);
   }, []);
-  const bodyHasSources = /(?:^|\n)\s*(?:#{1,4}\s*)?(?:\*\*|__)?(sources?|references?)(?:\s*:?\s*(?:\*\*|__)?)*\s*(?:\n|$)/i.test(answerText);
+  const bodyHasSourceLinks =
+    !!message.sources &&
+    message.sources.length > 0 &&
+    message.sources.every((s) => answerText.includes(s.url));
   const showSourcesPanel =
-    !!message.sources && message.sources.length > 0 && message.status === "COMPLETE" && !bodyHasSources && showSources;
+    !!message.sources && message.sources.length > 0 && !bodyHasSourceLinks && showSources;
   // (No collapsible — links stay in the open.)
   // Transient system notice banner (e.g. "search unavailable"): dismissible.
   const [noticeDismissed, setNoticeDismissed] = useState(false);
@@ -252,15 +256,15 @@ export const AssistantMessage = memo(
             {thinkingText}
           </div>
         ) : null}
+        {showSources && message.status === "STREAMING" && !answerText && !message.quiz && message.stage && message.stage.length > 0 ? (
+          <div ref={stageRef} className="msg-stage" aria-live="polite">
+            {message.stage.map((s, i) => (
+              <div key={i} className="msg-stage-line">{s}</div>
+            ))}
+          </div>
+        ) : null}
         {message.status === "STREAMING" && !answerText && !message.quiz && !showGenStatus ? (
           <>
-            {showSources && message.stage && message.stage.length > 0 ? (
-              <div ref={stageRef} className="msg-stage" aria-live="polite">
-                {message.stage.map((s, i) => (
-                  <div key={i} className="msg-stage-line">{s}</div>
-                ))}
-              </div>
-            ) : null}
             <div className="msg-typing">
               <div className="msg-typing-dot msg-typing-dot--1"></div>
               <div className="msg-typing-dot msg-typing-dot--2"></div>

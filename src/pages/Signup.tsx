@@ -3,11 +3,13 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "../components/Button";
 import { Input } from "../components/Input";
-import { apiFetch } from "../lib/api";
+import { apiFetch, type ApiResponse } from "../lib/api";
+import { writeCachedMeUser } from "../features/chat/chatCache";
+import { getCachedMeForShell, type User } from "../lib/hooks";
 
 const schema = z.object({
   name: z.preprocess(
@@ -33,16 +35,28 @@ const Signup = () => {
     handleSubmit,
     formState: { isSubmitting }
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  const cachedUser = getCachedMeForShell();
+
+  // Already signed in: keep the user in the app until explicit logout.
+  if (cachedUser) {
+    return <Navigate to="/" replace />;
+  }
 
   const onSubmit = async (values: FormValues) => {
     setError(null);
     try {
-      await apiFetch("/api/auth/signup", {
+      const res = await apiFetch<ApiResponse<{ user: User }>>("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values)
       });
-      await queryClient.invalidateQueries({ queryKey: ["me"] });
+      const user = res.data?.user;
+      if (user) {
+        // Prime both caches now so the next browser open paints the shell
+        // immediately, without waiting for a /api/me round-trip.
+        writeCachedMeUser(user);
+        queryClient.setQueryData(["me"], res);
+      }
       navigate("/", { replace: true });
     } catch (err: any) {
       setError(err?.error?.message || err?.message || "Signup failed");

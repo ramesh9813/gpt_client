@@ -3,11 +3,10 @@
 
 export const CHARS_PER_TOKEN = 4;
 
-// History budgets, mirrored from the server so the live estimate and the
-// auto-trim trigger match what /api/chat/stream will actually send.
+// History budgets, mirrored from the server so the live estimate matches
+// what /api/chat/stream will actually send.
 export const HISTORY_BUDGET_CHARS = 24_000;
 export const HISTORY_TIGHT_BUDGET_CHARS = 8_000;
-export const HISTORY_COMPACT_BUDGET_CHARS = 4_000;
 
 // Providers with tight per-minute input caps get the tight budget server-side.
 export const LOW_BUDGET_PROVIDERS: readonly string[] = ["groq"];
@@ -39,14 +38,6 @@ export const formatTokenCount = (tokens: number): string => {
   const k = tokens / 1000;
   return `${k >= 100 ? Math.round(k) : k.toFixed(1).replace(/\.0$/, "")}k`;
 };
-
-export const threadChars = (
-  messages: Array<{ content?: unknown }>
-): number =>
-  messages.reduce(
-    (n, m) => n + (typeof m?.content === "string" ? m.content.length : 0),
-    0
-  );
 
 // Full-turn size the estimate is based on: capped history + fresh input +
 // file payload + system/tuning/search headroom (~1.5k chars).
@@ -86,13 +77,3 @@ export const isNearLimit = (args: {
   }
   return args.historyChars > Math.floor(historyBudgetFor(args.providerId) * 0.9);
 };
-
-// Auto-trim engages only when armed AND near the limit — otherwise the full
-// budget (and full memory) is kept.
-export const shouldCompactHistory = (args: {
-  trimArmed: boolean;
-  historyChars: number;
-  inputChars?: number;
-  filesChars?: number;
-  providerId?: string | null;
-}): boolean => args.trimArmed && isNearLimit(args);
