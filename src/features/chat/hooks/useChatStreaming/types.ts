@@ -7,7 +7,7 @@ export type StreamAssistantArgs = {
   conversationId: string;
   userMessage?: string;
   images?: string[];
-  files?: Array<{ name: string; mime: string; size: number; content: string }>;
+  files?: Array<{ name: string; mime: string; size: number; content: string; dataUrl?: string; attachmentId?: string }>;
   existingUserMessageId?: string;
   selectedModel?: string;
   research?: boolean;

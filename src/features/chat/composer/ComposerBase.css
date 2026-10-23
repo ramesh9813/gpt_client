@@ -295,6 +295,8 @@
   border: 1px solid var(--border); background: var(--panel);
   border-radius: 9999px; padding: 0.25rem 0.5rem; font-size: 11px; color: var(--text);
 }
+a.msg-file-chip { text-decoration: none; cursor: pointer; }
+a.msg-file-chip:hover { border-color: var(--muted); }
 .msg-file-chip-icon { font-size: 0.75rem; color: var(--muted); }
 .msg-file-chip-name { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .msg-file-chip-size { color: var(--muted); font-size: 10px; }

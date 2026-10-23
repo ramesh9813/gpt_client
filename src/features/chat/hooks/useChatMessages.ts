@@ -127,7 +127,7 @@ export const useChatMessages = ({
     typeof (err as { message?: unknown })?.message === "string" &&
     ((err as { message: string }).message.includes("Conversation not found"));
 
-  const runSend = async (cid: string, text: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean; promptOnly?: boolean; files?: Array<{ name: string; mime: string; size: number; content: string }> }) => {
+  const runSend = async (cid: string, text: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean; promptOnly?: boolean; files?: Array<{ name: string; mime: string; size: number; content: string; dataUrl?: string; attachmentId?: string }> }) => {
     const trimmed = text.trim();
     const hasImages = !!images && images.length > 0;
     const hasFiles = !!opts?.files && opts.files.length > 0;
@@ -173,7 +173,7 @@ export const useChatMessages = ({
         role: "USER",
         content: trimmed,
         ...(hasImages ? { images: [...images!] } : {}),
-        ...(hasFiles ? { files: (opts!.files as any).map((f: any) => ({ name: f.name, mime: f.mime, size: f.size })) } : {}),
+        ...(hasFiles ? { files: (opts!.files as any).map((f: any) => ({ name: f.name, mime: f.mime, size: f.size, ...(f.attachmentId ? { attachmentId: f.attachmentId } : {}) })) } : {}),
       } as any,
       {
         id: tempAssistantId,
@@ -244,7 +244,7 @@ export const useChatMessages = ({
     }
   };
 
-  const sendMessage = async (text: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean; promptOnly?: boolean; files?: Array<{ name: string; mime: string; size: number; content: string }> }) => {
+  const sendMessage = async (text: string, images?: string[], opts?: { research?: boolean; artifact?: boolean; webSearch?: boolean; think?: boolean; promptOnly?: boolean; files?: Array<{ name: string; mime: string; size: number; content: string; dataUrl?: string; attachmentId?: string }> }) => {
     if (!conversationId) return;
     try {
       await runSend(conversationId, text, images, opts);

@@ -17,6 +17,8 @@ export type FileAttachment = {
   // Base64 audio payload for the model (audio only): sent to the selected
   // provider directly — no on-device transcription on the file path.
   dataUrl?: string;
+  // Neon Object Storage attachment id, set after the raw bytes upload.
+  attachmentId?: string;
 };
 
 const AUDIO_EXTS = new Set(["mp3","wav","m4a","ogg","oga","weba","flac","aac","wma","opus","mka","aiff","aif","amr","awb","mid","midi"]);
