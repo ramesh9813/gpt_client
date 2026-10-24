@@ -4,7 +4,13 @@ import { getAttachmentUrl } from "../../../lib/fileStorage";
 import { getMediaUrl } from "../../../lib/mediaStore";
 
 type FileMeta = { name: string; mime?: string; size?: number; attachmentId?: string };
-type Props = { files?: FileMeta[] | null; conversationId?: string };
+type Props = {
+  files?: FileMeta[] | null;
+  conversationId?: string;
+  // Opens the side-panel viewer (text/code highlighted, PDF framed, other
+  // types as a download card). Audio/video keep their inline players.
+  onOpen?: (file: FileMeta) => void;
+};
 
 const useRemoteUrl = (attachmentId?: string, download = false) => {
   const [url, setUrl] = useState<string | null>(null);
@@ -34,8 +40,29 @@ const ChipBody = ({ file }: { file: FileMeta }) => (
   </>
 );
 
-const Chip = ({ file, index }: { file: FileMeta; index: number }) => {
-  const url = useRemoteUrl(file.attachmentId, true);
+const Chip = ({
+  file,
+  index,
+  onOpen
+}: { file: FileMeta; index: number; onOpen?: (file: FileMeta) => void }) => {
+  // Download link only when the viewer won't handle the click.
+  const url = useRemoteUrl(onOpen ? undefined : file.attachmentId, true);
+  // Clickable chip first: opens the side-panel viewer. Without a viewer
+  // handler (or stored bytes), the chip stays a download link.
+  if (onOpen && file.attachmentId) {
+    return (
+      <button
+        key={`${file.name}-${index}`}
+        type="button"
+        className="msg-file-chip msg-file-chip--open"
+        onClick={() => onOpen(file)}
+        title={`Open ${file.name}`}
+      >
+        <ChipBody file={file} />
+        <i className="bi bi-box-arrow-up-right msg-file-chip-open-icon" aria-hidden="true" />
+      </button>
+    );
+  }
   if (url) {
     return (
       <a
@@ -91,7 +118,7 @@ const MediaFile = ({ conversationId, file, index }: { conversationId: string; fi
   );
 };
 
-export const FileChips = ({ files, conversationId }: Props) => {
+export const FileChips = ({ files, conversationId, onOpen }: Props) => {
   if (!files || files.length === 0) return null;
   return (
     <div className="msg-file-chips" role="group" aria-label={`Attached files: ${files.length}`}>
@@ -99,7 +126,7 @@ export const FileChips = ({ files, conversationId }: Props) => {
         conversationId && (isAudioFile(f.name, f.mime || "") || isVideoFile(f.name, f.mime || "")) ? (
           <MediaFile key={`${f.name}-${i}`} conversationId={conversationId} file={f} index={i} />
         ) : (
-          <Chip key={`${f.name}-${i}`} file={f} index={i} />
+          <Chip key={`${f.name}-${i}`} file={f} index={i} onOpen={onOpen} />
         )
       )}
     </div>

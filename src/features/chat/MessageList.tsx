@@ -32,6 +32,8 @@ type MessageListProps = {
   artifacts?: ArtifactBlock[];
   onScrollDirection?: (direction: "up" | "down") => void;
   conversationKey?: string;
+  // Opens a sent file chip in the side-panel viewer.
+  onOpenFile?: (file: { name: string; mime?: string; size?: number; attachmentId?: string }) => void;
   // True while the thread's first page loads: show a skeleton so the shell
   // (sidebar + composer) stays interactive instead of flashing empty state.
   loading?: boolean;
@@ -55,6 +57,7 @@ const MessageList = ({
   artifacts,
   onScrollDirection,
   conversationKey,
+  onOpenFile,
   loading,
 }: MessageListProps) => {
   const { listRef, jumpToBottom, scrollToTop } =
@@ -145,6 +148,7 @@ const MessageList = ({
                 onEditSubmit={onEditSubmit}
                 editDisabled={editDisabled}
                 onResend={onResend}
+                onOpenFile={onOpenFile}
               />
             );
           }

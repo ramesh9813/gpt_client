@@ -24,6 +24,8 @@ type UserMessageProps = {
   onEditSubmit?: (id: string, value: string, images?: string[]) => Promise<void>;
   editDisabled?: boolean;
   onResend?: (messageId: string) => void;
+  // Opens a sent file in the side-panel viewer.
+  onOpenFile?: (file: { name: string; mime?: string; size?: number; attachmentId?: string }) => void;
 };
 
 export const UserMessage = memo(
@@ -44,6 +46,7 @@ export const UserMessage = memo(
     onEditSubmit,
   editDisabled,
   onResend,
+  onOpenFile,
 }: UserMessageProps) => {
   // Double fast click / double tap on the bubble copies it immediately.
   const { copied, onDoubleClick, onTouchStart, onTouchEnd } = useDoubleCopy(
@@ -128,7 +131,7 @@ export const UserMessage = memo(
             </div>
           ) : (
             <>
-              <FileChips files={(message as any).files} conversationId={conversationId} />
+              <FileChips files={(message as any).files} conversationId={conversationId} onOpen={onOpenFile} />
               <MessageImages images={message.images} />
               {message.content.trim().length > 0 ? (
                 <MarkdownContent content={message.content} />

@@ -126,6 +126,8 @@ const Chat = () => {
     canvasClosing,
     openCanvas,
     closeCanvas,
+    fileView,
+    openFile,
   } = useChatCanvas(messages);
 
   // Artifact viewer: Chat-owned state, mirrors canvasData derivation.
@@ -297,6 +299,7 @@ const Chat = () => {
               hasCanvasCode={showCanvas ? canvasData.hasCodeMap : undefined}
               artifacts={artifactData.blocks}
               onScrollDirection={handleScrollDirection}
+              onOpenFile={openFile}
             />
             <Composer
               modelsLoading={modelsLoading}
@@ -329,6 +332,7 @@ const Chat = () => {
               blocks={canvasData.blocks}
               closing={canvasClosing}
               onClose={closeCanvas}
+              fileView={fileView}
             />
           ) : null}
         </div>

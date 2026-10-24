@@ -11,17 +11,20 @@ import { buildPreviewDoc, isPreviewableBlock, isRunnableBlock } from "./canvas/c
 import { CanvasHeader } from "./canvas/CanvasHeader";
 import { BlockNavigator } from "./canvas/BlockNavigator";
 import { RunnerPanel, useCodeRunner } from "./canvas/RunnerPanel";
+import { FileViewer, type FileViewData } from "./canvas/FileViewer";
 
 export type { CanvasBlock };
 
 const CanvasPanel = ({
   blocks,
   closing,
-  onClose
+  onClose,
+  fileView
 }: {
   blocks: CanvasBlock[];
   closing?: boolean;
   onClose?: () => void;
+  fileView?: FileViewData | null;
 }) => {
   const [activeId, setActiveId] = useState<string | null>(
     blocks.length ? blocks[blocks.length - 1].id : null
@@ -116,7 +119,7 @@ const CanvasPanel = ({
     void runBlock(activeBlock);
   };
 
-  if (!blocks.length) {
+  if (!blocks.length && !fileView) {
     return null;
   }
 
@@ -131,8 +134,12 @@ const CanvasPanel = ({
         onMouseDown={() => setIsResizing(true)}
         title="Drag to resize canvas"
       />
-      <CanvasHeader blockCount={blocks.length} onClose={onClose} />
-      <BlockNavigator
+      {fileView ? (
+        <FileViewer file={fileView} onClose={onClose} />
+      ) : (
+        <>
+          <CanvasHeader blockCount={blocks.length} onClose={onClose} />
+          <BlockNavigator
         blocks={blocks}
         activeId={activeBlock?.id ?? activeId}
         activeIndex={activeIndex}
@@ -187,7 +194,9 @@ const CanvasPanel = ({
             onRun={handleRun}
           />
         ) : null}
-      </div>
+        </div>
+        </>
+      )}
     </aside>
   );
 };

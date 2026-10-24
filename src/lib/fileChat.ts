@@ -52,6 +52,45 @@ const extOf = (name: string): string => {
   return base.slice(dot + 1).toLowerCase();
 };
 
+// Viewer routing (shared by the chat chips and the side-panel file viewer):
+// text/code renders highlighted in the panel, PDFs render in the panel's
+// frame, audio/video already play inline in the chat.
+export const isTextFile = (name: string, mime: string): boolean => {
+  if (mime.startsWith("text/")) return true;
+  if (mime === "application/json" || mime === "application/xml" || mime === "application/javascript" || mime === "application/x-sh") return true;
+  const ext = extOf(name);
+  if (TEXT_EXTS.has(ext)) return true;
+  if (name.toLowerCase() === "dockerfile" || name.toLowerCase() === "makefile") return true;
+  return false;
+};
+
+export const isPdfFile = (name: string, mime: string): boolean =>
+  mime === "application/pdf" || extOf(name) === "pdf";
+
+// Prism language id for a code/text file ("" = no highlighting, plain text).
+const EXT_LANG: Record<string, string> = {
+  js: "javascript", jsx: "javascript", mjs: "javascript", cjs: "javascript",
+  ts: "typescript", tsx: "typescript",
+  py: "python", pyw: "python", rb: "ruby", php: "php", java: "java",
+  c: "c", h: "c", cpp: "cpp", cc: "cpp", hpp: "cpp", cs: "csharp",
+  go: "go", rs: "rust", swift: "swift", kt: "kotlin", scala: "scala",
+  sh: "bash", bash: "bash", zsh: "bash",
+  html: "markup", htm: "markup", xml: "markup", vue: "markup", svelte: "markup",
+  css: "css", scss: "scss", less: "less",
+  json: "json", yml: "yaml", yaml: "yaml", toml: "toml", ini: "ini",
+  sql: "sql", graphql: "graphql", gql: "graphql", md: "markdown", markdown: "markdown",
+  dockerfile: "docker", makefile: "makefile",
+};
+
+export const codeLanguageOf = (name: string): string => {
+  const ext = extOf(name);
+  if (ext && EXT_LANG[ext]) return EXT_LANG[ext];
+  const base = name.split("/").pop()?.toLowerCase() ?? "";
+  if (base === "dockerfile") return "docker";
+  if (base === "makefile") return "makefile";
+  return "";
+};
+
 const isTextLike = (file: File): boolean => {
   if (file.type.startsWith("text/")) return true;
   if (file.type === "application/json" || file.type === "application/xml" || file.type === "application/javascript" || file.type === "application/x-sh") return true;

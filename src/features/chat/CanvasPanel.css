@@ -198,3 +198,46 @@
   font-size: 12px;
   line-height: 1.625;
 }
+
+/* ---- File viewer (chat chips open it: text/code highlighted, PDF framed) ---- */
+.file-viewer { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+.file-viewer-head {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.625rem 0.875rem; border-bottom: 1px solid var(--border); min-width: 0;
+}
+.file-viewer-head-icon { color: var(--muted); font-size: 0.875rem; }
+.file-viewer-head-name {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 12.5px; font-weight: 600;
+}
+.file-viewer-head-size { color: var(--muted); font-size: 10.5px; white-space: nowrap; }
+.file-viewer-close {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border: none; border-radius: 8px;
+  background: transparent; color: var(--muted); cursor: pointer; font-size: 0.8rem;
+}
+.file-viewer-close:hover { background: var(--panel); color: var(--text); }
+.file-viewer-body { flex: 1; min-height: 0; overflow: auto; }
+.file-viewer-pdf { width: 100%; height: 100%; border: none; background: var(--panel); }
+.file-viewer-plain {
+  margin: 0; padding: 0.875rem; white-space: pre-wrap; word-break: break-word;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12.5px; line-height: 1.6;
+}
+.file-viewer-msg {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 1rem 0.875rem; color: var(--muted); font-size: 12.5px;
+}
+.file-viewer-meta {
+  display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+  padding: 3rem 1.5rem; text-align: center;
+}
+.file-viewer-meta-icon { font-size: 2.5rem; color: var(--muted); }
+.file-viewer-meta-name { font-size: 13px; font-weight: 600; word-break: break-all; }
+.file-viewer-meta-sub { color: var(--muted); font-size: 11.5px; }
+.file-viewer-download {
+  display: inline-flex; align-items: center; gap: 0.5rem; margin-top: 0.75rem;
+  padding: 0.5rem 1rem; border: 1px solid var(--border); border-radius: 10px;
+  color: var(--text); text-decoration: none; font-size: 12.5px;
+}
+.file-viewer-download:hover { border-color: var(--muted); }

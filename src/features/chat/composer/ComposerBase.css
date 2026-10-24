@@ -306,3 +306,7 @@ a.msg-file-chip:hover { border-color: var(--muted); }
 .msg-media-audio { width: 100%; min-width: 220px; }
 .msg-media-video { width: 100%; max-width: 340px; max-height: 260px; border-radius: 0.75rem; background: #000; }
 
+/* Clickable file chip: opens the side-panel viewer (text/code/pdf/other). */
+button.msg-file-chip { cursor: pointer; font: inherit; }
+button.msg-file-chip:hover { border-color: var(--muted); }
+.msg-file-chip-open-icon { font-size: 0.625rem; color: var(--muted); margin-left: 0.125rem; }
