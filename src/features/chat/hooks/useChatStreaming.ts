@@ -491,17 +491,20 @@ export const useChatStreaming = () => {
         }
       }
       if (response.status === 403 && !isCancelled()) {
-        // CSRF drift on a long-open tab (token rotated by a refresh in
-        // another tab, privacy-capped cookie). The 403 body carries a fresh
-        // token — adopt it and retry once. An idle page must never dead-end
-        // the next chat turn on "Invalid CSRF token".
+        // CSRF drift on a long-open tab. The token lookup is cookie-first, so
+        // re-reading after the failure usually heals the pair; a dropped
+        // cookie gets a fresh token in the 403 body. Retry once either way —
+        // the failure happened in middleware, before any message row was
+        // created, so the retry cannot duplicate the turn. An idle page must
+        // never dead-end the next chat turn on "Invalid CSRF token".
         const csrfText = await response.text();
-        if (recoverCsrfFromText(csrfText)) {
-          response = await postStream();
-        } else {
+        recoverCsrfFromText(csrfText);
+        response = await postStream();
+        if (response.status === 403 && !isCancelled()) {
+          const retryText = await response.text();
           let message = "Invalid CSRF token";
           try {
-            const parsed = JSON.parse(csrfText);
+            const parsed = JSON.parse(retryText);
             message = parsed?.error?.message || parsed?.message || message;
           } catch {
             // keep default

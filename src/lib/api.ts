@@ -121,34 +121,49 @@ const shouldSendCsrf = (method?: string) => {
 
 const refreshSession = async (): Promise<RefreshResult> => {
   if (!refreshPromise) {
-    const csrf = getCsrfToken();
-    refreshPromise = fetch(`${API_BASE}/api/auth/refresh`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(csrf ? { "x-csrf-token": csrf } : {}),
-      },
-      // no body — refresh uses httpOnly cookie
-      credentials: "include",
-    })
-      .then(async (res): Promise<RefreshResult> => {
-        if (!res.ok) {
-          // Only a real 401 auth rejection ends the session. 403 (CSRF),
-          // 429 and 5xx are transient and must not clear the cached user or
-          // bounce a logged-in browser to /login.
-          if (res.status === 401) {
-            clearAuthStorage();
-            return "invalid";
-          }
-          return "network";
+    const postRefresh = (csrf: string) =>
+      fetch(`${API_BASE}/api/auth/refresh`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrf ? { "x-csrf-token": csrf } : {}),
+        },
+        // no body — refresh uses httpOnly cookie
+        credentials: "include",
+      });
+    refreshPromise = (async (): Promise<RefreshResult> => {
+      let res = await postRefresh(getCsrfToken());
+      // CSRF drift heals in one retry: a 403 re-issues the token when the
+      // cookie was dropped (body copy) and the token lookup is cookie-first,
+      // so the second attempt carries the matching pair.
+      if (res.status === 403) {
+        try {
+          recoverCsrfFromText(await res.text());
+        } catch {
+          // body unreadable — the cookie re-read below may still have healed
         }
-        const text = await res.text();
-        const json = safeJsonParse(text);
-        if (json?.data?.tokens) {
-          saveAuthTokens(json.data.tokens);
+        const retryCsrf = getCsrfToken();
+        if (retryCsrf) {
+          res = await postRefresh(retryCsrf);
         }
-        return "ok";
-      })
+      }
+      if (!res.ok) {
+        // Only a real 401 auth rejection ends the session. 403 (CSRF),
+        // 429 and 5xx are transient and must not clear the cached user or
+        // bounce a logged-in browser to /login.
+        if (res.status === 401) {
+          clearAuthStorage();
+          return "invalid";
+        }
+        return "network";
+      }
+      const text = await res.text();
+      const json = safeJsonParse(text);
+      if (json?.data?.tokens) {
+        saveAuthTokens(json.data.tokens);
+      }
+      return "ok";
+    })()
       .catch(() => "network" as const)
       .finally(() => {
         refreshPromise = null;
