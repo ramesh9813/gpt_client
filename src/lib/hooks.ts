@@ -47,6 +47,20 @@ export const useMe = (enabled = true) => {
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 30,
     refetchOnMount: true,
+    // Paint the logged-in user INSTANTLY from the cached identity (name,
+    // email, role in the sidebar and chat chrome) while /api/me validates in
+    // the background. initialDataUpdatedAt: 0 marks the cache stale, so the
+    // network validation still runs on mount — only a confirmed UNAUTHORIZED
+    // clears it and ends the session.
+    initialData: (): ApiResponse<{ user: User }> | undefined => {
+      const cached = readCachedMeUser();
+      if (!cached) return undefined;
+      return {
+        success: true,
+        data: { user: cached as unknown as User },
+      } as ApiResponse<{ user: User }>;
+    },
+    initialDataUpdatedAt: 0,
   });
   // Step 2 persist: next reload paints the shell instantly from cache.
   useEffect(() => {

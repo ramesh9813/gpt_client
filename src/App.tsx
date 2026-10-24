@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Suspense, lazy, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { apiFetch, ApiResponse, getApiBase } from "./lib/api";
+import { apiFetch, ApiResponse, getApiBase, getCsrfToken, getInMemoryAccessToken, refreshSessionNow } from "./lib/api";
 import { type OpenRouterModel } from "./features/chat/hooks/modelCache";
 import { getCachedMeForShell, useMe, useSettings } from "./lib/hooks";
 import { applyTheme, clampAppFontSize, clampIconScale } from "./lib/theme";
@@ -34,7 +34,10 @@ const RequireAuth = ({ children }: { children: JSX.Element }) => {
     (error as { error?: { code?: string } } | null | undefined)?.error?.code ===
     "UNAUTHORIZED";
 
-  if (data?.data?.user) {
+  // With the cached identity seeding useMe, data is populated instantly —
+  // but a confirmed auth rejection must still end the session, so the
+  // unauthorized gate applies to the seeded data too.
+  if (data?.data?.user && !unauthorized) {
     return children;
   }
 
@@ -113,6 +116,25 @@ const App = () => {
       applyBrand(settings.brand);
     }
   }, [data]);
+
+  // Cold-open readiness: wake the hibernating free-tier backend the moment
+  // the app loads so its boot overlaps with the first real requests instead
+  // of serializing in front of them, and pre-warm the session refresh when a
+  // previous session exists — /api/me then skips its 401 → refresh → retry
+  // chain. Fire-and-forget on every route (the login POST lands on a warm
+  // server too).
+  useEffect(() => {
+    try {
+      void fetch(`${getApiBase()}/api/health`, {
+        credentials: "include",
+      }).catch(() => {});
+    } catch {
+      // ignore — the real request will surface any outage
+    }
+    if (!getInMemoryAccessToken() && getCsrfToken()) {
+      void refreshSessionNow();
+    }
+  }, []);
 
   // Coming back after being away: wake the hibernated free-tier backend and
   // silently refresh the session BEFORE the next prompt, so the first
