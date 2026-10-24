@@ -75,7 +75,10 @@ export const saveAuthTokens = (tokens?: {
 };
 
 export const getCsrfToken = () => {
-  if (inMemoryCsrfToken) return inMemoryCsrfToken;
+  // The readable cookie is the server's live truth — read it FIRST so the
+  // header always mirrors whatever the server last set (a stale in-memory
+  // copy after rotation by another tab/refresh is exactly what caused
+  // "Invalid CSRF token" on idle tabs).
   const match = document.cookie
     .split(";")
     .map((c) => c.trim())
@@ -87,11 +90,28 @@ export const getCsrfToken = () => {
       return match.slice("csrfToken=".length);
     }
   }
+  if (inMemoryCsrfToken) return inMemoryCsrfToken;
   try {
     return localStorage.getItem("csrfToken") || "";
   } catch {
     return "";
   }
+};
+
+// A CSRF 403 body carries a freshly minted token (the server re-issues on
+// mismatch) — adopt it so the immediate retry goes through.
+export const recoverCsrfFromText = (text: string): boolean => {
+  try {
+    const parsed = JSON.parse(text);
+    const fresh = parsed?.error?.csrfToken;
+    if (typeof fresh === "string" && fresh) {
+      setStoredCsrfToken(fresh);
+      return true;
+    }
+  } catch {
+    // no body token — the Set-Cookie may still have landed; caller re-reads
+  }
+  return false;
 };
 
 const shouldSendCsrf = (method?: string) => {
@@ -183,6 +203,31 @@ export const apiFetch = async <T>(
   }
 
   const isAuthRoute = path.includes("/api/auth/");
+
+  // CSRF drift on an idle tab: the 403 body carries a freshly minted token —
+  // adopt it and retry once so a long-open page never dead-ends on
+  // "Invalid CSRF token".
+  if (response.status === 403 && !isAuthRoute) {
+    const csrfText = await response.text();
+    if (recoverCsrfFromText(csrfText)) {
+      const retryHeaders = new Headers(init.headers || {});
+      const freshCsrf = getCsrfToken();
+      if (freshCsrf) retryHeaders.set("x-csrf-token", freshCsrf);
+      const retry = await fetch(`${API_BASE}${path}`, {
+        ...init,
+        headers: retryHeaders,
+        credentials: "include",
+      });
+      const retryText = await retry.text();
+      const retryJson = safeJsonParse(retryText);
+      if (!retry.ok) {
+        throw retryJson || { error: { message: retryText || retry.statusText } };
+      }
+      if (retryJson?.data?.tokens) saveAuthTokens(retryJson.data.tokens);
+      return (retryJson || ({} as T)) as T;
+    }
+    throw safeJsonParse(csrfText) || { error: { message: csrfText || response.statusText } };
+  }
 
   if (response.status === 401 && !isAuthRoute) {
     const refreshed = await refreshSession();

@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { apiFetch, getCsrfToken, getInMemoryAccessToken, refreshSessionNow, type ApiResponse } from "../../../lib/api";
+import { apiFetch, getCsrfToken, getInMemoryAccessToken, recoverCsrfFromText, refreshSessionNow, type ApiResponse } from "../../../lib/api";
 import {
   getActiveByok,
   getByokHeaders,
@@ -475,6 +475,12 @@ export const useChatStreaming = () => {
           body: streamBody,
           signal: controller.signal,
         });
+      // Idle-tab safety: no csrf token at all (blocked or cleared cookie) —
+      // refresh first; the server's header-only fallback lets refresh through
+      // and returns a fresh token.
+      if (!getCsrfToken()) {
+        await refreshSessionNow().catch(() => undefined);
+      }
       let response = await postStream();
       if (response.status === 401 && !isCancelled()) {
         // Session expired while away — refresh silently and retry once, so
@@ -482,6 +488,25 @@ export const useChatStreaming = () => {
         const refreshed = await refreshSessionNow().catch(() => "network" as const);
         if (refreshed === "ok" && !isCancelled()) {
           response = await postStream();
+        }
+      }
+      if (response.status === 403 && !isCancelled()) {
+        // CSRF drift on a long-open tab (token rotated by a refresh in
+        // another tab, privacy-capped cookie). The 403 body carries a fresh
+        // token — adopt it and retry once. An idle page must never dead-end
+        // the next chat turn on "Invalid CSRF token".
+        const csrfText = await response.text();
+        if (recoverCsrfFromText(csrfText)) {
+          response = await postStream();
+        } else {
+          let message = "Invalid CSRF token";
+          try {
+            const parsed = JSON.parse(csrfText);
+            message = parsed?.error?.message || parsed?.message || message;
+          } catch {
+            // keep default
+          }
+          throw new Error(message);
         }
       }
 
