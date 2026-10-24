@@ -1,10 +1,15 @@
 // File chat helpers — client side.
-// 20MB per file, 5 files max. Reads text/code directly; PDFs via pdfjs-dist
-// text extraction, audio via on-device Whisper transcription.
+// 20MB per file, 5 files max. Text/code read directly; PDFs are sent AS-IS
+// as native base64 documents (no text extraction); audio rides as base64
+// for the model.
 
 export const MAX_FILE_SIZE = 20 * 1024 * 1024;
 export const MAX_FILES = 5;
 export const MAX_FILE_NAME_LENGTH = 255;
+// Native PDF attach cap: providers' inline-document limits sit around here
+// (base64 of 10MB ≈ 13.4MB payload). Bigger PDFs upload to storage (viewer
+// works) but their bytes are not attached to the model.
+export const PDF_NATIVE_MAX_BYTES = 10 * 1024 * 1024;
 
 export type FileAttachment = {
   name: string;
@@ -108,52 +113,28 @@ const readAsText = (file: File): Promise<string> =>
     r.readAsText(file);
   });
 
-const readAsArrayBuffer = (file: File): Promise<ArrayBuffer> =>
-  new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result as ArrayBuffer);
-    r.onerror = () => reject(new Error("Failed to read file"));
-    r.readAsArrayBuffer(file);
-  });
-
-// Real PDF text extraction via pdfjs-dist (handles compressed/encoded PDFs
-// the naive byte-decode below cannot read). Lazy-imported so the pdf chunk
-// only loads on first PDF attach. Caps pages for mobile safety.
-const extractPdfText = async (buf: ArrayBuffer): Promise<string> => {
-  const pdfjs = (await import("pdfjs-dist")) as any;
-  if (!pdfjs?.GlobalWorkerOptions?.workerSrc) {
-    const workerMod = (await import(
-      "pdfjs-dist/build/pdf.worker.min.mjs?url"
-    )) as any;
-    pdfjs.GlobalWorkerOptions.workerSrc =
-      workerMod?.default ?? workerMod;
-  }
-  const doc = await pdfjs.getDocument({ data: new Uint8Array(buf.slice(0)) }).promise;
-  try {
-    const parts: string[] = [];
-    const pages = Math.min(doc.numPages ?? 0, 50);
-    for (let i = 1; i <= pages; i++) {
-      const page = await doc.getPage(i);
-      try {
-        const tc = await page.getTextContent();
-        const line = (tc?.items ?? [])
-          .map((it: any) => (typeof it?.str === "string" ? it.str : ""))
-          .join(" ");
-        if (line.trim()) parts.push(line);
-      } finally {
-        try {
-          page.cleanup?.();
-        } catch {}
-      }
-      if (parts.join("\n").length >= 80_000) break;
-    }
-    return parts.join("\n\n").replace(/[ \t]+\n/g, "\n").trim();
-  } finally {
+// PDF as-is: the ORIGINAL document bytes (base64) ride to the model as a
+// native file part — the model reads the real PDF, layout and all. Pickers
+// sometimes lose the mime; the prefix is normalized to application/pdf.
+const readPdfDataUrl = (file: File): Promise<string | null> =>
+  new Promise((resolve) => {
     try {
-      await doc.destroy?.();
-    } catch {}
-  }
-};
+      const r = new FileReader();
+      r.onload = () => {
+        const v = String(r.result ?? "");
+        if (!v.startsWith("data:")) return resolve(null);
+        resolve(
+          v.startsWith("data:application/pdf")
+            ? v
+            : `data:application/pdf;base64,${v.slice(v.indexOf(",") + 1)}`
+        );
+      };
+      r.onerror = () => resolve(null);
+      r.readAsDataURL(file);
+    } catch {
+      resolve(null);
+    }
+  });
 
 // File-attached audio is NEVER transcribed here (mic input still uses the
 // on-device Whisper pipeline in lib/transcribe): picked audio goes straight
@@ -225,32 +206,26 @@ export const readFileAttachment = async (file: File): Promise<FileAttachment> =>
     };
   }
 
-  // PDF: real text extraction via pdfjs-dist first; naive byte-decode, then
-  // meta note, as fallbacks.
+  // PDF: send AS-IS. The original bytes attach as a native document for the
+  // model to read itself — no client-side text extraction. Oversized or
+  // unreadable PDFs carry an honest meta note instead (bytes still upload to
+  // storage, so the side-panel viewer works).
   if (mime === "application/pdf" || extOf(name) === "pdf") {
-    try {
-      const buf = await readAsArrayBuffer(file);
-      try {
-        const text = await extractPdfText(buf);
-        if (text.trim().length >= 24) {
-          const cleaned = text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
-          return { name, mime, size, content: `[PDF: ${name}]\n${cleaned.slice(0, 80_000)}` };
-        }
-      } catch {
-        // fall through to naive decode below
+    const kb = Math.round(size / 1024);
+    if (size <= PDF_NATIVE_MAX_BYTES) {
+      const dataUrl = await readPdfDataUrl(file);
+      if (dataUrl) {
+        return {
+          name,
+          mime: "application/pdf",
+          size,
+          content: `[PDF: ${name} (${kb}KB) — attached as the original document; read the attached file natively]`,
+          dataUrl,
+        };
       }
-      const dec = new TextDecoder("utf-8", { fatal: false }).decode(buf);
-      // Naive: extract strings between parentheses / after Tj — good enough for chat context
-      // If mostly binary, keep short placeholder.
-      if (looksBinary(dec) || dec.trim().length < 24) {
-        return { name, mime, size, content: `[PDF: ${name} (${Math.round(size / 1024)}KB) — binary PDF, text could not be extracted here; ask about the document and include key excerpts if needed]` };
-      }
-      // Strip nulls/control, keep first 80k
-      const cleaned = dec.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
-      return { name, mime, size, content: cleaned.slice(0, 80_000) };
-    } catch {
-      return { name, mime, size, content: `[PDF: ${name} (${Math.round(size / 1024)}KB)]` };
+      return { name, mime: "application/pdf", size, content: `[PDF: ${name} (${kb}KB) — could not be read on this device; re-send the file if its content is needed]` };
     }
+    return { name, mime: "application/pdf", size, content: `[PDF: ${name} (${kb}KB) — over the 10MB native-attach limit, contents not sent; ask the user to send a smaller copy if the document's content is needed]` };
   }
 
   // Text/code: direct read
